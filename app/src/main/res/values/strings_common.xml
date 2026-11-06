@@ -129,6 +129,12 @@
     <string name="common_photo_gallery">Choisir depuis la galerie</string>
     <string name="common_photo_gallery_sub">Parmi les images du téléphone</string>
     <string name="common_photo_remove">Supprimer la photo</string>
+    <string name="common_photos_add">Ajouter des photos</string>
+    <plurals name="common_photo_gallery_up_to">
+        <item quantity="one">Jusqu\'à %1$d photo à la fois</item>
+        <item quantity="many">Jusqu\'à %1$d photos à la fois</item>
+        <item quantity="other">Jusqu\'à %1$d photos à la fois</item>
+    </plurals>
     <string name="common_label_quartier">Quartier</string>
     <string name="common_search_quartier">Rechercher un quartier</string>
     <string name="common_no_quartier">Aucun quartier</string>

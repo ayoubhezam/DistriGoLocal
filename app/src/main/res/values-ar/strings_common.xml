@@ -143,6 +143,15 @@
     <string name="common_photo_gallery">الاختيار من المعرض</string>
     <string name="common_photo_gallery_sub">من صور الهاتف</string>
     <string name="common_photo_remove">حذف الصورة</string>
+    <string name="common_photos_add">إضافة صور</string>
+    <plurals name="common_photo_gallery_up_to">
+        <item quantity="zero">من صور الهاتف</item>
+        <item quantity="one">صورة واحدة في كل مرة</item>
+        <item quantity="two">حتى صورتين في كل مرة</item>
+        <item quantity="few">حتى \u2068%1$d\u2069 صور في كل مرة</item>
+        <item quantity="many">حتى \u2068%1$d\u2069 صورة في كل مرة</item>
+        <item quantity="other">حتى \u2068%1$d\u2069 صورة في كل مرة</item>
+    </plurals>
     <string name="common_label_quartier">الحي</string>
     <string name="common_search_quartier">البحث عن حي</string>
     <string name="common_no_quartier">بدون حي</string>

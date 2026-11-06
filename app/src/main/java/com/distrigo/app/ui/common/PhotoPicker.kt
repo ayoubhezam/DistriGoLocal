@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,6 +33,7 @@ import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
 import kotlinx.coroutines.launch
 import java.io.File
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
 
@@ -85,6 +87,37 @@ fun rememberPhotoPicker(
 }
 
 /**
+ * [rememberPhotoPicker] for a gallery of several photos (a product's): the gallery lets up to [limit] be picked at
+ * once, the camera still takes one. [onPicked] gets the stored references, in the order picked, and how many images
+ * could not be read; [onBusy] is true while they are being stored, which takes a moment for five camera photos.
+ */
+@Composable
+fun rememberPhotosPicker(
+    limit    : Int,
+    onPicked : (refs: List<String>, unreadable: Int) -> Unit,
+    onError  : (String) -> Unit,
+    onBusy   : (Boolean) -> Unit = {},
+): PhotoPicker {
+    val context = LocalContext.current
+    return rememberSourcePicker(
+        title           = stringResource(R.string.common_photos_add),
+        gallerySubtitle = if (limit > 1) pluralStringResource(R.plurals.common_photo_gallery_up_to, limit, limit)
+                          else stringResource(R.string.common_photo_gallery_sub),
+        galleryLimit    = limit,
+        onError         = onError,
+        onRemove        = null,
+    ) { uris ->
+        onBusy(true)
+        try {
+            val refs = uris.mapNotNull { ImageCapture.captureToStore(context, it) }
+            onPicked(refs, uris.size - refs.size)
+        } finally {
+            onBusy(false)
+        }
+    }
+}
+
+/**
  * The camera-or-gallery choice on its own, for a picture that is not an entity's photo (the account's profile
  * picture): [onImage] receives what was picked or taken, and may read it until it returns: a camera file is deleted
  * then. [onRemove], when given, adds « Supprimer la photo » under the two sources.
@@ -95,6 +128,26 @@ fun rememberPhotoSourcePicker(
     onError  : (String) -> Unit,
     onRemove : (() -> Unit)? = null,
     onImage  : suspend (Uri) -> Unit,
+): PhotoPicker = rememberSourcePicker(
+    title           = title,
+    gallerySubtitle = stringResource(R.string.common_photo_gallery_sub),
+    galleryLimit    = 1,
+    onError         = onError,
+    onRemove        = onRemove,
+) { uris -> uris.firstOrNull()?.let { onImage(it) } }
+
+/**
+ * The sheet and its launchers. [galleryLimit] above one opens Android's photo picker for that many at once; one keeps
+ * the plain « choose a file » the app has always opened. [onImages] may read what it gets until it returns.
+ */
+@Composable
+private fun rememberSourcePicker(
+    title           : String,
+    gallerySubtitle : String,
+    galleryLimit    : Int,
+    onError         : (String) -> Unit,
+    onRemove        : (() -> Unit)?,
+    onImages        : suspend (List<Uri>) -> Unit,
 ): PhotoPicker {
     val context = LocalContext.current
     val scope   = rememberCoroutineScope()
@@ -102,11 +155,11 @@ fun rememberPhotoSourcePicker(
     val cameraRefused = stringResource(R.string.common_photo_camera_refused)
     var sheetOpen by remember { mutableStateOf(false) }
 
-    /** Hands the picked image to the caller, then drops the camera's file. */
-    fun deliver(uri: Uri, thenDelete: File? = null) {
+    /** Hands the picked images to the caller, then drops the camera's file. */
+    fun deliver(uris: List<Uri>, thenDelete: File? = null) {
         scope.launch {
             try {
-                onImage(uri)
+                onImages(uris)
             } finally {
                 thenDelete?.delete()
             }
@@ -114,7 +167,14 @@ fun rememberPhotoSourcePicker(
     }
 
     val gallery = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { deliver(it) }
+        uri?.let { deliver(listOf(it)) }
+    }
+    // Remembered per limit: a new contract instance on every composition would register the launcher again each time.
+    // At least two, which the contract requires; where Android has no photo picker the limit is not enforced, and the
+    // caller refuses what does not fit.
+    val manyContract = remember(galleryLimit) { ActivityResultContracts.PickMultipleVisualMedia(galleryLimit.coerceAtLeast(2)) }
+    val galleryMany = rememberLauncherForActivityResult(manyContract) { uris ->
+        if (uris.isNotEmpty()) deliver(uris)
     }
 
     // The file the camera writes into, kept across the launch so the result can be read from it. Saveable: a phone
@@ -125,7 +185,7 @@ fun rememberPhotoSourcePicker(
         pendingPath = null
         when {
             file == null -> Unit
-            taken        -> deliver(FileProvider.getUriForFile(context, authority(context), file), thenDelete = file)
+            taken        -> deliver(listOf(FileProvider.getUriForFile(context, authority(context), file)), thenDelete = file)
             // Cancelled: the camera app wrote nothing worth keeping.
             else         -> file.delete()
         }
@@ -150,6 +210,7 @@ fun rememberPhotoSourcePicker(
     if (sheetOpen) {
         PhotoSourceSheet(
             title     = title,
+            gallerySubtitle = gallerySubtitle,
             onCamera  = {
                 sheetOpen = false
                 if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
@@ -158,7 +219,14 @@ fun rememberPhotoSourcePicker(
                     permission.launch(Manifest.permission.CAMERA)
                 }
             },
-            onGallery = { sheetOpen = false; gallery.launch("image/*") },
+            onGallery = {
+                sheetOpen = false
+                if (galleryLimit > 1) {
+                    galleryMany.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                } else {
+                    gallery.launch("image/*")
+                }
+            },
             onRemove  = onRemove?.let { remove -> { sheetOpen = false; remove() } },
             onDismiss = { sheetOpen = false }
         )
@@ -172,6 +240,7 @@ fun rememberPhotoSourcePicker(
 @Composable
 private fun PhotoSourceSheet(
     title: String,
+    gallerySubtitle: String,
     onCamera: () -> Unit,
     onGallery: () -> Unit,
     onRemove: (() -> Unit)?,
@@ -194,7 +263,7 @@ private fun PhotoSourceSheet(
                 modifier = Modifier.padding(bottom = DsSpacing.sm)
             )
             SourceRow(Icons.Default.PhotoCamera, stringResource(R.string.common_photo_take), stringResource(R.string.common_photo_take_sub), onCamera)
-            SourceRow(Icons.Default.PhotoLibrary, stringResource(R.string.common_photo_gallery), stringResource(R.string.common_photo_gallery_sub), onGallery)
+            SourceRow(Icons.Default.PhotoLibrary, stringResource(R.string.common_photo_gallery), gallerySubtitle, onGallery)
             if (onRemove != null) {
                 SourceRow(Icons.Default.Delete, stringResource(R.string.common_photo_remove), subtitle = null, onClick = onRemove, danger = true)
             }

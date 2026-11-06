@@ -91,7 +91,7 @@
     <string name="products_photo_delete_title">Supprimer cette photo ?</string>
     <string name="products_photo_delete_cover">C\'est la photo principale. La suivante prendra sa place.</string>
     <string name="products_photo_delete_body">Cette photo sera retirée du produit.</string>
-    <string name="products_photo_not_added">Photo non ajoutée</string>
+    <string name="products_photo_not_added">Photos du produit</string>
     <string name="products_info_card">Informations du produit</string>
     <string name="products_label_product">Produit</string>
     <string name="products_label_barcode">Code-barres</string>
@@ -132,9 +132,6 @@
     <string name="products_price_gap">Écart vente − achat</string>
     <string name="products_price_row_meta">· %1$s · qté %2$s</string>
     <string name="products_unload_failed">Le déchargement a échoué.</string>
-    <string name="products_image_invalid">Image invalide</string>
-    <string name="products_image_duplicate">Cette photo est déjà dans la galerie</string>
-    <string name="products_image_max">Maximum %1$d photos par produit</string>
     <string name="products_barcodes_other">Autres codes-barres</string>
     <string name="products_barcodes_add_code">Ajouter un code</string>
     <string name="products_barcodes_cd_scan">Scanner un autre code-barres</string>
@@ -150,8 +147,6 @@
     <string name="products_barcodes_cd_make_main">Définir comme code principal</string>
     <string name="products_barcodes_cd_remove">Retirer ce code-barres</string>
     <string name="products_photo_n_of">Photo %1$d sur %2$d</string>
-    <string name="products_photos_max_hint">Maximum %1$d photos atteint · appuyez sur ★ pour définir la photo principale</string>
-    <string name="products_photos_count_hint">%1$d/%2$d photos · appuyez sur ★ pour définir la photo principale</string>
     <string name="products_photo_cover">Photo principale</string>
     <string name="products_photo_cd_make_cover">Définir comme photo principale</string>
     <string name="products_photo_cd_delete">Supprimer cette photo</string>
@@ -160,4 +155,24 @@
     <string name="products_photo_unavailable">Photo indisponible</string>
     <string name="products_scan_hint">Placez le code-barres dans le cadre</string>
     <string name="products_scan_permission">Autorisation caméra requise</string>
+    <!-- The gallery: several photos at once, dots, the buttons of « Gérer les photos » -->
+    <string name="products_photos_adding">Ajout des photos…</string>
+    <string name="products_photo_delete_short">Supprimer</string>
+    <string name="products_photos_count">%1$d/%2$d photos</string>
+    <string name="products_photos_max">Maximum %1$d photos atteint</string>
+    <plurals name="products_photos_unreadable">
+        <item quantity="one">%1$d image illisible n\'a pas été ajoutée.</item>
+        <item quantity="many">%1$d images illisibles n\'ont pas été ajoutées.</item>
+        <item quantity="other">%1$d images illisibles n\'ont pas été ajoutées.</item>
+    </plurals>
+    <plurals name="products_photos_duplicates">
+        <item quantity="one">%1$d photo déjà dans la galerie n\'a pas été ajoutée.</item>
+        <item quantity="many">%1$d photos déjà dans la galerie n\'ont pas été ajoutées.</item>
+        <item quantity="other">%1$d photos déjà dans la galerie n\'ont pas été ajoutées.</item>
+    </plurals>
+    <plurals name="products_photos_over_limit">
+        <item quantity="one">%1$d photo n\'a pas été ajoutée : %2$d au maximum par produit.</item>
+        <item quantity="many">%1$d photos n\'ont pas été ajoutées : %2$d au maximum par produit.</item>
+        <item quantity="other">%1$d photos n\'ont pas été ajoutées : %2$d au maximum par produit.</item>
+    </plurals>
 </resources>

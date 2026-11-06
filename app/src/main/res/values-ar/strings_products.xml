@@ -91,7 +91,7 @@
     <string name="products_photo_delete_title">حذف هذه الصورة؟</string>
     <string name="products_photo_delete_cover">هذه هي الصورة الرئيسية. ستحلّ التالية محلّها.</string>
     <string name="products_photo_delete_body">ستُزال هذه الصورة من المنتج.</string>
-    <string name="products_photo_not_added">لم تُضَف الصورة</string>
+    <string name="products_photo_not_added">صور المنتج</string>
     <string name="products_info_card">معلومات المنتج</string>
     <string name="products_label_product">المنتج</string>
     <string name="products_label_barcode">الكودبار</string>
@@ -135,9 +135,6 @@
     <string name="products_price_gap">الفرق بين البيع والشراء</string>
     <string name="products_price_row_meta">· \u2068%1$s\u2069 · الكمية \u2068%2$s\u2069</string>
     <string name="products_unload_failed">فشل التفريغ.</string>
-    <string name="products_image_invalid">صورة غير صالحة</string>
-    <string name="products_image_duplicate">هذه الصورة موجودة في المعرض</string>
-    <string name="products_image_max">\u2068%1$d\u2069 صور كحد أقصى لكل منتج</string>
     <string name="products_barcodes_other">كودبارات أخرى</string>
     <string name="products_barcodes_add_code">إضافة رمز</string>
     <string name="products_barcodes_cd_scan">مسح كودبار آخر</string>
@@ -156,8 +153,6 @@
     <string name="products_barcodes_cd_make_main">جعله الكودبار الرئيسي</string>
     <string name="products_barcodes_cd_remove">إزالة هذا الكودبار</string>
     <string name="products_photo_n_of">الصورة \u2068%1$d\u2069 من \u2068%2$d\u2069</string>
-    <string name="products_photos_max_hint">تم بلوغ الحد الأقصى \u2068%1$d\u2069 صور · اضغط على ★ لتعيين الصورة الرئيسية</string>
-    <string name="products_photos_count_hint">\u2068%1$d\u2069/\u2068%2$d\u2069 صور · اضغط على ★ لتعيين الصورة الرئيسية</string>
     <string name="products_photo_cover">الصورة الرئيسية</string>
     <string name="products_photo_cd_make_cover">تعيين كصورة رئيسية</string>
     <string name="products_photo_cd_delete">حذف هذه الصورة</string>
@@ -166,4 +161,33 @@
     <string name="products_photo_unavailable">الصورة غير متوفرة</string>
     <string name="products_scan_hint">ضع الكودبار داخل الإطار</string>
     <string name="products_scan_permission">يلزم إذن الكاميرا</string>
+    <!-- The gallery: several photos at once, dots, the buttons of « Gérer les photos » -->
+    <string name="products_photos_adding">جارٍ إضافة الصور…</string>
+    <string name="products_photo_delete_short">حذف</string>
+    <string name="products_photos_count">\u2068%1$d\u2069/\u2068%2$d\u2069 صور</string>
+    <string name="products_photos_max">تم بلوغ الحد الأقصى \u2068%1$d\u2069 صور</string>
+    <plurals name="products_photos_unreadable">
+        <item quantity="zero">لم تُضَف أي صورة غير قابلة للقراءة.</item>
+        <item quantity="one">لم تُضَف صورة واحدة غير قابلة للقراءة.</item>
+        <item quantity="two">لم تُضَف صورتان غير قابلتين للقراءة.</item>
+        <item quantity="few">لم تُضَف \u2068%1$d\u2069 صور غير قابلة للقراءة.</item>
+        <item quantity="many">لم تُضَف \u2068%1$d\u2069 صورة غير قابلة للقراءة.</item>
+        <item quantity="other">لم تُضَف \u2068%1$d\u2069 صورة غير قابلة للقراءة.</item>
+    </plurals>
+    <plurals name="products_photos_duplicates">
+        <item quantity="zero">لم تُضَف أي صورة موجودة في المعرض.</item>
+        <item quantity="one">لم تُضَف صورة واحدة موجودة في المعرض.</item>
+        <item quantity="two">لم تُضَف صورتان موجودتان في المعرض.</item>
+        <item quantity="few">لم تُضَف \u2068%1$d\u2069 صور موجودة في المعرض.</item>
+        <item quantity="many">لم تُضَف \u2068%1$d\u2069 صورة موجودة في المعرض.</item>
+        <item quantity="other">لم تُضَف \u2068%1$d\u2069 صورة موجودة في المعرض.</item>
+    </plurals>
+    <plurals name="products_photos_over_limit">
+        <item quantity="zero">لم تُضَف أي صورة: \u2068%2$d\u2069 صور كحد أقصى لكل منتج.</item>
+        <item quantity="one">لم تُضَف صورة واحدة: \u2068%2$d\u2069 صور كحد أقصى لكل منتج.</item>
+        <item quantity="two">لم تُضَف صورتان: \u2068%2$d\u2069 صور كحد أقصى لكل منتج.</item>
+        <item quantity="few">لم تُضَف \u2068%1$d\u2069 صور: \u2068%2$d\u2069 صور كحد أقصى لكل منتج.</item>
+        <item quantity="many">لم تُضَف \u2068%1$d\u2069 صورة: \u2068%2$d\u2069 صور كحد أقصى لكل منتج.</item>
+        <item quantity="other">لم تُضَف \u2068%1$d\u2069 صورة: \u2068%2$d\u2069 صور كحد أقصى لكل منتج.</item>
+    </plurals>
 </resources>

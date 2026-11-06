@@ -3,7 +3,6 @@ package com.distrigo.app.ui.products
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -12,9 +11,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateCentroidSize
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -23,9 +20,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
@@ -39,7 +33,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -58,7 +51,6 @@ import com.distrigo.app.ui.common.EntityImage
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
 import com.distrigo.app.ui.designsystem.DsTextSize
-import kotlinx.coroutines.launch
 import kotlin.math.abs
 import com.distrigo.app.ui.designsystem.DsBrand
 import androidx.compose.ui.res.stringResource
@@ -110,11 +102,9 @@ fun ProductImageViewer(
         initialPage = initialIndex.coerceIn(0, images.size - 1),
         pageCount   = { images.size }
     )
-    val stripState = rememberLazyListState()
 
     var zoom by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
-    val scope = rememberCoroutineScope()
 
     fun resetZoom() { zoom = 1f; offset = Offset.Zero }
 
@@ -122,7 +112,6 @@ fun ProductImageViewer(
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.currentPage }.collect { page ->
             resetZoom()
-            if (page < images.size) stripState.animateScrollToItem(page)
         }
     }
 
@@ -315,53 +304,20 @@ fun ProductImageViewer(
             }
         }
 
-        // ── Bottom strip ──
-        // Hidden while zoomed: the photo is the whole point at that moment, and the strip would
-        // sit over the part being examined.
+        // ── Dots ──
+        // Hidden while zoomed: the photo is the whole point at that moment. One per photo, like the detail screen's.
         if (images.size > 1 && zoom <= 1f) {
-            LazyRow(
-                state = stripState,
-                horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
-                contentPadding = PaddingValues(horizontal = DsSpacing.lg),
+            GalleryDots(
+                count    = images.size,
+                current  = pagerState.currentPage.coerceIn(0, images.size - 1),
+                active   = Color.White,
+                inactive = Color.White.copy(alpha = 0.35f),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
                     .padding(bottom = DsSpacing.xl)
                     .fillMaxWidth()
-            ) {
-                items(images, key = { it.id }) { image ->
-                    val index = images.indexOf(image)
-                    val active = index == pagerState.currentPage
-                    Box(
-                        modifier = Modifier
-                            .size(52.dp)
-                            .clip(DsShapes.medium)
-                            .background(Color.White.copy(alpha = 0.08f))
-                            .border(
-                                width = if (active) 2.dp else 1.dp,
-                                color = if (active) Color.White else Color.White.copy(alpha = 0.2f),
-                                shape = DsShapes.medium
-                            )
-                            .graphicsLayer { alpha = if (active) 1f else 0.55f }
-                            .clickable { scope.launch { pagerState.animateScrollToPage(index) } },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        EntityImage(
-                            ref                = image.ref,
-                            contentDescription = null,
-                            contentScale       = ContentScale.Crop,
-                            modifier           = Modifier.fillMaxSize().clip(DsShapes.medium)
-                        ) {
-                            Icon(
-                                Icons.Default.ImageNotSupported,
-                                contentDescription = null,
-                                tint     = Color.White.copy(alpha = 0.4f),
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-                }
-            }
+            )
         }
     }
 }

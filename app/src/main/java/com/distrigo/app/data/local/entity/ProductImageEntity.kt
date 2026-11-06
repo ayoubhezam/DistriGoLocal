@@ -58,9 +58,7 @@ data class ProductImageEntity(
  * The ceiling on photos per product.
  *
  * Five is a product decision, not a technical limit, and it is enforced in the repository rather
- * than only in the UI so no caller can exceed it. It also keeps the thumbnail strip bounded: at
- * 384 dp — the width of the device this was built against — a centred strip fits exactly five
- * 50 dp thumbnails, so five is the largest count that needs no scrolling on the common case while
- * the strip still scrolls for narrower screens.
+ * than only in the UI so no caller can exceed it, however many are picked at once. The gallery
+ * shows one dot per photo, and the photo picker is asked for no more than the room left.
  */
 const val MAX_IMAGES_PER_PRODUCT = 5

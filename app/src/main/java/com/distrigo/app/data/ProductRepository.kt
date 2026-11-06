@@ -591,37 +591,34 @@ class ProductRepository(
         db.productImageDao().getForProduct(productId).map { it.toProductImage() }
 
     /**
-     * Appends [ref] to the product's gallery.
+     * Adds photos to a product's gallery, in the order given, in one transaction: several picked at once from the
+     * gallery land together or not at all.
      *
-     * Refuses past [MAX_IMAGES_PER_PRODUCT]. Adding a photo the product already has is reported
-     * rather than duplicated -- with content addressing two identical photos are the same
-     * reference, and a gallery showing one picture twice is never what was meant.
+     * Stops at [MAX_IMAGES_PER_PRODUCT]. A photo the product already has is not added twice -- with content addressing
+     * two identical photos are the same reference, and a gallery showing one picture twice is never what was meant.
+     * The returned plan says how many were left out, and why, for the screen to tell the user.
      */
-    suspend fun addProductImage(productId: Int, ref: String): Map<String, Any> {
-        if (ref.isBlank()) return mapOf("error" to AppStrings.write(UiText.Res(R.string.products_image_invalid)))
-        var result: Map<String, Any> = mapOf("message" to "Photo ajoutée")
+    suspend fun addProductImages(productId: Int, refs: List<String>): ImageAddPlan {
+        var plan = ImageAddPlan(emptyList(), 0, 0)
         db.withTransaction {
             val dao = db.productImageDao()
-            if (dao.findByRef(productId, ref) != null) {
-                result = mapOf("error" to AppStrings.write(UiText.Res(R.string.products_image_duplicate)))
-                return@withTransaction
-            }
             val existing = dao.getForProduct(productId)
-            if (existing.size >= MAX_IMAGES_PER_PRODUCT) {
-                result = mapOf("error" to AppStrings.write(UiText.Res(R.string.products_image_max, MAX_IMAGES_PER_PRODUCT)))
-                return@withTransaction
-            }
-            dao.insert(
-                ProductImageEntity(
-                    product_id = productId,
-                    image_ref  = ref,
-                    position   = existing.size,
-                    created_at = java.time.Instant.now().toString()
+            plan = planImageAdds(existing.map { it.image_ref }, refs.filter { it.isNotBlank() }, MAX_IMAGES_PER_PRODUCT)
+            if (plan.toAdd.isEmpty()) return@withTransaction
+            val now = java.time.Instant.now().toString()
+            plan.toAdd.forEachIndexed { i, ref ->
+                dao.insert(
+                    ProductImageEntity(
+                        product_id = productId,
+                        image_ref  = ref,
+                        position   = existing.size + i,
+                        created_at = now
+                    )
                 )
-            )
+            }
             syncCover(productId)
         }
-        return result
+        return plan
     }
 
     /**

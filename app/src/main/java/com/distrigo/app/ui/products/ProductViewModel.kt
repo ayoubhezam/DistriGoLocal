@@ -47,6 +47,8 @@ import com.distrigo.app.ui.purchases.toListQuery as toStep2Query
 import com.distrigo.app.data.local.paging.PriceColumn
 import com.distrigo.app.R
 import com.distrigo.app.core.text.UiText
+import com.distrigo.app.core.text.AppStrings
+import com.distrigo.app.data.local.entity.MAX_IMAGES_PER_PRODUCT
 
 @HiltViewModel
 class ProductViewModel @Inject constructor(
@@ -118,24 +120,36 @@ class ProductViewModel @Inject constructor(
     fun observeGalleryFor(productId: Int) { _galleryProductId.value = productId }
 
     /**
-     * Adds a picked photo to a product's gallery.
+     * Adds picked photos to a product's gallery: one from the camera, several from the gallery.
      *
-     * [onError] carries the repository's own message — the gallery is full, or the product already
-     * has this exact photo — so the screen can say which it was rather than just failing.
+     * [onError] says what was left out and why — unreadable, already in the gallery, past the
+     * ceiling — so a batch that partly lands says so rather than quietly dropping the rest.
      */
-    fun addProductImage(
-        productId : Int,
-        ref       : String,
-        onError   : (String) -> Unit = {}
+    fun addProductImages(
+        productId  : Int,
+        refs       : List<String>,
+        unreadable : Int,
+        onError    : (String) -> Unit = {}
     ) {
         viewModelScope.launch {
             try {
-                val result = repository.addProductImage(productId, ref)
-                (result["error"] as? String)?.let(onError)
+                val plan = if (refs.isEmpty()) null else repository.addProductImages(productId, refs)
+                photosLeftOut(unreadable, plan)?.let(onError)
             } catch (e: Exception) {
                 onError(userMessage(e))
             }
         }
+    }
+
+    private fun photosLeftOut(unreadable: Int, plan: com.distrigo.app.data.model.ImageAddPlan?): String? {
+        val parts = buildList {
+            if (unreadable > 0) add(UiText.Plural(R.plurals.products_photos_unreadable, unreadable))
+            if (plan != null && plan.duplicates > 0) add(UiText.Plural(R.plurals.products_photos_duplicates, plan.duplicates))
+            if (plan != null && plan.overLimit > 0) {
+                add(UiText.Plural(R.plurals.products_photos_over_limit, plan.overLimit, listOf(plan.overLimit, MAX_IMAGES_PER_PRODUCT)))
+            }
+        }
+        return if (parts.isEmpty()) null else AppStrings.write(UiText.Joined(parts, separator = "\n"))
     }
 
     fun deleteProductImage(imageId: Int, onError: (String) -> Unit = {}) {

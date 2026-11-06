@@ -41,7 +41,7 @@ import com.distrigo.app.data.model.ProductImage
 import com.distrigo.app.data.model.StockMovement
 import com.distrigo.app.data.time.BusinessDates
 import com.distrigo.app.ui.common.EntityImage
-import com.distrigo.app.ui.common.rememberPhotoPicker
+import com.distrigo.app.ui.common.rememberPhotosPicker
 import com.distrigo.app.ui.common.bidiIsolate
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
@@ -103,16 +103,22 @@ fun ProductDetailScreen(
     var viewerIndex   by remember { mutableStateOf<Int?>(null) }
     var pendingDelete by remember { mutableStateOf<ProductImage?>(null) }
     var galleryError  by remember { mutableStateOf<String?>(null) }
+    var addingPhotos  by remember { mutableStateOf(false) }
 
     // Saved like any pager state: Back from the movements or the form returns to the tab that was open.
     val pagerState    = rememberPagerState(pageCount = { 2 })
     val tabScope      = rememberCoroutineScope()
     var showStockInfo by remember { mutableStateOf(false) }
 
-    // Camera or gallery, the same choice the form offers — see PhotoPicker.
-    val photoPicker = rememberPhotoPicker(
-        onPicked = { ref -> viewModel.addProductImage(product.id, ref) { message -> galleryError = message } },
-        onError  = { message -> galleryError = message }
+    // Camera or gallery, the same choice the form offers — see PhotoPicker — but the gallery takes
+    // several at once, as many as the gallery still has room for.
+    val photoPicker = rememberPhotosPicker(
+        limit    = (com.distrigo.app.data.local.entity.MAX_IMAGES_PER_PRODUCT - images.size).coerceAtLeast(1),
+        onPicked = { refs, unreadable ->
+            viewModel.addProductImages(product.id, refs, unreadable) { message -> galleryError = message }
+        },
+        onError  = { message -> galleryError = message },
+        onBusy   = { busy -> addingPhotos = busy }
     )
 
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -217,6 +223,7 @@ fun ProductDetailScreen(
         ProductGallery(
             images        = images,
             manageMode    = manageMode,
+            adding        = addingPhotos,
             onOpenViewer  = { index -> viewerIndex = index },
             onAddPhoto    = license.guarded { photoPicker.choose() },
             onDeletePhoto = { image -> license.runOrExplain { pendingDelete = image } },
@@ -320,7 +327,7 @@ fun ProductDetailScreen(
             onDismissRequest = { pendingDelete = null },
             title = { Text(stringResource(R.string.products_photo_delete_title)) },
             text  = {
-                // The thumbnail is the point of the confirmation: a strip of near-identical
+                // The thumbnail is the point of the confirmation: a gallery of near-identical
                 // product shots gives the user nothing else to check the choice against.
                 Column {
                     Box(
