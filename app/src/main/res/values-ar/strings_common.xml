@@ -142,6 +142,7 @@
     <string name="common_photo_take_sub">بالكاميرا</string>
     <string name="common_photo_gallery">الاختيار من المعرض</string>
     <string name="common_photo_gallery_sub">من صور الهاتف</string>
+    <string name="common_photo_remove">حذف الصورة</string>
     <string name="common_label_quartier">الحي</string>
     <string name="common_search_quartier">البحث عن حي</string>
     <string name="common_no_quartier">بدون حي</string>

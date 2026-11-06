@@ -10,8 +10,11 @@ import java.io.File
  * list of avatars once per row). A stored photo is named by its content (`<sha256>.jpg`), so its path never stands for
  * other bytes and the date adds nothing. Any other file — the business logo, rewritten under one name — returns null
  * here and keeps Coil's key, date included. Coil still adds the requested size to the key.
+ *
+ * [dirs]: every folder whose files are named by their content — the photo store's, and the account's picture
+ * (AccountPhotoStore).
  */
-class StoredImageKeyer(private val imagesDir: File) : Keyer<File> {
+class StoredImageKeyer(private vararg val dirs: File) : Keyer<File> {
     override fun key(data: File, options: Options): String? =
-        if (data.parentFile == imagesDir) data.path else null
+        if (dirs.any { data.parentFile == it }) data.path else null
 }

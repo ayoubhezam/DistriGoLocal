@@ -205,6 +205,13 @@ internal fun AccountDialogs(dialog: AccountDialog, state: AccountUiState, viewMo
             dismiss = licText(R.string.acc_cancel) to viewModel::dismissDialog,
             danger  = true,
         )
+        AccountDialog.ConfirmRemovePhoto -> BrandDialog(
+            title   = licText(R.string.acc_photo_remove_q),
+            text    = licText(R.string.acc_photo_remove_text),
+            confirm = licText(R.string.acc_delete) to viewModel::removePhoto,
+            dismiss = licText(R.string.acc_cancel) to viewModel::dismissDialog,
+            danger  = true,
+        )
     }
 }
 

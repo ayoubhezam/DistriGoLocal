@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.net.Uri
 import com.distrigo.app.data.image.ImageStore
 import kotlinx.coroutines.Dispatchers
@@ -121,19 +123,119 @@ object ImageCapture {
         }
     }
 
+    /**
+     * Longest edge of the account's profile picture, in pixels. It is drawn in a 40–52dp circle (about 160 px on a
+     * 3x screen); 512 leaves room for a larger one without carrying a camera photo's megabytes.
+     */
+    const val AVATAR_EDGE = 512
+
+    /**
+     * The account's profile picture as JPEG bytes: the middle square of [uri], upright, at most [AVATAR_EDGE] a side.
+     *
+     * Upright because a camera often stores its photo sideways and says how to turn it in the file's EXIF
+     * orientation, which BitmapFactory ignores: a portrait selfie would otherwise lie on its side. Square because it
+     * is only ever drawn in a circle, and the corners a circle hides need not be stored.
+     */
+    suspend fun compressAvatarFromUri(context: Context, uri: Uri): ByteArray? = withContext(Dispatchers.IO) {
+        val decoded = decodeDownsampled(context, uri) { w, h -> squareSampleSize(w, h, AVATAR_EDGE) } ?: return@withContext null
+        val orientation = exifOrientation(context, uri)
+        try {
+            val crop = squareCrop(decoded.width, decoded.height, AVATAR_EDGE)
+            val matrix = orientationMatrix(orientation).apply {
+                val scale = crop.outSide.toFloat() / crop.side
+                if (scale != 1f) postScale(scale, scale)
+            }
+            val square = Bitmap.createBitmap(decoded, crop.x, crop.y, crop.side, crop.side, matrix, true)
+            val opaque = if (square.hasAlpha()) onWhite(square) else square
+            try {
+                val out = ByteArrayOutputStream()
+                opaque.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
+                out.toByteArray()
+            } finally {
+                if (opaque !== square) opaque.recycle()
+                if (square !== decoded) square.recycle()
+            }
+        } catch (e: Exception) {
+            null
+        } finally {
+            decoded.recycle()
+        }
+    }
+
+    /** Where [squareCrop] cuts: the [side]-pixel square at ([x], [y]), drawn [outSide] pixels a side. */
+    internal data class SquareCrop(val x: Int, val y: Int, val side: Int, val outSide: Int)
+
+    /** The middle square of a [width] × [height] image, brought down to [edge] but never enlarged. Plain arithmetic. */
+    internal fun squareCrop(width: Int, height: Int, edge: Int): SquareCrop {
+        val side = minOf(width, height)
+        return SquareCrop(x = (width - side) / 2, y = (height - side) / 2, side = side, outSide = minOf(side, edge))
+    }
+
+    /**
+     * The largest power-of-two reduction that keeps the *shorter* edge at or above [edge]: the square is cut from it,
+     * so it is the shorter edge that has to keep enough pixels.
+     */
+    internal fun squareSampleSize(width: Int, height: Int, edge: Int): Int {
+        var sample = 1
+        while (minOf(width, height) / (sample * 2) >= edge) sample *= 2
+        return sample
+    }
+
+    /** The EXIF orientation of [uri]; normal when it has none or cannot be read. */
+    private fun exifOrientation(context: Context, uri: Uri): Int =
+        try {
+            context.contentResolver.openInputStream(uri)?.use {
+                ExifInterface(it).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+            } ?: ExifInterface.ORIENTATION_NORMAL
+        } catch (e: Exception) {
+            ExifInterface.ORIENTATION_NORMAL
+        }
+
+    /** [bitmap] turned as its EXIF [orientation] says; the receiver itself when it is already upright. */
+    private fun upright(bitmap: Bitmap, orientation: Int): Bitmap {
+        val matrix = orientationMatrix(orientation)
+        if (matrix.isIdentity) return bitmap
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+    }
+
+    /** What turns a picture stored with [orientation] upright: the eight EXIF cases. */
+    private fun orientationMatrix(orientation: Int): Matrix = Matrix().apply {
+        when (orientation) {
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> setScale(-1f, 1f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> setRotate(180f)
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> setScale(1f, -1f)
+            ExifInterface.ORIENTATION_TRANSPOSE -> { setRotate(90f); postScale(-1f, 1f) }
+            ExifInterface.ORIENTATION_ROTATE_90 -> setRotate(90f)
+            ExifInterface.ORIENTATION_TRANSVERSE -> { setRotate(-90f); postScale(-1f, 1f) }
+            ExifInterface.ORIENTATION_ROTATE_270 -> setRotate(-90f)
+            else -> Unit
+        }
+    }
+
+    /**
+     * Decode, scale, turn upright, encode: every product, client and supplier photo and the business logo.
+     *
+     * Upright: a camera often stores its photo sideways, with the EXIF orientation saying how to turn it, and
+     * BitmapFactory ignores that tag. Until this was read, a photo taken holding the phone upright on many Samsung
+     * cameras was stored lying on its side. Forward only: a photo already stored keeps its bytes (they name its file),
+     * so a sideways one is fixed by taking it again.
+     */
     private fun encodeFromUri(context: Context, uri: Uri, formatFor: (Bitmap) -> Bitmap.CompressFormat): ByteArray? {
         val decoded = decodeDownsampled(context, uri) ?: return null
+        val orientation = exifOrientation(context, uri)
         return try {
             val scaled = scaleToFit(decoded)
-            val format = formatFor(scaled)
+            val upright = upright(scaled, orientation)
+            val format = formatFor(upright)
             // JPEG has no alpha: a transparent PNG or WebP written as is comes out on black. Laid on white first.
-            val opaque = if (format == Bitmap.CompressFormat.JPEG && scaled.hasAlpha()) onWhite(scaled) else scaled
+            val opaque = if (format == Bitmap.CompressFormat.JPEG && upright.hasAlpha()) onWhite(upright) else upright
             try {
                 val out = ByteArrayOutputStream()
                 opaque.compress(format, JPEG_QUALITY, out)   // PNG ignores the quality
                 out.toByteArray()
             } finally {
-                if (opaque !== scaled) opaque.recycle()
+                if (opaque !== upright) opaque.recycle()
+                if (upright !== scaled) upright.recycle()
                 if (scaled !== decoded) scaled.recycle()
             }
         } catch (e: Exception) {
@@ -160,7 +262,11 @@ object ImageCapture {
      * The URI has to be opened twice because an `InputStream` from a `ContentResolver` is not
      * reliably resettable — `mark`/`reset` support is up to the provider.
      */
-    private fun decodeDownsampled(context: Context, uri: Uri): Bitmap? {
+    private fun decodeDownsampled(
+        context: Context,
+        uri: Uri,
+        sampleFor: (width: Int, height: Int) -> Int = ::sampleSizeFor,
+    ): Bitmap? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         try {
             // Null-check the *stream*, not the decode. With inJustDecodeBounds the decoder returns
@@ -176,7 +282,7 @@ object ImageCapture {
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
 
         val options = BitmapFactory.Options().apply {
-            inSampleSize = sampleSizeFor(bounds.outWidth, bounds.outHeight)
+            inSampleSize = sampleFor(bounds.outWidth, bounds.outHeight)
         }
         return try {
             context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }

@@ -98,6 +98,9 @@ import dagger.hilt.android.AndroidEntryPoint
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.distrigo.app.data.license.holdsLicense
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -115,6 +118,10 @@ class MainActivity : ComponentActivity() {
     // Lazy and read on IO, like the database: the account's initials for every avatar (LocalAccountInitials).
     @javax.inject.Inject
     lateinit var authRepository: dagger.Lazy<com.distrigo.app.data.auth.AuthRepository>
+
+    // Lazy and read on IO too: the account's profile picture for every avatar (LocalAccountPhoto).
+    @javax.inject.Inject
+    lateinit var accountPhotos: dagger.Lazy<com.distrigo.app.data.auth.AccountPhotoStore>
 
     // Lazy and read on IO too: whether this phone holds a license, for the fresh-install onboarding.
     @javax.inject.Inject
@@ -231,6 +238,23 @@ class MainActivity : ComponentActivity() {
                     if (session != null) withContext(Dispatchers.IO) { com.distrigo.app.ui.onboarding.OnboardingIntro.markSeen(this@MainActivity) }
                 }
             }
+            // The account's profile picture, as Compte sets it: read once per account signed in, then followed
+            var accountPhotoPath by rememberSaveable { mutableStateOf<String?>(null) }
+            LaunchedEffect(Unit) {
+                val auth = withContext(Dispatchers.IO) { authRepository.get() }
+                val photos = withContext(Dispatchers.IO) { accountPhotos.get() }
+                auth.state
+                    .map { (it as? com.distrigo.app.data.auth.AccountState.SignedIn)?.session?.userId }
+                    .distinctUntilChanged()
+                    .collectLatest { userId ->
+                        if (userId == null) {
+                            accountPhotoPath = null
+                            return@collectLatest
+                        }
+                        withContext(Dispatchers.IO) { photos.load(userId) }
+                        photos.saved.collect { saved -> accountPhotoPath = saved?.takeIf { it.userId == userId }?.file?.path }
+                    }
+            }
             // The onboarding (docs/activation_codes.md), where it opens; required on a fresh install, where
             // Back leaves the app rather than the onboarding.
             val onboardingViewModel: com.distrigo.app.ui.onboarding.OnboardingViewModel = hiltViewModel()
@@ -270,7 +294,8 @@ class MainActivity : ComponentActivity() {
             }
             DistriGoTheme { ProvideMoneyFormat(moneyFormat) { androidx.compose.runtime.CompositionLocalProvider(
                 com.distrigo.app.ui.designsystem.LocalAccountInitials provides accountInitials,
-                com.distrigo.app.ui.designsystem.LocalAccountByCode provides accountByCode
+                com.distrigo.app.ui.designsystem.LocalAccountByCode provides accountByCode,
+                com.distrigo.app.ui.designsystem.LocalAccountPhoto provides remember(accountPhotoPath) { accountPhotoPath?.let { java.io.File(it) } }
             ) {
                 // imePadding here is what lifts every form in the app: the root shrinks by the
                 // keyboard's height, so each scroll container inside shrinks with it, and Compose's

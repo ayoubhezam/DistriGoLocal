@@ -15,13 +15,18 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -45,6 +50,7 @@ import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PersonAddAlt
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Storefront
@@ -70,6 +76,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -85,6 +92,9 @@ import com.distrigo.app.data.license.LicenseClient
 import com.distrigo.app.data.license.LicenseState
 import com.distrigo.app.data.license.heldLicense
 import com.distrigo.app.data.license.holdsLicense
+import com.distrigo.app.ui.common.FileImage
+import com.distrigo.app.ui.common.ImageCapture
+import com.distrigo.app.ui.common.rememberPhotoSourcePicker
 import com.distrigo.app.ui.designsystem.BrandActionRow
 import com.distrigo.app.ui.designsystem.BrandCard
 import com.distrigo.app.ui.designsystem.BrandCardBody
@@ -115,6 +125,7 @@ import com.distrigo.app.ui.onboarding.salesRepsLabel
 import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZoneId
+import java.io.File
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import androidx.compose.ui.res.stringResource
@@ -190,9 +201,19 @@ private fun ColumnScope.SignedInCards(
     onOpenSubscription: () -> Unit,
 ) {
     val idle = state.work == null
-    IdentityCard(session, state.profile)
-    state.activationCode?.let { CodeCard(it, withoutEmail = session.isAnonymous) }
     val context = LocalContext.current
+    val unreadable = stringResource(R.string.common_photo_unreadable)
+    val photoPicker = rememberPhotoSourcePicker(
+        title    = stringResource(R.string.acc_photo_title),
+        onError  = viewModel::showError,
+        // Only with a picture to remove, and asked first
+        onRemove = if (state.photo != null) ({ viewModel.ask(AccountDialog.ConfirmRemovePhoto) }) else null,
+    ) { uri ->
+        val jpeg = ImageCapture.compressAvatarFromUri(context, uri)
+        if (jpeg == null) viewModel.showError(unreadable) else viewModel.savePhoto(jpeg)
+    }
+    IdentityCard(session, state.profile, state.photo, onPhoto = photoPicker::choose)
+    state.activationCode?.let { CodeCard(it, withoutEmail = session.isAnonymous) }
     SubscriptionCard(
         license     = state.license,
         work        = state.work,
@@ -285,14 +306,18 @@ private fun SignInCard(
     }
 }
 
-/** Who this is: the business, its phone, and how the account signs in. */
+/** Who this is: the business, its phone, and how the account signs in. The avatar sets the profile picture. */
 @Composable
-private fun IdentityCard(session: AuthSession, profile: BusinessProfile?) {
+private fun IdentityCard(session: AuthSession, profile: BusinessProfile?, photo: File?, onPhoto: () -> Unit) {
     val title = profile?.name ?: session.displayName ?: session.email ?: if (session.isAnonymous) licText(R.string.acc_no_email_account) else licText(R.string.acc_your_account)
     val caption = if (session.isAnonymous) licText(R.string.acc_activated_with_code) else session.email?.takeIf { it != title }
     BrandCard {
         Row(Modifier.padding(DsSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
-            Avatar {
+            PhotoAvatar(
+                photo   = photo,
+                label   = if (photo == null) stringResource(R.string.acc_photo_add) else stringResource(R.string.acc_photo_change),
+                onClick = onPhoto,
+            ) {
                 val initials = session.initials
                 when {
                     // An account from an activation code: a key says how it was opened
@@ -317,15 +342,50 @@ private fun IdentityCard(session: AuthSession, profile: BusinessProfile?) {
     }
 }
 
+/**
+ * The account's avatar: its picture, or [placeholder] (initials, a key, a person) when it has none. A small camera at
+ * its end corner says it can be tapped to add, change or remove the picture.
+ */
 @Composable
-private fun Avatar(content: @Composable () -> Unit) {
+private fun PhotoAvatar(photo: File?, label: String, onClick: () -> Unit, placeholder: @Composable () -> Unit) {
+    // The whole square takes the tap, the badge included; the ripple stays inside the circle
+    val interaction = remember { MutableInteractionSource() }
     Box(
-        modifier         = Modifier.size(BrandSize.Avatar).clip(CircleShape).background(DsBrand.Blue.copy(alpha = 0.1f)),
-        contentAlignment = Alignment.Center
+        Modifier
+            .size(BrandSize.Avatar)
+            .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClickLabel = label, onClick = onClick)
     ) {
-        content()
+        Box(
+            modifier         = Modifier
+                .fillMaxSize()
+                .clip(CircleShape)
+                .background(DsBrand.Blue.copy(alpha = 0.1f))
+                .indication(interaction, LocalIndication.current),
+            contentAlignment = Alignment.Center
+        ) {
+            FileImage(
+                file               = photo,
+                contentDescription = stringResource(R.string.acc_photo_title),
+                modifier           = Modifier.fillMaxSize(),
+                contentScale       = ContentScale.Crop,
+                placeholder        = placeholder,
+            )
+        }
+        Box(
+            modifier         = Modifier
+                .align(Alignment.BottomEnd)
+                .size(PhotoBadge)
+                .clip(CircleShape)
+                .background(DsBrand.Blue)
+                .border(1.5.dp, Color.White, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Outlined.PhotoCamera, contentDescription = null, tint = Color.White, modifier = Modifier.size(11.dp))
+        }
     }
 }
+
+private val PhotoBadge = 19.dp
 
 /**
  * « Votre code d'activation »: the business key, kept encrypted on this phone (ActivationCodeStore) because the

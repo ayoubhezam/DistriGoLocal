@@ -153,4 +153,11 @@
     <string name="acc_google_none">Aucun compte Google n\'est disponible sur ce téléphone.</string>
     <string name="acc_google_failed">La connexion avec Google a échoué. Réessayez.</string>
     <string name="acc_battery_blocked">La vérification automatique semble bloquée par l\'économie de batterie. Dans les paramètres de DistriGo, réglez la batterie sur « Non restreinte ».</string>
+    <!-- The account's profile picture (Compte), kept on this phone only -->
+    <string name="acc_photo_title">Photo de profil</string>
+    <string name="acc_photo_add">Ajouter une photo de profil</string>
+    <string name="acc_photo_change">Changer la photo de profil</string>
+    <string name="acc_photo_remove_q">Supprimer la photo de profil ?</string>
+    <string name="acc_photo_remove_text">Vous pourrez en ajouter une autre à tout moment.</string>
+    <string name="acc_photo_not_saved">La photo n\'a pas pu être enregistrée. Réessayez.</string>
 </resources>

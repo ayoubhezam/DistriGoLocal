@@ -32,7 +32,14 @@ class DistriGoApplication : Application(), Configuration.Provider, coil.ImageLoa
      * date being read on the main thread (StoredImageKeyer). Built on the first image drawn.
      */
     override fun newImageLoader(): coil.ImageLoader = coil.ImageLoader.Builder(this)
-        .components { add(com.distrigo.app.data.image.StoredImageKeyer(com.distrigo.app.data.image.ImageStore.imagesDir(this@DistriGoApplication))) }
+        .components {
+            add(
+                com.distrigo.app.data.image.StoredImageKeyer(
+                    com.distrigo.app.data.image.ImageStore.imagesDir(this@DistriGoApplication),
+                    com.distrigo.app.data.auth.AccountPhotoStore.dirFor(this@DistriGoApplication),
+                )
+            )
+        }
         .build()
 
     @Inject

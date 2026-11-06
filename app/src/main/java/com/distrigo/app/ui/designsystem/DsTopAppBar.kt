@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -253,6 +254,9 @@ val LocalAccountInitials = androidx.compose.runtime.staticCompositionLocalOf<Str
 /** Whether the signed-in account came from an activation code: it has no name, so its avatar shows a key. */
 val LocalAccountByCode = androidx.compose.runtime.staticCompositionLocalOf { false }
 
+/** The signed-in account's profile picture (AccountPhotoStore), provided at the root; null when it has none. */
+val LocalAccountPhoto = androidx.compose.runtime.staticCompositionLocalOf<java.io.File?> { null }
+
 /**
  * The trailing pair every bottom-tab root carries: notifications, then the account.
  *
@@ -267,11 +271,12 @@ fun RowScope.DsTopBarRootActions(
     onProfileClick       : () -> Unit,
     notificationCount    : Int = 0,
     initials             : String? = LocalAccountInitials.current,
-    byCode               : Boolean = LocalAccountByCode.current
+    byCode               : Boolean = LocalAccountByCode.current,
+    photo                : java.io.File? = LocalAccountPhoto.current
 ) {
     DsTopBarNotificationButton(count = notificationCount, onClick = onNotificationsClick)
     Spacer(Modifier.width(DsSpacing.sm))
-    DsTopBarAvatar(initials = initials, byCode = byCode, onClick = onProfileClick)
+    DsTopBarAvatar(initials = initials, byCode = byCode, photo = photo, onClick = onProfileClick)
 }
 
 /**
@@ -330,12 +335,14 @@ fun DsTopBarNotificationButton(
  *
  * Falls back to a person glyph until there is a name to derive initials from, then shows them
  * the way the client and supplier avatars already do — initials in a tinted circle. An account
- * opened with an activation code has no name: [byCode] shows a key instead.
+ * opened with an activation code has no name: [byCode] shows a key instead. A profile picture
+ * ([photo], set in Compte) covers both, which stay its placeholder while it loads.
  */
 @Composable
 fun DsTopBarAvatar(
     initials : String? = null,
     byCode   : Boolean = false,
+    photo    : java.io.File? = null,
     onClick  : () -> Unit
 ) {
     Box(
@@ -346,20 +353,27 @@ fun DsTopBarAvatar(
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        if (initials.isNullOrBlank()) {
-            Icon(
-                if (byCode) Icons.Default.Key else Icons.Default.Person,
-                contentDescription = stringResource(R.string.common_cd_profile),
-                tint     = DsColors.Primary,
-                modifier = Modifier.size(20.dp)
-            )
-        } else {
-            Text(
-                initials,
-                fontSize   = DsTextSize.bodySmall,
-                fontWeight = FontWeight.Bold,
-                color      = DsColors.Primary
-            )
+        com.distrigo.app.ui.common.FileImage(
+            file               = photo,
+            contentDescription = stringResource(R.string.common_cd_profile),
+            modifier           = Modifier.fillMaxSize(),
+            contentScale       = androidx.compose.ui.layout.ContentScale.Crop,
+        ) {
+            if (initials.isNullOrBlank()) {
+                Icon(
+                    if (byCode) Icons.Default.Key else Icons.Default.Person,
+                    contentDescription = stringResource(R.string.common_cd_profile),
+                    tint     = DsColors.Primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            } else {
+                Text(
+                    initials,
+                    fontSize   = DsTextSize.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color      = DsColors.Primary
+                )
+            }
         }
     }
 }

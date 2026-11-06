@@ -61,6 +61,12 @@ object AccountModule {
     fun provideBusinessProfileStore(@ApplicationContext context: Context): BusinessProfileStore =
         BusinessProfileStore.forApp(context)
 
+    /** The account's profile picture, on this phone only: Compte and every tab's avatar. */
+    @Provides
+    @Singleton
+    fun provideAccountPhotoStore(@ApplicationContext context: Context): com.distrigo.app.data.auth.AccountPhotoStore =
+        com.distrigo.app.data.auth.AccountPhotoStore.forApp(context)
+
     /** The owner's « Administration » screen and codes-admin (C4); the server refuses anyone else. */
     @Provides
     @Singleton

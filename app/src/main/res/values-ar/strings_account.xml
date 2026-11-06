@@ -153,4 +153,11 @@
     <string name="acc_google_none">لا يوجد حساب Google متاح على هذا الهاتف.</string>
     <string name="acc_google_failed">فشل تسجيل الدخول عبر Google. أعد المحاولة.</string>
     <string name="acc_battery_blocked">يبدو أن التحقق التلقائي محظور بسبب توفير البطارية. في إعدادات DistriGo، اضبط البطارية على « غير مقيّد ».</string>
+    <!-- The account's profile picture (Compte), kept on this phone only -->
+    <string name="acc_photo_title">صورة الملف الشخصي</string>
+    <string name="acc_photo_add">إضافة صورة للملف الشخصي</string>
+    <string name="acc_photo_change">تغيير صورة الملف الشخصي</string>
+    <string name="acc_photo_remove_q">حذف صورة الملف الشخصي؟</string>
+    <string name="acc_photo_remove_text">يمكنك إضافة صورة أخرى في أي وقت.</string>
+    <string name="acc_photo_not_saved">تعذّر حفظ الصورة. أعد المحاولة.</string>
 </resources>

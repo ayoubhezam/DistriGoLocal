@@ -10,10 +10,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -74,34 +76,56 @@ fun rememberPhotoPicker(
     onPicked : (String) -> Unit,
     onError  : (String) -> Unit,
 ): PhotoPicker {
+    val context    = LocalContext.current
+    val unreadable = stringResource(R.string.common_photo_unreadable)
+    return rememberPhotoSourcePicker(title = stringResource(R.string.common_photo_add), onError = onError) { uri ->
+        val ref = ImageCapture.captureToStore(context, uri)
+        if (ref == null) onError(unreadable) else onPicked(ref)
+    }
+}
+
+/**
+ * The camera-or-gallery choice on its own, for a picture that is not an entity's photo (the account's profile
+ * picture): [onImage] receives what was picked or taken, and may read it until it returns: a camera file is deleted
+ * then. [onRemove], when given, adds « Supprimer la photo » under the two sources.
+ */
+@Composable
+fun rememberPhotoSourcePicker(
+    title    : String,
+    onError  : (String) -> Unit,
+    onRemove : (() -> Unit)? = null,
+    onImage  : suspend (Uri) -> Unit,
+): PhotoPicker {
     val context = LocalContext.current
     val scope   = rememberCoroutineScope()
-    val unreadable    = stringResource(R.string.common_photo_unreadable)
     val noCamera      = stringResource(R.string.common_photo_no_camera)
     val cameraRefused = stringResource(R.string.common_photo_camera_refused)
     var sheetOpen by remember { mutableStateOf(false) }
 
-    /** Reads the picked image into the store, then tells the caller. */
-    fun store(uri: Uri, thenDelete: File? = null) {
+    /** Hands the picked image to the caller, then drops the camera's file. */
+    fun deliver(uri: Uri, thenDelete: File? = null) {
         scope.launch {
-            val ref = ImageCapture.captureToStore(context, uri)
-            thenDelete?.delete()
-            if (ref == null) onError(unreadable) else onPicked(ref)
+            try {
+                onImage(uri)
+            } finally {
+                thenDelete?.delete()
+            }
         }
     }
 
     val gallery = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { store(it) }
+        uri?.let { deliver(it) }
     }
 
-    // The file the camera writes into, kept across the launch so the result can be read from it.
-    var pending by remember { mutableStateOf<File?>(null) }
+    // The file the camera writes into, kept across the launch so the result can be read from it. Saveable: a phone
+    // short of memory may stop the app while the camera is in front, and the photo must still be found on return.
+    var pendingPath by rememberSaveable { mutableStateOf<String?>(null) }
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { taken ->
-        val file = pending
-        pending = null
+        val file = pendingPath?.let(::File)
+        pendingPath = null
         when {
             file == null -> Unit
-            taken        -> store(FileProvider.getUriForFile(context, authority(context), file), thenDelete = file)
+            taken        -> deliver(FileProvider.getUriForFile(context, authority(context), file), thenDelete = file)
             // Cancelled: the camera app wrote nothing worth keeping.
             else         -> file.delete()
         }
@@ -109,10 +133,10 @@ fun rememberPhotoPicker(
 
     fun launchCamera() {
         val file = newCameraFile(context)
-        pending = file
+        pendingPath = file.path
         runCatching { camera.launch(FileProvider.getUriForFile(context, authority(context), file)) }
             .onFailure {
-                pending = null
+                pendingPath = null
                 file.delete()
                 onError(noCamera)
             }
@@ -125,6 +149,7 @@ fun rememberPhotoPicker(
 
     if (sheetOpen) {
         PhotoSourceSheet(
+            title     = title,
             onCamera  = {
                 sheetOpen = false
                 if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
@@ -134,6 +159,7 @@ fun rememberPhotoPicker(
                 }
             },
             onGallery = { sheetOpen = false; gallery.launch("image/*") },
+            onRemove  = onRemove?.let { remove -> { sheetOpen = false; remove() } },
             onDismiss = { sheetOpen = false }
         )
     }
@@ -141,10 +167,16 @@ fun rememberPhotoPicker(
     return remember { PhotoPicker { sheetOpen = true } }
 }
 
-/** The two sources, as a sheet — the shape every other choice in the app is offered in. */
+/** The two sources, as a sheet — the shape every other choice in the app is offered in — and [onRemove] if any. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PhotoSourceSheet(onCamera: () -> Unit, onGallery: () -> Unit, onDismiss: () -> Unit) {
+private fun PhotoSourceSheet(
+    title: String,
+    onCamera: () -> Unit,
+    onGallery: () -> Unit,
+    onRemove: (() -> Unit)?,
+    onDismiss: () -> Unit,
+) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -157,18 +189,21 @@ private fun PhotoSourceSheet(onCamera: () -> Unit, onGallery: () -> Unit, onDism
                 .padding(bottom = DsSpacing.lg)
         ) {
             Text(
-                stringResource(R.string.common_photo_add),
+                title,
                 fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark,
                 modifier = Modifier.padding(bottom = DsSpacing.sm)
             )
             SourceRow(Icons.Default.PhotoCamera, stringResource(R.string.common_photo_take), stringResource(R.string.common_photo_take_sub), onCamera)
             SourceRow(Icons.Default.PhotoLibrary, stringResource(R.string.common_photo_gallery), stringResource(R.string.common_photo_gallery_sub), onGallery)
+            if (onRemove != null) {
+                SourceRow(Icons.Default.Delete, stringResource(R.string.common_photo_remove), subtitle = null, onClick = onRemove, danger = true)
+            }
         }
     }
 }
 
 @Composable
-private fun SourceRow(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
+private fun SourceRow(icon: ImageVector, title: String, subtitle: String?, onClick: () -> Unit, danger: Boolean = false) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -178,15 +213,15 @@ private fun SourceRow(icon: ImageVector, title: String, subtitle: String, onClic
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            Modifier.size(44.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight),
+            Modifier.size(44.dp).clip(DsShapes.medium).background(if (danger) DsColors.Danger.copy(alpha = 0.1f) else DsColors.PrimaryLight),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(22.dp))
+            Icon(icon, contentDescription = null, tint = if (danger) DsColors.Danger else DsColors.Primary, modifier = Modifier.size(22.dp))
         }
         Spacer(Modifier.width(DsSpacing.md))
         Column {
-            Text(title, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
-            Text(subtitle, fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+            Text(title, fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = if (danger) DsColors.Danger else DsColors.TextPrimary)
+            subtitle?.let { Text(it, fontSize = DsTextSize.caption, color = DsColors.TextSecondary) }
         }
     }
 }

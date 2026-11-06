@@ -4,6 +4,7 @@ import com.distrigo.app.data.license.licText
 import com.distrigo.app.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.distrigo.app.data.auth.AccountPhotoStore
 import com.distrigo.app.data.auth.AccountState
 import com.distrigo.app.data.auth.ActivationCodeStore
 import com.distrigo.app.data.auth.AuthError
@@ -39,12 +40,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
+import java.io.File
 import javax.inject.Inject
 
 /** What is under way, so the screens disable their buttons and show a spinner. */
@@ -81,6 +84,9 @@ sealed interface AccountDialog {
     data class EditProfile(val field: ProfileField, val error: String? = null) : AccountDialog
     data object ConfirmSignOut : AccountDialog
     data object ConfirmDelete : AccountDialog
+
+    /** « Supprimer la photo de profil ? » */
+    data object ConfirmRemovePhoto : AccountDialog
 }
 
 data class AccountMessage(val text: String, val isError: Boolean)
@@ -102,6 +108,8 @@ data class AccountUiState(
     val batteryHint: Boolean = false,
     /** The name the data on this phone carries (Paramètres, the receipts' header); null when never set. */
     val dataName: String? = null,
+    /** The account's profile picture, on this phone; null when it has none. */
+    val photo: File? = null,
 )
 
 /**
@@ -117,12 +125,13 @@ class AccountViewModel @Inject constructor(
     private val businessSettings: BusinessSettingsRepository,
     private val codes: ActivationCodeStore,
     private val profiles: BusinessProfileStore,
+    private val photos: AccountPhotoStore,
 ) : ViewModel() {
 
     private val local = MutableStateFlow(AccountUiState())
 
     val state: StateFlow<AccountUiState> =
-        combine(auth.state, license.state, local, codes.saved, profiles.saved) { account, licenseState, ui, saved, profile ->
+        combine(auth.state, license.state, local, codes.saved, combine(profiles.saved, photos.saved, ::Pair)) { account, licenseState, ui, saved, (profile, photo) ->
             val userId = (account as? AccountState.SignedIn)?.session?.userId
             ui.copy(
                 account = account,
@@ -130,6 +139,7 @@ class AccountViewModel @Inject constructor(
                 // Only the business this phone holds: another account signed in here never sees it
                 activationCode = saved?.takeIf { userId != null && it.businessId == licenseState.heldLicense?.businessId }?.code,
                 profile = profile?.takeIf { userId != null && it.userId == userId }?.profile,
+                photo = photo?.takeIf { userId != null && it.userId == userId }?.file,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountUiState())
 
@@ -140,6 +150,7 @@ class AccountViewModel @Inject constructor(
             license.evaluate()
             codes.load()
             profiles.load()
+            signedInUserId()?.let(photos::load)
             readBatteryHint()
             val dataName = runCatching { businessSettings.get().name }.getOrNull()?.takeIf { it.isNotBlank() }
             local.update { it.copy(dataName = dataName) }
@@ -154,6 +165,7 @@ class AccountViewModel @Inject constructor(
                 if (signedIn) {
                     dismissMessage()
                     refreshProfile()
+                    signedInUserId()?.let { withContext(Dispatchers.IO) { photos.load(it) } }
                 }
             }
         }
@@ -225,6 +237,29 @@ class AccountViewModel @Inject constructor(
             }
         }
     }
+
+    // ── The profile picture ──
+
+    /** The picture picked or taken, already made small and upright ([com.distrigo.app.ui.common.ImageCapture]). */
+    fun savePhoto(jpeg: ByteArray) {
+        viewModelScope.launch {
+            // A phone short of memory may have stopped the app while the camera was in front: the account is then
+            // still being read back when the picture arrives
+            val account = auth.state.first { it != AccountState.Loading }
+            val userId = (account as? AccountState.SignedIn)?.session?.userId ?: return@launch
+            val saved = withContext(Dispatchers.IO) { photos.save(userId, jpeg) }
+            if (saved == null) showError(licText(R.string.acc_photo_not_saved))
+        }
+    }
+
+    /** « Supprimer la photo », once confirmed. */
+    fun removePhoto() {
+        val userId = signedInUserId() ?: return
+        dismissDialog()
+        viewModelScope.launch(Dispatchers.IO) { photos.delete(userId) }
+    }
+
+    private fun signedInUserId(): String? = (auth.state.value as? AccountState.SignedIn)?.session?.userId
 
     // ── The license ──
 
@@ -329,12 +364,15 @@ class AccountViewModel @Inject constructor(
     }
 
     fun deleteAccount() = work(AccountWork.DELETING) {
+        // Read before the call: a deleted account is signed out
+        val userId = signedInUserId()
         val problem = client.deleteAccount()
-        // Its business is gone with it: the code opens nothing any more
+        // Its business is gone with it: the code opens nothing any more. Its picture goes too: nobody can sign in as it
         if (problem == null) {
             withContext(Dispatchers.IO) {
                 codes.clear()
                 profiles.clear()
+                userId?.let(photos::delete)
             }
         }
         local.value = local.value.copy(

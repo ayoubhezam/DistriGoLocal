@@ -128,6 +128,7 @@
     <string name="common_photo_take_sub">Avec l\'appareil photo</string>
     <string name="common_photo_gallery">Choisir depuis la galerie</string>
     <string name="common_photo_gallery_sub">Parmi les images du téléphone</string>
+    <string name="common_photo_remove">Supprimer la photo</string>
     <string name="common_label_quartier">Quartier</string>
     <string name="common_search_quartier">Rechercher un quartier</string>
     <string name="common_no_quartier">Aucun quartier</string>
