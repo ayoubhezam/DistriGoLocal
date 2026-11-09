@@ -40,7 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.Role
 import com.distrigo.app.data.repository.ActivityFilter
-import com.distrigo.app.data.repository.PaymentState
+import com.distrigo.app.data.model.PaymentState
 import com.distrigo.app.data.repository.RecentSale
 import com.distrigo.app.data.repository.TourneeDay
 import com.distrigo.app.data.repository.VisitState

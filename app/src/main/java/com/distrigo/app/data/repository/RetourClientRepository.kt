@@ -12,6 +12,7 @@ import com.distrigo.app.data.model.RetourClientItem
 import com.distrigo.app.data.model.RetourClientMotifs
 import com.distrigo.app.data.model.RetourPreview
 import com.distrigo.app.data.model.StockEffect
+import com.distrigo.app.data.model.Amount
 import com.distrigo.app.data.model.numberLabel
 import com.distrigo.app.R
 
@@ -130,7 +131,7 @@ class RetourClientRepository(
             }
             // The return's own motif: its lines' when they share one, none when they differ.
             val documentMotif = lines.map { it.third }.distinct().singleOrNull()
-            val total = lines.sumOf { (product, quantity, _) -> quantity * product.selling_price }
+            val total = Amount.documentTotal(lines.map { (product, quantity, _) -> Amount.lineTotal(quantity, product.selling_price) })
 
             val retourId = retourDao.insertRetour(
                 RetourClientEntity(
@@ -142,7 +143,7 @@ class RetourClientRepository(
             val itemEntities = lines.map { (product, quantity, lineMotif) ->
                 val definition = RetourClientMotifs.resolve(lineMotif)
                 val unitPrice  = product.selling_price
-                val totalPrice = quantity * unitPrice
+                val totalPrice = Amount.lineTotal(quantity, unitPrice)
 
                 // The movement is the stock change, into or out of the camion. NONE still comes in —
                 // the physical item really did come back — and the linked Perte below takes it out

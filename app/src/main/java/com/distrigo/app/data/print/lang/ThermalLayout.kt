@@ -96,7 +96,7 @@ object ThermalLayout {
 
         // ── Money ──
         add(ReceiptRow.Columns("TOTAL", money.da(receipt.total), RowWeight.Bold, RowScale.Large))
-        if (receipt.paid > 0 || receipt.balance != receipt.total) {
+        if (receipt.paid > 0 || !Amount.settled(receipt.balance - receipt.total)) {
             add(ReceiptRow.Columns("Payé", money.da(receipt.paid)))
             if (Amount.owing(receipt.balance)) add(ReceiptRow.Columns("Reste", money.da(receipt.balance), RowWeight.Bold))
             else                     add(ReceiptRow.Columns("Statut", "Réglé"))

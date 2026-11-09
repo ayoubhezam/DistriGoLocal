@@ -1,6 +1,7 @@
 package com.distrigo.app.data.local.dao
 
 import androidx.room.Dao
+import com.distrigo.app.data.model.PaymentState
 import androidx.room.Embedded
 import androidx.room.Insert
 import androidx.room.Query
@@ -118,9 +119,9 @@ interface PurchaseDao {
         AND (:s3 = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :s3 || '%' OR note LIKE '%' || :s3 || '%')
         AND (
             :statusFilter = 'TOUTES'
-            OR (:statusFilter = 'PAYEE' AND montant_paye >= total AND total > 0)
-            OR (:statusFilter = 'PARTIELLE' AND montant_paye > 0 AND montant_paye < total)
-            OR (:statusFilter = 'IMPAYEE' AND montant_paye <= 0)
+            OR (:statusFilter = 'PAYEE' AND ${PaymentState.SQL_PAID})
+            OR (:statusFilter = 'PARTIELLE' AND ${PaymentState.SQL_PARTIAL})
+            OR (:statusFilter = 'IMPAYEE' AND ${PaymentState.SQL_UNPAID})
         )
         ORDER BY created_at DESC, id DESC
         LIMIT :limit
@@ -149,9 +150,9 @@ interface PurchaseDao {
         AND (:s3 = '' OR ($NUMBER_LABEL_SQL) LIKE '%' || :s3 || '%' OR note LIKE '%' || :s3 || '%')
         AND (
             :statusFilter = 'TOUTES'
-            OR (:statusFilter = 'PAYEE' AND montant_paye >= total AND total > 0)
-            OR (:statusFilter = 'PARTIELLE' AND montant_paye > 0 AND montant_paye < total)
-            OR (:statusFilter = 'IMPAYEE' AND montant_paye <= 0)
+            OR (:statusFilter = 'PAYEE' AND ${PaymentState.SQL_PAID})
+            OR (:statusFilter = 'PARTIELLE' AND ${PaymentState.SQL_PARTIAL})
+            OR (:statusFilter = 'IMPAYEE' AND ${PaymentState.SQL_UNPAID})
         )
     """)
     suspend fun countOrdersForSupplierBySlots(supplierId: Int, s1: String, s2: String, s3: String, statusFilter: String): Int

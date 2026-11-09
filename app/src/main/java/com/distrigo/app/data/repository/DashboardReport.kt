@@ -1,6 +1,7 @@
 package com.distrigo.app.data.repository
 
 import java.time.ZonedDateTime
+import com.distrigo.app.data.model.PaymentState
 import com.distrigo.app.R
 
 /**
@@ -38,9 +39,6 @@ data class DashboardAlerts(val outOfStock: Int, val lowStock: Int, val oldClient
 /** What the clients owe today, and what is owed to the suppliers. */
 data class DashboardBalances(val clientsOwe: Double, val owedToSuppliers: Double)
 
-/** How much of a sale was paid at the time: all of it, part, or nothing. */
-enum class PaymentState { PAID, PARTIAL, UNPAID }
-
 /** « Activité récente »'s filter (D11). */
 enum class ActivityFilter(@androidx.annotation.StringRes val label: Int) {
     ALL(R.string.common_filter_all),
@@ -59,12 +57,9 @@ data class RecentSale(
     val paid: Double,
     val createdAt: String,
 ) {
+    /** How much of the sale was paid with it (PaymentState, FIN-05). */
     val state: PaymentState
-        get() = when {
-            paid >= total - com.distrigo.app.data.model.Amount.HALF_CENTIME -> PaymentState.PAID
-            paid > com.distrigo.app.data.model.Amount.HALF_CENTIME -> PaymentState.PARTIAL
-            else -> PaymentState.UNPAID
-        }
+        get() = PaymentState.of(total, paid)
 }
 
 /** Where a client of the open tournée stands today (plan, Part 1 §6). */

@@ -1,6 +1,7 @@
 package com.distrigo.app.data.local.dao
 
 import androidx.room.Dao
+import com.distrigo.app.data.model.PaymentState
 import androidx.room.Query
 
 // The Rapports screens' figures, computed in SQL: each query returns a handful of rows however many
@@ -322,8 +323,8 @@ interface ReportDao {
         SELECT id, numero, client_name, client_image_uri, source, total, montant_paye, created_at
         FROM ventes
         WHERE :filter = 0
-           OR (:filter = 1 AND montant_paye >= total - 0.005)
-           OR (:filter = 2 AND montant_paye < total - 0.005)
+           OR (:filter = 1 AND ${PaymentState.SQL_PAID})
+           OR (:filter = 2 AND NOT ${PaymentState.SQL_PAID})
         ORDER BY created_at DESC, id DESC
         LIMIT :limit
         """
@@ -407,7 +408,7 @@ interface ReportDao {
                CASE WHEN v.created_at >= :b30 THEN 0 WHEN v.created_at >= :b60 THEN 1 WHEN v.created_at >= :b90 THEN 2 ELSE 3 END AS band,
                SUM(v.total - v.montant_paye) AS credit
         FROM ventes v JOIN clients c ON c.id = v.client_id
-        WHERE c.deleted_at IS NULL AND c.balance > 0.005 AND v.total > v.montant_paye
+        WHERE c.deleted_at IS NULL AND c.balance > 0.005 AND v.total - v.montant_paye >= ${PaymentState.HALF_CENTIME_SQL}
         GROUP BY party, band
         """
     )
@@ -424,7 +425,7 @@ interface ReportDao {
         """
         SELECT COALESCE(SUM(MAX(0, c.balance - (
             SELECT COALESCE(SUM(v.total - v.montant_paye), 0) FROM ventes v
-            WHERE v.client_id = c.id AND v.created_at >= :b90 AND v.total > v.montant_paye
+            WHERE v.client_id = c.id AND v.created_at >= :b90 AND v.total - v.montant_paye >= ${PaymentState.HALF_CENTIME_SQL}
         ))), 0)
         FROM clients c WHERE c.deleted_at IS NULL AND c.balance > 0.005
         """
@@ -437,7 +438,7 @@ interface ReportDao {
                CASE WHEN p.date >= :d30 THEN 0 WHEN p.date >= :d60 THEN 1 WHEN p.date >= :d90 THEN 2 ELSE 3 END AS band,
                SUM(p.total - p.montant_paye) AS credit
         FROM purchase_orders p JOIN suppliers s ON s.id = p.supplier_id
-        WHERE s.deleted_at IS NULL AND s.balance > 0.005 AND p.total > p.montant_paye
+        WHERE s.deleted_at IS NULL AND s.balance > 0.005 AND p.total - p.montant_paye >= ${PaymentState.HALF_CENTIME_SQL}
         GROUP BY party, band
         """
     )

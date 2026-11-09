@@ -86,6 +86,17 @@ class AmountTest {
     }
 
     @Test
+    fun linesAndTotalsAreWrittenToTheCentime() {
+        // FIN-05, D1: each line to the centime, the total their sum
+        assertEquals(450.45, Amount.lineTotal(3.0, 150.15), 0.0)
+        assertEquals(8.03, Amount.lineTotal(3.0, 2.675), 0.0)
+        assertEquals(1.67, Amount.lineTotal(1.333, 1.25), 0.0)
+        assertEquals(0.3, Amount.documentTotal(listOf(0.1, 0.2)), 0.0)
+        assertEquals(458.48, Amount.documentTotal(listOf(Amount.lineTotal(3.0, 150.15), Amount.lineTotal(3.0, 2.675))), 0.0)
+        assertEquals(0.0, Amount.documentTotal(emptyList()), 0.0)
+    }
+
+    @Test
     fun sanitizeKeepsOneSeparatorAndTwoDecimals() {
         assertEquals("3500.5", Amount.sanitizeInput("3500,5"))
         assertEquals("12.34", Amount.sanitizeInput("12.345"))

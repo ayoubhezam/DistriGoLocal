@@ -47,7 +47,7 @@
     <string name="common_label_total_billed">إجمالي الفواتير</string>
     <string name="common_label_total_paid">إجمالي المدفوع</string>
     <string name="common_label_balance">الرصيد</string>
-    <string name="common_label_in_advance">(مُسبَّق)</string>
+    <string name="common_label_in_advance">(تسبيق)</string>
     <string name="common_label_initial_balance">الرصيد الافتتاحي</string>
     <string name="common_label_returns">المرتجعات</string>
     <string name="common_cd_selected">محدَّد</string>
@@ -121,7 +121,7 @@
     <string name="common_all_suppliers">كل الموردين</string>
     <string name="common_balance_owing">عليهم ديون</string>
     <string name="common_balance_settled">مسدَّدون</string>
-    <string name="common_balance_advance">دفعوا مسبقًا</string>
+    <string name="common_balance_advance">لديهم تسبيق</string>
     <string name="common_action_clear_all">مسح الكل</string>
     <string name="common_label_client_type">نوع الزبون</string>
     <string name="common_label_wilaya">الولاية</string>

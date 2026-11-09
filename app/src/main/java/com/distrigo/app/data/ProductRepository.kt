@@ -929,7 +929,7 @@ class ProductRepository(
             val itemsList = order["items"] as List<Map<String, Any?>>
 
             val now = java.time.Instant.now().toString()
-            val total = itemsList.sumOf { it.lineQuantity() * (it["unit_cost"] as Number).toDouble() }
+            val total = Amount.documentTotal(itemsList.map { Amount.lineTotal(it.lineQuantity(), (it["unit_cost"] as Number).toDouble()) })
             requireDocumentAmounts(itemsList, "unit_cost", montantPaye, total)
             val supplierEntity = supplierDao.getSupplierById(supplierId)
             val supplierName   = supplierEntity?.name
@@ -938,7 +938,7 @@ class ProductRepository(
             val orderId = db.purchaseDao().insertOrder(
                 PurchaseOrderEntity(
                     supplier_id = supplierId, date = date, total = total, status = "pending",
-                    note = note, montant_paye = montantPaye, created_at = now,
+                    note = note, montant_paye = Amount.normalize(montantPaye), created_at = now,
                     supplier_name = supplierName,
                     supplier_image_uri = supplierImageUri  // ← جديد
                 )
@@ -958,7 +958,7 @@ class ProductRepository(
                 itemEntities.add(
                     PurchaseOrderItemEntity(
                         purchase_order_id = orderId, product_id = productId, quantity = quantity,
-                        unit_cost = unitCost, total_cost = quantity * unitCost,
+                        unit_cost = unitCost, total_cost = Amount.lineTotal(quantity, unitCost),
                         product_name = product.name, unit_type = product.unit_type,
                         nb_colis = (map["nb_colis"] as? Number)?.toDouble()?.let(Quantity::normalize) ?: 1.0,
                         unite_par_colis = (map["unite_par_colis"] as? Number)?.toInt() ?: 1,
@@ -1051,7 +1051,7 @@ class ProductRepository(
                 ?: refuse(R.string.error_bon_not_found, id)
             val supplierName = existing.supplier_name ?: supplierDao.getSupplierById(existing.supplier_id)?.name ?: "Fournisseur supprimé"
 
-            val total = itemsList.sumOf { it.lineQuantity() * (it["unit_cost"] as Number).toDouble() }
+            val total = Amount.documentTotal(itemsList.map { Amount.lineTotal(it.lineQuantity(), (it["unit_cost"] as Number).toDouble()) })
             requireDocumentAmounts(itemsList, "unit_cost", montantPaye, total)
             db.purchaseDao().deleteItemsForOrder(id)
 
@@ -1070,7 +1070,7 @@ class ProductRepository(
                 itemEntities.add(
                     PurchaseOrderItemEntity(
                         purchase_order_id = id, product_id = productId, quantity = quantity,
-                        unit_cost = unitCost, total_cost = quantity * unitCost,
+                        unit_cost = unitCost, total_cost = Amount.lineTotal(quantity, unitCost),
                         product_name = product.name, unit_type = product.unit_type,
                         nb_colis = (map["nb_colis"] as? Number)?.toDouble()?.let(Quantity::normalize) ?: 1.0,
                         unite_par_colis = (map["unite_par_colis"] as? Number)?.toInt() ?: 1,
@@ -1088,7 +1088,7 @@ class ProductRepository(
 
             db.purchaseDao().insertItems(itemEntities)
             db.purchaseDao().insertPriceHistory(historyEntities)
-            db.purchaseDao().updateOrderFields(id, note, montantPaye, total)
+            db.purchaseDao().updateOrderFields(id, note, Amount.normalize(montantPaye), total)
 
             supplierDao.recomputeBalance(existing.supplier_id)
             draftId?.let { db.purchaseDraftDao().deleteById(it) }
@@ -1273,7 +1273,7 @@ class ProductRepository(
         tourneeDraftId: Int? = null
     ): Map<String, Any> {
         depotGuard.guard(productIdsOf(items)) {
-            val total = items.sumOf { it.lineQuantity() * (it["unit_price"] as Number).toDouble() }
+            val total = Amount.documentTotal(items.map { Amount.lineTotal(it.lineQuantity(), (it["unit_price"] as Number).toDouble()) })
             val now = java.time.Instant.now().toString()
             requireDocumentAmounts(items, "unit_price", montantPaye, total)
 
@@ -1288,7 +1288,7 @@ class ProductRepository(
             val venteId = db.venteDao().insertVente(
                 VenteEntity(
                     client_id = clientId, tournee_id = tourneeId, source = source,
-                    total = total, montant_paye = montantPaye, status = "pending",
+                    total = total, montant_paye = Amount.normalize(montantPaye), status = "pending",
                     note = note, created_at = now, client_name = clientName,
                     client_image_uri = clientImageUri,  // ← جديد
                     user_name = userName
@@ -1316,7 +1316,7 @@ class ProductRepository(
                     source_type  = "vente",
                     source_id    = venteId,
                     unit_price   = unitPrice,
-                    total_value  = quantity * unitPrice,
+                    total_value  = Amount.lineTotal(quantity, unitPrice),
                     user_name    = userName,
                     note         = note,
                     created_at   = now
@@ -1325,7 +1325,7 @@ class ProductRepository(
                 VenteItemEntity(
                     vente_id = venteId, product_id = productId, product_name = product.name,
                     unit_type = product.unit_type, quantity = quantity,
-                    unit_price = unitPrice, total_price = quantity * unitPrice,
+                    unit_price = unitPrice, total_price = Amount.lineTotal(quantity, unitPrice),
                     purchase_price_snapshot = product.purchase_price
                 )
             }
@@ -1371,7 +1371,7 @@ class ProductRepository(
             val clientName = clientDao.getClientById(clientId)?.name ?: "Client inconnu"
             val movementEntities = mutableListOf<StockMovementEntity>()
 
-            val total = items.sumOf { it.lineQuantity() * (it["unit_price"] as Number).toDouble() }
+            val total = Amount.documentTotal(items.map { Amount.lineTotal(it.lineQuantity(), (it["unit_price"] as Number).toDouble()) })
             requireDocumentAmounts(items, "unit_price", montantPaye, total)
             val itemEntities = items.map { map ->
                 val productId = (map["product_id"] as Number).toInt()
@@ -1393,7 +1393,7 @@ class ProductRepository(
                     source_type  = "vente",
                     source_id    = id,
                     unit_price   = unitPrice,
-                    total_value  = quantity * unitPrice,
+                    total_value  = Amount.lineTotal(quantity, unitPrice),
                     user_name    = userName,
                     note         = note,
                     created_at   = now
@@ -1403,14 +1403,14 @@ class ProductRepository(
                 VenteItemEntity(
                     vente_id = id, product_id = productId, product_name = product.name,
                     unit_type = product.unit_type, quantity = quantity,
-                    unit_price = unitPrice, total_price = quantity * unitPrice,
+                    unit_price = unitPrice, total_price = Amount.lineTotal(quantity, unitPrice),
                     purchase_price_snapshot = kept?.purchase_price_snapshot ?: product.purchase_price,
                     cost_estimated = kept?.cost_estimated ?: false
                 )
             }
             db.venteDao().insertItems(itemEntities)
             db.stockMovementDao().insertAll(movementEntities)
-            db.venteDao().updateVenteFields(id, note, montantPaye, total, userName)
+            db.venteDao().updateVenteFields(id, note, Amount.normalize(montantPaye), total, userName)
             clientDao.recomputeBalance(clientId)
             draftId?.let { db.venteDraftDao().deleteById(it) }
         }
@@ -1534,7 +1534,7 @@ class ProductRepository(
         db.withTransaction {
             db.supplierPaymentDao().insertPayment(
                 SupplierPaymentEntity(
-                    supplier_id = id, amount = amount, note = note,
+                    supplier_id = id, amount = Amount.normalize(amount), note = note,
                     created_at = java.time.Instant.now().toString()
                 )
             )
@@ -1554,7 +1554,7 @@ class ProductRepository(
     suspend fun updateSupplierPayment(supplierId: Int, paymentId: Int, amount: Double): Map<String, Any> {
         requirePayment(amount)
         db.withTransaction {
-            db.supplierPaymentDao().updatePaymentAmount(paymentId, amount)
+            db.supplierPaymentDao().updatePaymentAmount(paymentId, Amount.normalize(amount))
             supplierDao.recomputeBalance(supplierId)
         }
         return mapOf("message" to "Paiement mis à jour")
@@ -1906,7 +1906,7 @@ class ProductRepository(
         db.withTransaction {
             db.clientPaymentDao().insertPayment(
                 ClientPaymentEntity(
-                    client_id = id, amount = amount, note = note,
+                    client_id = id, amount = Amount.normalize(amount), note = note,
                     created_at = java.time.Instant.now().toString()
                 )
             )
@@ -1926,7 +1926,7 @@ class ProductRepository(
     suspend fun updateClientPayment(clientId: Int, paymentId: Int, amount: Double): Map<String, Any> {
         requirePayment(amount)
         db.withTransaction {
-            db.clientPaymentDao().updatePaymentAmount(paymentId, amount)
+            db.clientPaymentDao().updatePaymentAmount(paymentId, Amount.normalize(amount))
             clientDao.recomputeBalance(clientId)
         }
         return mapOf("message" to "Paiement mis à jour")

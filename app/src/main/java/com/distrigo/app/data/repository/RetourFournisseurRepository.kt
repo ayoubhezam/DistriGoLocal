@@ -12,6 +12,7 @@ import com.distrigo.app.data.model.RetourFournisseurItem
 import com.distrigo.app.data.model.RetourFournisseurMotifs
 import com.distrigo.app.data.model.RetourPreview
 import com.distrigo.app.data.model.StockEffect
+import com.distrigo.app.data.model.Amount
 import com.distrigo.app.data.model.numberLabel
 import com.distrigo.app.R
 
@@ -129,7 +130,7 @@ class RetourFournisseurRepository(
             }
             // The return's own motif: its lines' when they share one, none when they differ.
             val documentMotif = lines.map { it.third }.distinct().singleOrNull()
-            val total = lines.sumOf { (product, quantity, _) -> quantity * product.purchase_price }
+            val total = Amount.documentTotal(lines.map { (product, quantity, _) -> Amount.lineTotal(quantity, product.purchase_price) })
 
             val retourId = retourDao.insertRetour(
                 RetourFournisseurEntity(
@@ -142,7 +143,7 @@ class RetourFournisseurRepository(
             val itemEntities = lines.map { (product, quantity, lineMotif) ->
                 val definition = RetourFournisseurMotifs.resolve(lineMotif)
                 val unitPrice  = product.purchase_price
-                val totalPrice = quantity * unitPrice
+                val totalPrice = Amount.lineTotal(quantity, unitPrice)
 
                 // The movement is the stock change, at the dépôt: out for DECREASE (every motif today),
                 // in for INCREASE, and none at all for NONE, which leaves the stock alone.

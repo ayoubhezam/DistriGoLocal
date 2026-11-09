@@ -1,5 +1,7 @@
 package com.distrigo.app.data.repository
 
+import com.distrigo.app.data.model.PaymentState
+
 import android.content.Context
 import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase

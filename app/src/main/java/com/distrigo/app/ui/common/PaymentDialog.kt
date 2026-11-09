@@ -1,6 +1,5 @@
 package com.distrigo.app.ui.common
 
-import com.distrigo.app.core.format.westernNumber
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -73,7 +72,7 @@ fun PaymentDialog(
 
                 OutlinedTextField(
                     value = amount,
-                    onValueChange = { amount = westernNumber(it); error = "" },
+                    onValueChange = { amount = com.distrigo.app.data.model.Amount.sanitizeInput(it); error = "" },
                     label = { Text(stringResource(R.string.common_label_amount_da)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
@@ -114,7 +113,7 @@ fun PaymentDialog(
                         }
                     }
                     OutlinedButton(
-                        onClick = { amount = balance.toString() },
+                        onClick = { amount = com.distrigo.app.data.model.Amount.inputText(balance) },
                         modifier = Modifier.weight(1.5f),
                         shape = DsShapes.small,
                         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
@@ -131,7 +130,7 @@ fun PaymentDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val value = amount.toDoubleOrNull()
+                    val value = com.distrigo.app.data.model.Amount.parse(amount)
                     if (value == null || value <= 0) {
                         error = invalidAmount
                         return@Button

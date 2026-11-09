@@ -241,7 +241,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                 if (skipClientStep) { picker.reset(); onBack() } else navController.popBackStack()
             }
 
-            val total = cartItems.sumOf { it.quantity * it.unitPrice }
+            val total = com.distrigo.app.data.model.Amount.documentTotal(cartItems.map { com.distrigo.app.data.model.Amount.lineTotal(it.quantity, it.unitPrice) })
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
@@ -455,7 +455,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             val missingProductIds by session.missingProductIds.collectAsState()
             var expandedCartItemId by remember { mutableStateOf<Int?>(null) }
 
-            val total = cartItems.sumOf { it.quantity * it.unitPrice }
+            val total = com.distrigo.app.data.model.Amount.documentTotal(cartItems.map { com.distrigo.app.data.model.Amount.lineTotal(it.quantity, it.unitPrice) })
 
             BackHandler { navController.popBackStack() }
 
@@ -594,7 +594,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             val missingProductIds by session.missingProductIds.collectAsState()
             val overStockProductIds by session.overStockProductIds.collectAsState()
             var isSaving by remember { mutableStateOf(false) }
-            val total = cartItems.sumOf { it.quantity * it.unitPrice }
+            val total = com.distrigo.app.data.model.Amount.documentTotal(cartItems.map { com.distrigo.app.data.model.Amount.lineTotal(it.quantity, it.unitPrice) })
 
             // One reason at a time, deleted first: a product that no longer exists cannot also be
             // over-stocked, and telling someone to reduce a quantity on a line they have to remove

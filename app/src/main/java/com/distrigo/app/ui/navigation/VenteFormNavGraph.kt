@@ -282,7 +282,7 @@ fun NavGraphBuilder.venteFormGraph(
                 if (skipClientStep) { picker.reset(); onBack() } else navController.popBackStack()
             }
 
-            val total = cartItems.sumOf { it.quantity * it.unitPrice }
+            val total = com.distrigo.app.data.model.Amount.documentTotal(cartItems.map { com.distrigo.app.data.model.Amount.lineTotal(it.quantity, it.unitPrice) })
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 DsTopAppBar(
@@ -511,7 +511,7 @@ fun NavGraphBuilder.venteFormGraph(
             val stockPolicy by session.stockPolicy.collectAsState()
             var expandedCartItemId by remember { mutableStateOf<Int?>(null) }
 
-            val total = cartItems.sumOf { it.quantity * it.unitPrice }
+            val total = com.distrigo.app.data.model.Amount.documentTotal(cartItems.map { com.distrigo.app.data.model.Amount.lineTotal(it.quantity, it.unitPrice) })
 
             BackHandler { navController.popBackStack() }
 
@@ -677,7 +677,7 @@ fun NavGraphBuilder.venteFormGraph(
             var saveError by remember { mutableStateOf("") }
             // Edit mode: the saved sale and what saving over it changes, while the user decides.
             var editConfirm by remember { mutableStateOf<Pair<com.distrigo.app.data.model.Vente, List<com.distrigo.app.core.text.UiText>>?>(null) }
-            val total = cartItems.sumOf { it.quantity * it.unitPrice }
+            val total = com.distrigo.app.data.model.Amount.documentTotal(cartItems.map { com.distrigo.app.data.model.Amount.lineTotal(it.quantity, it.unitPrice) })
             // Strict stock: a line the dépôt can no longer cover, marked in the cart. A camion sale
             // being edited is checked against the camion by the repository instead.
             val overStockProduct = if (editSource == "camion") null

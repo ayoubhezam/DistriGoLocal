@@ -132,6 +132,7 @@ alternatives after it. Change any line by giving its number and your choice.
 | 91 | Payé à la vente | مدفوع عند البيع | |
 | 92 | Format des montants | تنسيق المبالغ | |
 | 93 | DA | DA | kept (D5) |
+| 175 | Avance (payé au-delà du total ; solde en avance) | تسبيق | owner, 2026-11-09: one word everywhere — « Avance », « (AVANCÉ) », « En avance » (لديهم تسبيق) |
 
 ## 5. Mon objectif and commissions
 

@@ -1,5 +1,7 @@
 package com.distrigo.app.data.repository
 
+import com.distrigo.app.data.model.PaymentState
+
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

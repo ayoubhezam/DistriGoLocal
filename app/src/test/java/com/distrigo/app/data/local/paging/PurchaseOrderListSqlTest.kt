@@ -41,10 +41,10 @@ class PurchaseOrderListSqlTest {
 
     @Test
     fun `payment status is a fixed clause with no argument`() {
-        assertEquals(" WHERE (o.montant_paye >= o.total AND o.total > 0)", whereOf(PurchaseOrderListQuery(paymentStatus = "paye")).first)
-        assertEquals(" WHERE o.montant_paye <= 0", whereOf(PurchaseOrderListQuery(paymentStatus = "impaye")).first)
+        assertEquals(" WHERE (o.total - o.montant_paye < 0.005)", whereOf(PurchaseOrderListQuery(paymentStatus = "paye")).first)
+        assertEquals(" WHERE (o.total - o.montant_paye >= 0.005 AND o.montant_paye < 0.005)", whereOf(PurchaseOrderListQuery(paymentStatus = "impaye")).first)
         assertEquals(
-            " WHERE (o.montant_paye > 0 AND o.montant_paye < o.total)",
+            " WHERE (o.total - o.montant_paye >= 0.005 AND o.montant_paye >= 0.005)",
             whereOf(PurchaseOrderListQuery(paymentStatus = "partiel")).first,
         )
     }

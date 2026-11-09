@@ -67,10 +67,9 @@ internal object VenteListSql {
             args.addAll(listOf(pattern, pattern, pattern))
         }
         query.status?.let { clauses += "v.status = ?"; args += it }
-        when (query.paymentStatus) {
-            "paye"    -> clauses += "(v.montant_paye >= v.total AND v.total > 0)"
-            "impaye"  -> clauses += "v.montant_paye <= 0"
-            "partiel" -> clauses += "(v.montant_paye > 0 AND v.montant_paye < v.total)"
+        // To the half centime, as everywhere (PaymentState, FIN-05)
+        com.distrigo.app.data.model.PaymentState.fromKey(query.paymentStatus)?.let {
+            clauses += com.distrigo.app.data.model.PaymentState.sql(it, "v")
         }
         query.clientId?.let { clauses += "v.client_id = ?"; args += it }
         query.createdFrom?.let { clauses += "v.created_at >= ?"; args += it }

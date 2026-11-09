@@ -92,10 +92,9 @@ internal object PurchaseOrderListSql {
             args.addAll(listOf(pattern, pattern, pattern))
         }
         query.receptionStatus?.let { clauses += "o.status = ?"; args += it }
-        when (query.paymentStatus) {
-            "paye"    -> clauses += "(o.montant_paye >= o.total AND o.total > 0)"
-            "impaye"  -> clauses += "o.montant_paye <= 0"
-            "partiel" -> clauses += "(o.montant_paye > 0 AND o.montant_paye < o.total)"
+        // To the half centime, as everywhere (PaymentState, FIN-05)
+        com.distrigo.app.data.model.PaymentState.fromKey(query.paymentStatus)?.let {
+            clauses += com.distrigo.app.data.model.PaymentState.sql(it, "o")
         }
         query.supplierId?.let { clauses += "o.supplier_id = ?"; args += it }
         query.createdFrom?.let { clauses += "o.created_at >= ?"; args += it }

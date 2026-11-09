@@ -541,7 +541,7 @@ fun NavGraphBuilder.purchaseFormGraph(
             }
 
             val activeFilterChips = productFilterChips(LocalContext.current.resources, filters, categories, sousCategories, marques, suppliers, stringResource(R.string.common_label_purchase_price), money)
-            val total = cartItems.sumOf { it.quantity * it.unitCost }
+            val total = com.distrigo.app.data.model.Amount.documentTotal(cartItems.map { com.distrigo.app.data.model.Amount.lineTotal(it.quantity, it.unitCost) })
 
             Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
                 PurchaseFormHeader(
@@ -783,7 +783,7 @@ fun NavGraphBuilder.purchaseFormGraph(
             val note by session.formNote.collectAsState()
             val missingProductIds by session.missingProductIds.collectAsState()
             var expandedCartItemId by remember { mutableStateOf<Int?>(null) }
-            val total = cartItems.sumOf { it.quantity * it.unitCost }
+            val total = com.distrigo.app.data.model.Amount.documentTotal(cartItems.map { com.distrigo.app.data.model.Amount.lineTotal(it.quantity, it.unitCost) })
 
             BackHandler { navController.popBackStack() }
 
@@ -1082,7 +1082,7 @@ fun NavGraphBuilder.purchaseFormGraph(
             // A pièce line whose colis make part of a piece: marked in the cart, and the bon waits for it.
             val fractionalPieces = cartItems.firstOrNull { !Quantity.fitsUnit(it.quantity, it.product.unit_type) }?.product?.name
             var isSaving by remember { mutableStateOf(false) }
-            val total = cartItems.sumOf { it.quantity * it.unitCost }
+            val total = com.distrigo.app.data.model.Amount.documentTotal(cartItems.map { com.distrigo.app.data.model.Amount.lineTotal(it.quantity, it.unitCost) })
 
             // What « Montant payé » holds, read as it is saved: null for text a draft kept from before the field cleaned
             // what was typed, which the field marks and « Confirmer » refuses rather than saving 0 (audit 2026-11-09, FIN-01).

@@ -175,7 +175,7 @@ object ReceiptPdfGenerator {
         canvas.drawText("TOTAL", right - totalValWidth - 12f, y, totalLR)
         y += 22f
 
-        if (receipt.paid > 0 || receipt.balance != receipt.total) {
+        if (receipt.paid > 0 || !Amount.settled(receipt.balance - receipt.total)) {
             drawInfoLineRight("Payé", receipt.money.da(receipt.paid))
             if (Amount.owing(receipt.balance)) drawInfoLineRight("Reste", receipt.money.da(receipt.balance))
             else drawInfoLineRight("Statut", "Réglé")

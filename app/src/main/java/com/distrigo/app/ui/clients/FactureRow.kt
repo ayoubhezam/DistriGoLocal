@@ -47,11 +47,8 @@ fun FactureRow(
         "vente" -> {
             val montantPaye = transaction.montant_paye ?: 0.0
             val total = transaction.total ?: 0.0
-            val statut = when {
-                montantPaye >= total && total > 0 -> "paye"
-                montantPaye > 0 && montantPaye < total -> "partiel"
-                else -> "impaye"
-            }
+            // The rule every list and filter uses (PaymentState, FIN-05)
+            val statut = com.distrigo.app.data.model.PaymentState.keyOf(com.distrigo.app.data.model.PaymentState.of(total, montantPaye))
             val statusColor = when (statut) {
                 "paye" -> DsColors.Success
                 "partiel" -> DsColors.Warning

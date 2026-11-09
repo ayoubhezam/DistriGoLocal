@@ -73,7 +73,7 @@
         <item quantity="other">المخزون: ستُعاد المنتجات الـ\u2068%1$d\u2069 المبيعة إلى \u2068%2$s\u2069.</item>
     </plurals>
     <string name="ventes_delete_balance_down">الرصيد: سينخفض دَين الزبون « \u2068%1$s\u2069 » بـ\u2068%2$s\u2069 (باقي هذه العملية).</string>
-    <string name="ventes_delete_balance_up">الرصيد: سيرتفع دَين الزبون « \u2068%1$s\u2069 » بـ\u2068%2$s\u2069 (المبلغ المدفوع مسبقًا مع هذه العملية).</string>
+    <string name="ventes_delete_balance_up">الرصيد: سيرتفع دَين الزبون « \u2068%1$s\u2069 » بـ\u2068%2$s\u2069 (التسبيق المدفوع مع هذه العملية).</string>
     <string name="ventes_delete_balance_same">الرصيد: دون تغيير للزبون « \u2068%1$s\u2069 »، فقد دُفعت العملية بالكامل.</string>
     <string name="ventes_delete_payment">الدفع: ستُمحى \u2068%1$s\u2069 المحصَّلة مع هذه العملية.</string>
     <string name="ventes_edit_sale">تعديل عملية البيع</string>

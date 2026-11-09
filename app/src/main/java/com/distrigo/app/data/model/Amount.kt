@@ -77,6 +77,24 @@ object Amount {
      */
     fun paidOrNull(text: String): Double? = if (text.isBlank()) 0.0 else parse(text)
 
+    /**
+     * A document line's total, to the centime: what its receipt prints, and what the document stores. 3 × 150,15 is
+     * 450.45, not 450.45000000000005; 2,675 × 3 is 8,03 (FIN-05, owner D1).
+     */
+    fun lineTotal(quantity: Double, price: Double): Double {
+        if (!quantity.isFinite() || !price.isFinite()) return quantity * price
+        // The decimals as typed, multiplied exactly: 2.675 is 2.67499… in binary, and its product would round down
+        return BigDecimal.valueOf(quantity).multiply(BigDecimal.valueOf(price)).setScale(DECIMALS, RoundingMode.HALF_UP).toDouble()
+    }
+
+    /** A document's total: its rounded lines added up, so the lines a receipt prints make its total (FIN-05, D1). */
+    fun documentTotal(lineTotals: Iterable<Double>): Double {
+        // A line that is not a number is the repository's to refuse, not BigDecimal's to throw on
+        if (lineTotals.any { !it.isFinite() }) return lineTotals.sum()
+        return lineTotals.fold(BigDecimal.ZERO) { sum, line -> sum.add(BigDecimal.valueOf(line)) }
+            .setScale(DECIMALS, RoundingMode.HALF_UP).toDouble()
+    }
+
     /** What [paid] puts above [total] when that is an advance — half a centime or more; null otherwise. */
     fun advanceOf(total: Double, paid: Double): Double? = (paid - total).takeIf { inAdvance(total - paid) }
 }

@@ -625,13 +625,9 @@ fun TourneeDetailScreen(
                         // every word somewhere in them.
                         val matchSearch = com.distrigo.app.ui.common.matchesAllTokens(tokens, v.client_name, v.id.toString(), v.numberLabel)
                         val matchStatus = viewModel.venteFilterStatus == null || v.status == viewModel.venteFilterStatus
-                        val paye = v.montant_paye ?: 0.0
-                        val matchPayment = when (viewModel.venteFilterPaymentStatus) {
-                            "paye"    -> paye >= v.total && v.total > 0
-                            "impaye"  -> paye <= 0.0
-                            "partiel" -> paye > 0.0 && paye < v.total
-                            else      -> true
-                        }
+                        // The rule the Ventes filter and the ribbons use (PaymentState, FIN-05)
+                        val matchPayment = com.distrigo.app.data.model.PaymentState.fromKey(viewModel.venteFilterPaymentStatus)
+                            ?.let { it == com.distrigo.app.data.model.PaymentState.of(v.total, v.montant_paye ?: 0.0) } ?: true
                         val matchClient = viewModel.venteFilterClientId == null || v.client_id == viewModel.venteFilterClientId
                         matchSearch && matchStatus && matchPayment && matchClient
                     }
@@ -1678,11 +1674,7 @@ private fun TourneeVenteRow(
     val total       = vente.total
     val montantPaye = vente.montant_paye ?: 0.0
     // The payment state by its key, its words from the language: the colour never depends on a translation
-    val paymentKey = when {
-        montantPaye >= total && total > 0      -> "paye"
-        montantPaye > 0 && montantPaye < total -> "partiel"
-        else                                    -> "impaye"
-    }
+    val paymentKey = com.distrigo.app.data.model.PaymentState.keyOf(com.distrigo.app.data.model.PaymentState.of(total, montantPaye))
     val statut = stringResource(
         when (paymentKey) { "paye" -> R.string.common_status_paid; "partiel" -> R.string.common_status_partial; else -> R.string.common_status_unpaid }
     )

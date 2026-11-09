@@ -1,6 +1,5 @@
 package com.distrigo.app.ui.navigation
 
-import com.distrigo.app.core.format.westernNumber
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import androidx.compose.runtime.mutableIntStateOf
@@ -333,7 +332,7 @@ fun ClientsNavHost(
                     title = { Text(stringResource(R.string.common_payment_options), fontWeight = FontWeight.Bold) },
                     confirmButton = {
                         TextButton(onClick = {
-                            editPaymentAmount = (payment.amount ?: 0.0).toString()
+                            editPaymentAmount = com.distrigo.app.data.model.Amount.inputText(payment.amount ?: 0.0)
                             showEditPayment = true
                         }) { Text(stringResource(R.string.common_payment_edit_amount), color = DsColors.Primary) }
                     },
@@ -388,7 +387,7 @@ fun ClientsNavHost(
                         Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                             OutlinedTextField(
                                 value = editPaymentAmount,
-                                onValueChange = { editPaymentAmount = westernNumber(it); editError = "" },
+                                onValueChange = { editPaymentAmount = com.distrigo.app.data.model.Amount.sanitizeInput(it); editError = "" },
                                 label = { Text(stringResource(R.string.common_label_amount_da)) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.fillMaxWidth(),
@@ -408,7 +407,7 @@ fun ClientsNavHost(
                     confirmButton = {
                         Button(
                             onClick = {
-                                val amount = editPaymentAmount.toDoubleOrNull()
+                                val amount = com.distrigo.app.data.model.Amount.parse(editPaymentAmount)
                                 if (amount == null || amount <= 0) { editError = com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.common_payment_invalid_amount)); return@Button }
                                 clientViewModel.updatePayment(
                                     clientId  = clientId,

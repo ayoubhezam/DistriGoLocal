@@ -375,7 +375,8 @@ fun PurchaseOrderDetailScreen(
 
                         Spacer(Modifier.height(DsSpacing.sm))
 
-                        if (reste > 0) {
+                        // Owed to the half centime: 450.45 paid on 450.45000000000005 is settled (FIN-05)
+                        if (com.distrigo.app.data.model.Amount.owing(reste)) {
                             Row(
                                 modifier              = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -385,6 +386,11 @@ fun PurchaseOrderDetailScreen(
                                 Text(money.da(reste), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                             }
                         } else {
+                            // Paid above the total: the advance said with the stamp (owner, FIN-05 D4)
+                            com.distrigo.app.data.model.Amount.advanceOf(displayOrder.total, montantPaye)?.let { advance ->
+                                com.distrigo.app.ui.common.PaidAdvanceRow(advance, labelSize = DsTextSize.bodySmall)
+                                Spacer(Modifier.height(DsSpacing.sm))
+                            }
                             Row(
                                 modifier              = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.End
