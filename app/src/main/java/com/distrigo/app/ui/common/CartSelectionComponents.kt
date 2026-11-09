@@ -1,6 +1,5 @@
 package com.distrigo.app.ui.common
 
-import com.distrigo.app.core.format.westernNumber
 import com.distrigo.app.data.model.Quantity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -505,9 +504,8 @@ fun PriceFieldWithHistory(
     floorPrice: Double? = null
 ) {
     val money = LocalMoneyFormatter.current
-    // Locale.ROOT: this seeds an editable field whose onValueChange keeps only digits and '.',
-    // and whose value is parsed back with toDoubleOrNull(). A French-locale "120,00" would lose
-    // its separator on the first keystroke and become 12000.
+    // Locale.ROOT: this seeds a field that holds what Amount.sanitizeInput leaves — digits and one '.' — so a
+    // French-locale "120,00" is never put in it.
     var priceStr    by remember(price) { mutableStateOf(String.format(Locale.ROOT, "%.2f", price)) }
     var showHistory by remember { mutableStateOf(false) }
     val belowCost = floorPrice != null && isBelowCost(price, floorPrice)
@@ -523,13 +521,11 @@ fun PriceFieldWithHistory(
             OutlinedTextField(
                 value         = priceStr,
                 onValueChange = { raw ->
-                    val filtered = westernNumber(raw).filter { it.isDigit() || it == '.' }.let { s ->
-                        val dot = s.indexOf('.')
-                        if (dot < 0) s
-                        else s.substring(0, dot + 1) + s.substring(dot + 1).filter { it.isDigit() }
-                    }
+                    // ',' or '.', one of them, 2 decimals: the French keyboard's ',' used to be dropped, so once
+                    // the « .00 » was erased « 120,5 » read as 1205 (audit 2026-11-09, FIN-01).
+                    val filtered = com.distrigo.app.data.model.Amount.sanitizeInput(raw)
                     priceStr = filtered
-                    val parsed = filtered.toDoubleOrNull()
+                    val parsed = com.distrigo.app.data.model.Amount.parse(filtered)
                     if (parsed != null && parsed >= 0) onPriceChange(parsed)
                 },
                 modifier        = Modifier.weight(1f),

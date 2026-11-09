@@ -66,4 +66,17 @@ object Amount {
         if (cleaned.isEmpty() || cleaned.count { it == '.' } > 1 || !cleaned.all { it.isDigit() || it == '.' }) return null
         return cleaned.toDoubleOrNull()?.takeIf { it.isFinite() }?.let(::normalize)
     }
+
+    /**
+     * A document's « Montant payé » field as the document saves it: blank is nothing paid, a readable amount is that
+     * amount, and anything else is null, for the form to refuse rather than record 0. The field keeps what
+     * [sanitizeInput] leaves, so only text a draft kept from before can be unreadable, such as « 1.500.00 ».
+     *
+     * The fields used to keep digits and dots only: the French keyboard's ',' was dropped, so « 1500,50 » became
+     * 150 050 DA paid, shown as « Réglé ✓ »; and two dots read as 0 (audit 2026-11-09, FIN-01).
+     */
+    fun paidOrNull(text: String): Double? = if (text.isBlank()) 0.0 else parse(text)
+
+    /** What [paid] puts above [total] when that is an advance — half a centime or more; null otherwise. */
+    fun advanceOf(total: Double, paid: Double): Double? = (paid - total).takeIf { inAdvance(total - paid) }
 }

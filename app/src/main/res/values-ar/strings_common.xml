@@ -325,6 +325,10 @@
     <string name="common_settled_all">تسديد الكل</string>
     <string name="common_label_status">الحالة</string>
     <string name="common_settled_check">مسدَّد ✓</string>
+    <string name="common_paid_advance">تسبيق</string>
+    <string name="common_paid_advance_title">المبلغ المدفوع أكبر من المجموع</string>
+    <string name="common_paid_advance_body">المبلغ المدفوع يتجاوز المجموع بـ⁨%1$s⁩. يُسجَّل هذا الفائض كتسبيق.</string>
+    <string name="common_paid_advance_keep">حفظ التسبيق</string>
     <string name="common_action_fix">تصحيح</string>
     <string name="common_confirm_amount">تأكيد · \u2068%1$s\u2069</string>
     <string name="common_cart_product_deleted">منتج محذوف — أزل هذا السطر للمتابعة</string>

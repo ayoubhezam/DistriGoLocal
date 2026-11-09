@@ -607,6 +607,12 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                 else -> null
             }
 
+            // What « Montant payé » holds, read as it is saved: null for text a draft kept from before the field cleaned
+            // what was typed, which the field marks and « Confirmer » refuses rather than saving 0 (audit 2026-11-09, FIN-01).
+            val paid = com.distrigo.app.data.model.Amount.paidOrNull(montantPaye)
+            // An amount paid above the total, while the user decides whether it is an advance or a slip.
+            var advanceToConfirm by remember { mutableStateOf<Double?>(null) }
+
             // A form open when the license stops recording: « Confirmer » explains instead (docs/license_l5_enforcement.md §2)
             val license = LocalLicense.current
             fun doSave() {
@@ -616,6 +622,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                 // createVente's transaction — it rolls back, so nothing is corrupted, but the
                 // button would appear to do nothing at all.
                 if (blockedReason != null) return
+                val paidAmount = paid ?: return
                 isSaving = true
                 val items = cartItems.map { ci ->
                     mapOf(
@@ -630,7 +637,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                     source      = "camion",
                     items       = items,
                     note        = note.trim().ifEmpty { null },
-                    montantPaye = montantPaye.toDoubleOrNull() ?: 0.0,
+                    montantPaye = paidAmount,
                     // Deleted as the final statement inside the sale's transaction, so the draft
                     // outlives any failure: if the insert, the stock deltas or the balance
                     // recalculation throw, the whole thing rolls back and the unsaved work is
@@ -655,6 +662,25 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                 )
             }
 
+            // An amount paid above the total is said once more before the sale is saved: paying ahead is allowed,
+            // but it is also what a slip of the keyboard looks like (FIN-01). A blocked sale goes to doSave, as before.
+            fun requestSave(advanceConfirmed: Boolean = false) {
+                if (license.refuses()) return
+                val paidAmount = paid
+                if (!advanceConfirmed && formClient != null && blockedReason == null && paidAmount != null) {
+                    com.distrigo.app.data.model.Amount.advanceOf(total, paidAmount)?.let { advanceToConfirm = it; return }
+                }
+                doSave()
+            }
+
+            advanceToConfirm?.let { surplus ->
+                com.distrigo.app.ui.common.PaidAdvanceDialog(
+                    surplus = surplus,
+                    onKeep  = { advanceToConfirm = null; requestSave(advanceConfirmed = true) },
+                    onFix   = { advanceToConfirm = null }
+                )
+            }
+
             BackHandler { navController.popBackStack() }
 
             Step3Validation(
@@ -670,7 +696,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                 blockedReason       = blockedReason,
                 onBack              = { navController.popBackStack() },
                 onFixBlocked        = { navController.navigate(cartRoute) },
-                onConfirm           = { doSave() }
+                onConfirm           = { requestSave() }
             )
         }
     }

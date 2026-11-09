@@ -682,6 +682,11 @@ fun NavGraphBuilder.venteFormGraph(
             // being edited is checked against the camion by the repository instead.
             val overStockProduct = if (editSource == "camion") null
                 else cartItems.firstOrNull { stockPolicy.exceedsDepot(it.product, it.quantity) }?.product?.name
+            // What « Montant payé » holds, read as it is saved: null for text a draft kept from before the field cleaned
+            // what was typed, which the field marks and « Confirmer » refuses rather than saving 0 (audit 2026-11-09, FIN-01).
+            val paid = com.distrigo.app.data.model.Amount.paidOrNull(montantPaye)
+            // An amount paid above the total, while the user decides whether it is an advance or a slip.
+            var advanceToConfirm by remember { mutableStateOf<Double?>(null) }
 
             // A form open when the license stops recording: « Confirmer » explains instead (docs/license_l5_enforcement.md §2)
             val license = LocalLicense.current
@@ -694,6 +699,7 @@ fun NavGraphBuilder.venteFormGraph(
                 // The line has to go first. The cart step marks it; this is the block behind
                 // that marker, matching what Achats has always done.
                 if (missingProductIds.isNotEmpty() || overStockProduct != null) return
+                val paidAmount = paid ?: return
                 isSaving = true; saveError = ""
                 val items = cartItems.map { ci ->
                     mapOf("product_id" to ci.product.id, "quantity" to ci.quantity, "unit_price" to ci.unitPrice)
@@ -701,7 +707,7 @@ fun NavGraphBuilder.venteFormGraph(
                 if (isEdit) {
                     viewModel.updateVente(
                         id = venteId!!, clientId = formClient!!.id, items = items,
-                        note = note.trim().ifEmpty { null }, montantPaye = montantPaye.toDoubleOrNull() ?: 0.0,
+                        note = note.trim().ifEmpty { null }, montantPaye = paidAmount,
                         draftId = session.draftId,
                         onSuccess = {
                             session.onCommitted()
@@ -714,7 +720,7 @@ fun NavGraphBuilder.venteFormGraph(
                 } else {
                     viewModel.createVente(
                         clientId = formClient!!.id, tourneeId = null, source = "depot", items = items,
-                        note = note.trim().ifEmpty { null }, montantPaye = montantPaye.toDoubleOrNull() ?: 0.0,
+                        note = note.trim().ifEmpty { null }, montantPaye = paidAmount,
                         draftId = session.draftId,
                         onSuccess = {
                             session.onCommitted()
@@ -731,10 +737,18 @@ fun NavGraphBuilder.venteFormGraph(
             // compared against the sale as saved now, not as it was when the form opened. Nothing
             // changed, nothing to ask. A blocked save (missing product, strict stock) goes straight
             // to doSave, which shows why.
-            fun requestSave() {
+            //
+            // Before either, an amount paid above the total is said once more ([advanceConfirmed] false): paying
+            // ahead is allowed, but it is also what a slip of the keyboard looks like (FIN-01).
+            fun requestSave(advanceConfirmed: Boolean = false) {
                 if (license.refuses()) return
+                val blocked = formClient == null || missingProductIds.isNotEmpty() || overStockProduct != null
+                val paidAmount = paid ?: return
+                if (!advanceConfirmed && !blocked) {
+                    com.distrigo.app.data.model.Amount.advanceOf(total, paidAmount)?.let { advanceToConfirm = it; return }
+                }
                 val id = venteId
-                if (id == null || formClient == null || missingProductIds.isNotEmpty() || overStockProduct != null) {
+                if (id == null || blocked) {
                     doSave(); return
                 }
                 viewModel.loadSavedVente(id) { saved ->
@@ -745,11 +759,19 @@ fun NavGraphBuilder.venteFormGraph(
                             com.distrigo.app.ui.ventes.EditedLine(it.product.id, it.product.name, it.product.unit_type, it.quantity)
                         },
                         newTotal = total,
-                        newPaid  = montantPaye.toDoubleOrNull() ?: 0.0,
+                        newPaid  = paidAmount,
                         money    = money
                     )
                     if (effects.isEmpty()) doSave() else editConfirm = saved to effects
                 }
+            }
+
+            advanceToConfirm?.let { surplus ->
+                com.distrigo.app.ui.common.PaidAdvanceDialog(
+                    surplus = surplus,
+                    onKeep  = { advanceToConfirm = null; requestSave(advanceConfirmed = true) },
+                    onFix   = { advanceToConfirm = null }
+                )
             }
 
             editConfirm?.let { (saved, effects) ->

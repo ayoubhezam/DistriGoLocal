@@ -287,6 +287,10 @@
     <string name="common_settled_all">Tout réglé</string>
     <string name="common_label_status">Statut</string>
     <string name="common_settled_check">Réglé ✓</string>
+    <string name="common_paid_advance">Avance</string>
+    <string name="common_paid_advance_title">Montant payé supérieur au total</string>
+    <string name="common_paid_advance_body">Le montant payé dépasse le total de %1$s. Ce surplus sera enregistré comme une avance.</string>
+    <string name="common_paid_advance_keep">Enregistrer l\'avance</string>
     <string name="common_action_fix">Corriger</string>
     <string name="common_confirm_amount">Confirmer · %1$s</string>
     <string name="common_cart_product_deleted">Produit supprimé — retirez cette ligne pour continuer</string>

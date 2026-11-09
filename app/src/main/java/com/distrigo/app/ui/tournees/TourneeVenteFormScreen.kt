@@ -1,6 +1,5 @@
 package com.distrigo.app.ui.tournees
 
-import com.distrigo.app.core.format.westernNumber
 import com.distrigo.app.data.model.Quantity
 import com.distrigo.app.ui.common.formatQty
 import androidx.compose.foundation.background
@@ -350,20 +349,26 @@ internal fun Step3Validation(
                         verticalAlignment     = Alignment.CenterVertically
                     ) {
                         Text(stringResource(R.string.common_amount_paid_da), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                        // Locale.ROOT — see PurchaseFormScreen: the field is parsed back with
-                        // String.toDoubleOrNull(), which only accepts a '.' decimal separator.
+                        // Locale.ROOT: the field holds a '.' decimal separator, as Amount.sanitizeInput leaves it.
                         TextButton(onClick = { onMontantPayeChange(String.format(Locale.ROOT, "%.2f", total)) }) {
                             Text(stringResource(R.string.common_settled_all), fontSize = DsTextSize.caption, color = DsColors.Primary, fontWeight = FontWeight.SemiBold)
                         }
                     }
                     Spacer(Modifier.height(DsSpacing.xs))
+                    // Read as the sale saves it (Amount.paidOrNull): null only for text a draft kept from before the
+                    // field cleaned what was typed, which « Confirmer » refuses rather than saving 0.
+                    val paidOrNull = Amount.paidOrNull(montantPaye)
                     OutlinedTextField(
                         value           = montantPaye,
-                        onValueChange   = { raw -> onMontantPayeChange(westernNumber(raw).filter { it.isDigit() || it == '.' }) },
+                        // ',' or '.': the French keyboard's decimal key types ','. Dropping it used to turn
+                        // « 1500,50 » into 150 050 DA paid (audit 2026-11-09, FIN-01).
+                        onValueChange   = { raw -> onMontantPayeChange(Amount.sanitizeInput(raw)) },
                         placeholder     = { Text("0.00", fontSize = DsTextSize.body) },
                         modifier        = Modifier.fillMaxWidth(),
                         shape           = DsShapes.small,
                         singleLine      = true,
+                        isError         = paidOrNull == null,
+                        supportingText  = if (paidOrNull == null) { { Text(stringResource(R.string.common_payment_invalid_amount)) } } else null,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = dsTextFieldColors(
                             unfocusedBorderColor = DsColors.Border,
@@ -371,9 +376,10 @@ internal fun Step3Validation(
                         )
                     )
 
-                    val paye  = montantPaye.toDoubleOrNull() ?: 0.0
-                    val reste = total - paye
-                    if (paye > 0 && reste > 0) {
+                    val paye    = paidOrNull ?: 0.0
+                    val reste   = total - paye
+                    val advance = Amount.advanceOf(total, paye)
+                    if (paye > 0 && Amount.owing(reste)) {
                         Spacer(Modifier.height(DsSpacing.sm))
                         Row(
                             modifier              = Modifier.fillMaxWidth(),
@@ -383,7 +389,11 @@ internal fun Step3Validation(
                             Text(stringResource(R.string.common_label_remaining), fontSize = DsTextSize.caption, color = DsColors.Danger)
                             Text(money.da(reste), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Danger)
                         }
-                    } else if (paye >= total && total > 0) {
+                    } else if (advance != null) {
+                        // Paid above the total: an advance, said as one, never « Réglé ✓ »
+                        Spacer(Modifier.height(DsSpacing.sm))
+                        com.distrigo.app.ui.common.PaidAdvanceRow(advance)
+                    } else if (paye > 0 && total > 0) {
                         Spacer(Modifier.height(DsSpacing.sm))
                         Row(
                             modifier              = Modifier.fillMaxWidth(),
