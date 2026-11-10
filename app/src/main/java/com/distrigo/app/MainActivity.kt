@@ -557,6 +557,13 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
+                            composable(Screen.PlusPertesNew.route) {
+                                com.distrigo.app.ui.navigation.PertesNavHost(
+                                    openNew = true,
+                                    onBack  = { navController.popBackStack() }
+                                )
+                            }
+
                             composable(Screen.PlusInventaire.route) {
                                 com.distrigo.app.ui.navigation.InventoryNavHost(
                                     onBack              = { navController.popBackStack() },

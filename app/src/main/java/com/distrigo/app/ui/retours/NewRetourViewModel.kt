@@ -101,6 +101,9 @@ abstract class NewRetourViewModel(
     /** True when each line is valued at the price of the sale it comes from (a client's): the list shows that price. */
     open val pricedBySale: Boolean get() = false
 
+    /** Whether the list says that goods the supplier refused go to Pertes (FIN-03): a supplier's return only. */
+    open val refusedGoodsHint: Boolean get() = false
+
     /** Where the goods come back — "depot" or "camion" — when the return lets the user choose (a client's); else null. */
     var location by mutableStateOf<String?>(null)
 
@@ -261,6 +264,7 @@ class NewRetourFournisseurViewModel @Inject constructor(
     override val title = R.string.common_kind_supplier_return
     override val notReturnable = R.string.retours_not_returnable_supplier
     override val motifs = RetourFournisseurMotifs.ALL.map { it.id }
+    override val refusedGoodsHint get() = true
 
     private val productRepository = products
 

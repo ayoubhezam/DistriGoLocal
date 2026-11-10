@@ -13,6 +13,7 @@ import com.distrigo.app.data.repository.RetourFournisseurRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
@@ -225,16 +226,20 @@ class StockLedgerTest {
         assertStock(id, total = 40.0, camion = 0.0)
     }
 
+    /** Out of the dépôt, and back in when deleted. Goods the supplier refused are a perte, not a return (FIN-03). */
     @Test
-    fun supplierReturnsIncludingRefusedOnes() = runBlocking {
+    fun supplierReturns() = runBlocking {
         val retours = RetourFournisseurRepository(db)
         val id = product(40.0)
         val supplier = repository.addSupplier(mapOf("name" to "Laiterie Soummam")).newId()
 
-        retours.createRetour(supplier, "2026-09-16", "Produit défectueux — refusé (perte)", null, listOf(line(id, 5.0)))
+        assertNotNull(retours.createRetour(supplier, "2026-09-16", "Produit défectueux — refusé (perte)", null, listOf(line(id, 5.0)))["error"])
+        assertStock(id, total = 40.0, camion = 0.0)
+
+        retours.createRetour(supplier, "2026-09-16", "Produit défectueux — repris par le fournisseur", null, listOf(line(id, 5.0)))
         assertStock(id, total = 35.0, camion = 0.0)
         val retour = db.retourFournisseurDao().getRetoursForSupplier(supplier).single().id
-        assertEquals(1, db.perteDao().getPertesBySource("retour_fournisseur", retour).size)
+        assertTrue(db.perteDao().getPertesBySource("retour_fournisseur", retour).isEmpty())
 
         retours.deleteRetour(retour)
         assertStock(id, total = 40.0, camion = 0.0)

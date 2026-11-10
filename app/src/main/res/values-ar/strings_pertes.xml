@@ -42,4 +42,5 @@
         <item quantity="other">\u2068%1$d\u2069 خسارة</item>
     </plurals>
     <string name="pertes_no_match">لا توجد خسارة مطابقة.</string>
+    <string name="pertes_finish">إنهاء</string>
 </resources>

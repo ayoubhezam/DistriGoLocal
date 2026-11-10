@@ -66,7 +66,7 @@ class FractionalQuantityTest {
         val pertes = PerteRepository(db)
         pertes.seedDefaultPerteTypesIfNeeded()
         assertNull(pertes.addPerte(db.perteDao().getAllPerteTypes().first().id, id, 0.5, "depot", NOW, null, null)["error"])
-        assertNull(RetourFournisseurRepository(db).createRetour(supplier, "2026-09-27", "Produit défectueux — refusé (perte)", null, listOf(line(id, 0.5)))["error"])
+        assertNull(RetourFournisseurRepository(db).createRetour(supplier, "2026-09-27", "Produit défectueux — repris par le fournisseur", null, listOf(line(id, 0.5)))["error"])
         assertStock(id, total = 0.5, camion = 0.0)
     }
 
@@ -87,7 +87,7 @@ class FractionalQuantityTest {
         val pertes = PerteRepository(db)
         pertes.seedDefaultPerteTypesIfNeeded()
         assertNotNull(pertes.addPerte(db.perteDao().getAllPerteTypes().first().id, id, 0.5, "depot", NOW, null, null)["error"])
-        assertNotNull(RetourFournisseurRepository(db).createRetour(supplier(), "2026-09-27", "Produit défectueux — refusé (perte)", null, listOf(line(id, 0.5)))["error"])
+        assertNotNull(RetourFournisseurRepository(db).createRetour(supplier(), "2026-09-27", "Produit défectueux — repris par le fournisseur", null, listOf(line(id, 0.5)))["error"])
         val inventory = InventoryRepository(db)
         assertNotNull(inventory.recordScan(inventory.getOrCreateActiveSession().id, id, 2.5)["error"])
 

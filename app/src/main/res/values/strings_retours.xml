@@ -70,4 +70,6 @@
     <string name="retours_client_effect_stock_depot">Remis dans le stock dépôt</string>
     <string name="retours_client_delete_pertes_depot">Stock : les pertes liées à ce retour seront supprimées ; le stock dépôt ne change pas.</string>
     <string name="retours_client_delete_stock_depot">Stock : les produits retournés seront retirés du stock dépôt.</string>
+    <string name="retours_supplier_refused_hint">Marchandise refusée par le fournisseur ? Enregistrez-la dans Pertes (Casse ou Péremption).</string>
+    <string name="retours_supplier_refused_goods">Une marchandise refusée par le fournisseur n\'est pas un retour : enregistrez-la dans Pertes.</string>
 </resources>

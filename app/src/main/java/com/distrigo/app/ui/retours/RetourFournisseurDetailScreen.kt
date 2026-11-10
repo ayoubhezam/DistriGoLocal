@@ -29,7 +29,7 @@ fun RetourFournisseurDetailScreen(
 
     LaunchedEffect(retourSummary.id) { viewModel.loadRetourDetail(retourSummary.id) }
 
-    // "… refusé (perte)": the goods left the dépôt and were recorded as pertes as well.
+    // "… refusé (perte)", on a return made before FIN-03: the goods left the dépôt and were recorded as pertes as well.
     // Each line's motif decides its own effect; a return from before v61 has one for all its lines.
     val motifs = loaded?.items?.map { it.motif ?: retour.motif } ?: listOf(retour.motif)
     val perteLines = motifs.count { RetourFournisseurMotifs.resolve(it).perteType != null }

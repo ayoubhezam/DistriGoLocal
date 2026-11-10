@@ -325,7 +325,13 @@ fun NewPerteCartScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onNext:
  * every product lost. "Confirmer" records them all at once; then the summary stays, confirmed.
  */
 @Composable
-fun NewPerteSummaryScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onDone: () -> Unit) {
+fun NewPerteSummaryScreen(
+    viewModel: NewPerteViewModel,
+    onBack: () -> Unit,
+    onDone: () -> Unit,
+    /** What the button says once confirmed: back to the history, or « Terminer » when there is none to go back to. */
+    doneLabel: Int = R.string.inventory_back_to_history,
+) {
     val money = LocalMoneyFormatter.current
     val live by viewModel.cart.collectAsState()
     // What was confirmed stays on screen after the selection is cleared.
@@ -397,7 +403,7 @@ fun NewPerteSummaryScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onDo
             colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
         ) {
             if (saving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-            else Text(stringResource(if (confirmed != null) R.string.inventory_back_to_history else R.string.common_action_confirm), fontWeight = FontWeight.SemiBold)
+            else Text(stringResource(if (confirmed != null) doneLabel else R.string.common_action_confirm), fontWeight = FontWeight.SemiBold)
         }
     }
 }

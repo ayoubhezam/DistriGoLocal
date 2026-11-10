@@ -190,13 +190,13 @@ class StrictStockTest {
         val id = product(5.0)
         val supplier = repository.addSupplier(mapOf("name" to "Laiterie Soummam")).newId()
 
-        val refusal = retours.createRetour(supplier, "2026-09-27", "Produit défectueux — refusé (perte)", null, listOf(line(id, 6.0)))
+        val refusal = retours.createRetour(supplier, "2026-09-27", "Produit défectueux — repris par le fournisseur", null, listOf(line(id, 6.0)))
         assertNotNull(refusal["error"])
         assertDepot(id, 5.0)
         assertEquals(0L, sql.long("SELECT COUNT(*) FROM retour_fournisseur"))
         assertEquals(0L, sql.long("SELECT COUNT(*) FROM pertes"))
 
-        assertNull(retours.createRetour(supplier, "2026-09-27", "Produit défectueux — refusé (perte)", null, listOf(line(id, 5.0)))["error"])
+        assertNull(retours.createRetour(supplier, "2026-09-27", "Produit défectueux — repris par le fournisseur", null, listOf(line(id, 5.0)))["error"])
         assertDepot(id, 0.0)
     }
 

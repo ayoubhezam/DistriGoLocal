@@ -13,7 +13,6 @@ import com.distrigo.app.data.model.RetourFournisseurMotifs
 import com.distrigo.app.data.model.RetourPreview
 import com.distrigo.app.data.model.StockEffect
 import com.distrigo.app.data.model.Amount
-import com.distrigo.app.data.model.numberLabel
 import com.distrigo.app.R
 
 class RetourFournisseurRepository(
@@ -111,16 +110,17 @@ class RetourFournisseurRepository(
     ): Map<String, Any> {
         if (items.isEmpty()) return mapOf("error" to com.distrigo.app.core.text.appText(R.string.retours_add_one))
         db.unitErrorIn(items)?.let { return mapOf("error" to it) }
-
-        PerteRepository(db).seedDefaultPerteTypesIfNeeded()
+        // Goods the supplier refused are a perte, not a return (FIN-03): nothing is owed less for them
+        if (items.any { RetourFournisseurMotifs.isRetired((it["motif"] as? String) ?: motif) }) {
+            return mapOf("error" to com.distrigo.app.core.text.appText(R.string.retours_supplier_refused_goods))
+        }
 
         return DepotStockGuard(db).guardOrError(items.map { (it["product_id"] as Number).toInt() }) {
             val supplier = supplierDao.getSupplierById(supplierId)
                 ?: refuse(R.string.error_supplier_not_found, supplierId)
             val now = java.time.Instant.now().toString()
 
-            // Each line with its own motif — what decides its stock effect and its linked perte — or,
-            // a caller giving none, the return's.
+            // Each line with its own motif — what decides its stock effect — or, a caller giving none, the return's.
             val lines: List<Triple<ProductEntity, Double, String?>> = items.map { map ->
                 val productId = (map["product_id"] as Number).toInt()
                 val quantity  = map.lineQuantity()
@@ -164,16 +164,6 @@ class RetourFournisseurRepository(
                     created_at   = now
                 )
 
-                definition.perteType?.let { builtIn ->
-                    val perteType = PerteRepository(db).findDefaultPerteType(builtIn)
-                        ?: throw IllegalStateException("Type de perte introuvable : ${builtIn.seedName}")
-                    PerteRepository(db).addPerte(
-                        typeId = perteType.id, productId = product.id, quantity = quantity, source = "depot",
-                        dateTime = now, motif = "Retour fournisseur ${numberLabel(retourDao.getNumero(retourId), retourId)} — refusé", photoPath = null, userName = userName,
-                        affectsStock = false,
-                        sourceType = "retour_fournisseur", sourceId = retourId
-                    )
-                }
 
                 RetourFournisseurItemEntity(
                     retour_id = retourId, product_id = product.id, product_name = product.name,
@@ -192,8 +182,9 @@ class RetourFournisseurRepository(
         val retour = retourDao.getRetourById(id) ?: return mapOf("error" to "Retour introuvable")
         // Undoing a motif that brought stock in takes it back out of the dépôt.
         return DepotStockGuard(db).guardOrError(retourDao.getItemsForRetour(id).map { it.product_id }) {
-            // Raw DAO delete, not PerteRepository.deletePerte: these linked pertes have affectsStock=false,
-            // so their stock was never separately decremented — restoring would incorrectly add quantity back.
+            // A return made before FIN-03 with a « refusé (perte) » motif has linked pertes. Raw DAO delete, not
+            // PerteRepository.deletePerte: they have affectsStock=false, so their stock was never separately
+            // decremented — restoring would incorrectly add quantity back.
             db.perteDao().getPertesBySource("retour_fournisseur", id).forEach { db.perteDao().deletePerteById(it.id) }
 
             // Removing the return's movements reverses its effect on stock.

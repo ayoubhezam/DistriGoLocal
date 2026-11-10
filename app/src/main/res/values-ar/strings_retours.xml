@@ -76,4 +76,6 @@
     <string name="retours_client_effect_stock_depot">أُعيد إلى مخزون المستودع</string>
     <string name="retours_client_delete_pertes_depot">المخزون: تُحذف الخسائر المرتبطة بهذا المرتجع، ولا يتغير مخزون المستودع.</string>
     <string name="retours_client_delete_stock_depot">المخزون: ستُسحب المنتجات المرتجعة من مخزون المستودع.</string>
+    <string name="retours_supplier_refused_hint">بضاعة رفضها المورد؟ سجّلها في الخسائر (كسر أو انتهاء الصلاحية).</string>
+    <string name="retours_supplier_refused_goods">البضاعة التي رفضها المورد ليست مرتجعًا: سجّلها في الخسائر.</string>
 </resources>

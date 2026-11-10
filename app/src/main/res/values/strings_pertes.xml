@@ -39,4 +39,5 @@
         <item quantity="many">%1$d pertes</item>
     </plurals>
     <string name="pertes_no_match">Aucune perte ne correspond.</string>
+    <string name="pertes_finish">Terminer</string>
 </resources>

@@ -21,6 +21,7 @@ import com.distrigo.app.ui.pertes.NewPerteSummaryScreen
 import com.distrigo.app.ui.pertes.NewPerteViewModel
 import com.distrigo.app.ui.pertes.PerteHistoryScreen
 import com.distrigo.app.ui.products.ProductViewModel
+import com.distrigo.app.R
 
 /**
  * Pertes: the history of losses, "+" for a new one — a list, a centred dialog per product, a
@@ -31,6 +32,8 @@ import com.distrigo.app.ui.products.ProductViewModel
 fun PertesNavHost(
     /** Opens the section on that perte instead of the history — a drill-down: Back then leaves. */
     openPerteId       : Int? = null,
+    /** Opens the section on a new perte instead of the history: saved or left, it then leaves (FIN-03). */
+    openNew           : Boolean = false,
     onFullScreenChange: (Boolean) -> Unit = {},
     onBack            : (() -> Unit)? = null
 ) {
@@ -38,10 +41,16 @@ fun PertesNavHost(
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
     val license = LocalLicense.current
     val exit = { onBack?.invoke(); Unit }
+    // A new perte goes back to the history, or — the section opened on it — leaves
+    val leaveNew = { if (openNew) exit() else navController.popBackStack(Screen.PertesNewGraph.route, inclusive = true); Unit }
 
     NavHost(
         navController      = navController,
-        startDestination   = if (openPerteId != null) Screen.PertesDetail.route else Screen.PertesHome.route,
+        startDestination   = when {
+            openPerteId != null -> Screen.PertesDetail.route
+            openNew             -> Screen.PertesNewGraph.route
+            else                -> Screen.PertesHome.route
+        },
         route              = Screen.PertesGraph.route,
         enterTransition    = navEnterTransition,
         exitTransition     = navExitTransition,
@@ -82,7 +91,7 @@ fun PertesNavHost(
                 NewPerteListScreen(
                     viewModel = viewModel, categories = categories, sousCategories = sousCategories,
                     marques = marques, suppliers = suppliers,
-                    onBack = { navController.popBackStack(Screen.PertesNewGraph.route, inclusive = true) },
+                    onBack = leaveNew,
                     onOpenCart = { navController.navigate(Screen.PertesNewCart.route) }
                 )
             }
@@ -99,7 +108,9 @@ fun PertesNavHost(
                 NewPerteSummaryScreen(
                     viewModel = hiltViewModel<NewPerteViewModel>(graph),
                     onBack = { navController.popBackStack() },
-                    onDone = { navController.popBackStack(Screen.PertesNewGraph.route, inclusive = true) }
+                    onDone = leaveNew,
+                    // Opened on a new perte from elsewhere, it goes back there, not to the history
+                    doneLabel = if (openNew) R.string.pertes_finish else R.string.inventory_back_to_history
                 )
             }
         }

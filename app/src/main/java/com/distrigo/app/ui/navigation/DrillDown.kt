@@ -77,6 +77,9 @@ interface DrillDown {
      */
     fun showing(target: DrillTarget): () -> Unit
 
+    /** Opens [section] on top of the screen that asked, which Back comes back to; back to it if it is already open. */
+    fun open(section: DrillSection) = Unit
+
     /** Outside a provider: nothing opens, nothing is noted. */
     object None : DrillDown {
         override fun invoke(target: DrillTarget) = Unit
@@ -99,9 +102,21 @@ fun ShowsRecord(target: DrillTarget) {
     }
 }
 
+/** A section's page a screen can point to, as a supplier's return points to a new perte for refused goods (FIN-03). */
+enum class DrillSection(internal val screen: Screen) {
+    NEW_PERTE(Screen.PlusPertesNew),
+}
+
 /** [DrillDown] on the root [navController]. */
 class RootDrillDown(private val navController: NavHostController) : DrillDown {
     override fun invoke(target: DrillTarget) = drillDown(navController, target)
+
+    // Already open on the stack: back to it, so Back never loops and a double tap opens it once
+    override fun open(section: DrillSection) {
+        val route = section.screen.route
+        if (navController.currentBackStack.value.any { it.destination.route == route }) navController.popBackStack(route, inclusive = false)
+        else navController.navigate(route)
+    }
 
     override fun showing(target: DrillTarget): () -> Unit {
         // The page is composing now, so the root's current entry is the section it sits in

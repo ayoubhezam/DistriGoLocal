@@ -26,6 +26,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.AssignmentReturn
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -94,6 +96,8 @@ import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
 import com.distrigo.app.data.model.numberLabel
 import androidx.compose.ui.res.pluralStringResource
+import com.distrigo.app.ui.navigation.DrillSection
+import com.distrigo.app.ui.navigation.LocalDrillDown
 
 /**
  * A new return: only what can come back from this client or to this supplier, the Inventaire's way —
@@ -133,6 +137,8 @@ fun NewRetourListScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onOpe
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = stringResource(viewModel.title), subtitle = viewModel.subtitle, leading = DsTopBarLeading.Back(onBack))
         HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
+
+        if (viewModel.refusedGoodsHint) RefusedGoodsHint()
 
         DsCompactSearchField(
             value         = viewModel.search,
@@ -212,6 +218,35 @@ fun NewRetourListScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onOpe
             onSave = { qty, motif -> viewModel.add(r.lineId, qty, motif); editing = null },
             onDismiss = { editing = null }
         )
+    }
+}
+
+/**
+ * Above a supplier's list (FIN-03): goods the supplier refused are not a return but a perte. A tap opens a new perte on
+ * top of the return, which Back, or saving the perte, comes back to.
+ */
+@Composable
+private fun RefusedGoodsHint() {
+    val drill = LocalDrillDown.current
+    val license = LocalLicense.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = DsSpacing.lg)
+            .padding(top = DsSpacing.md)
+            .clip(DsShapes.medium)
+            .background(DsColors.PrimaryLight)
+            .clickable(role = Role.Button, onClick = license.guarded { drill.open(DrillSection.NEW_PERTE) })
+            .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Outlined.Info, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(DsSpacing.sm))
+        Text(
+            stringResource(R.string.retours_supplier_refused_hint),
+            fontSize = DsTextSize.caption, color = DsColors.PrimaryDark, modifier = Modifier.weight(1f)
+        )
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
     }
 }
 

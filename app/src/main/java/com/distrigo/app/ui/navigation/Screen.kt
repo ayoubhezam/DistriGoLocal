@@ -35,6 +35,8 @@ sealed class Screen(val route: String) {
     data object PlusFournisseurs : Screen("plus_fournisseurs")
     data object PlusCharges      : Screen("plus_charges")
     data object PlusPertes       : Screen("plus_pertes")
+    /** Pertes opened straight on a new perte, from another section (a supplier's return, FIN-03). */
+    data object PlusPertesNew    : Screen("plus_pertes_new")
     data object PlusInventaire   : Screen("plus_inventaire")
     // Also opened from a tournée's « Stock camion »
     data object PlusStockCamion  : Screen("plus_stock_camion")

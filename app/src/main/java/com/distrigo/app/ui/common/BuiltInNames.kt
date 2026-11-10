@@ -111,12 +111,14 @@ object BuiltInNames {
             R.string.builtin_motif_client_insatisfait, R.string.builtin_autre,
         )
         val supplierIds = listOf(
-            R.string.builtin_motif_defectueux_repris, R.string.builtin_motif_defectueux_refuse,
-            R.string.builtin_motif_perime_repris, R.string.builtin_motif_perime_refuse,
+            R.string.builtin_motif_defectueux_repris, R.string.builtin_motif_perime_repris,
             R.string.builtin_motif_erreur_commande, R.string.builtin_motif_excedent, R.string.builtin_autre,
         )
+        // No longer offered (FIN-03), still shown on the returns made with them
+        val retiredSupplierIds = listOf(R.string.builtin_motif_defectueux_refuse, R.string.builtin_motif_perime_refuse)
         RetourClientMotifs.ALL.map { it.id }.zip(clientIds).toMap() +
-            RetourFournisseurMotifs.ALL.map { it.id }.zip(supplierIds).toMap()
+            RetourFournisseurMotifs.ALL.map { it.id }.zip(supplierIds).toMap() +
+            RetourFournisseurMotifs.RETIRED.map { it.id }.zip(retiredSupplierIds).toMap()
     }
 
     /** For a test: the built-ins with no translation, and whether every motif has one. */
