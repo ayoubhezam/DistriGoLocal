@@ -35,6 +35,8 @@ fun RetourClientDetailScreen(
     val perteLines = motifs.count { RetourClientMotifs.resolve(it).perteType != null }
     val asPertes = perteLines == motifs.size
     val mixedEffects = perteLines in 1 until motifs.size
+    // Where the goods came back (STK-02): a return made before v65 has no place, and all of those went into the camion.
+    val atDepot = retour.emplacement == "depot"
 
     RetourDetailContent(
         numberLabel   = retour.numberLabel,
@@ -45,16 +47,17 @@ fun RetourClientDetailScreen(
         createdAt     = retour.created_at,
         motif         = retour.motif,
         stockEffect   = when {
-            mixedEffects -> stringResource(R.string.retours_client_effect_mixed)
-            asPertes     -> stringResource(R.string.retours_client_effect_pertes)
-            else         -> stringResource(R.string.retours_client_effect_stock)
+            mixedEffects -> stringResource(if (atDepot) R.string.retours_client_effect_mixed_depot else R.string.retours_client_effect_mixed)
+            asPertes     -> stringResource(if (atDepot) R.string.retours_client_effect_pertes_depot else R.string.retours_client_effect_pertes)
+            else         -> stringResource(if (atDepot) R.string.retours_client_effect_stock_depot else R.string.retours_client_effect_stock)
         },
         note          = retour.note,
+        origin        = retour.vente_numero,
         lines         = loaded?.items?.map { RetourLine(it.id, it.product_name, it.unit_type, it.quantity, it.unit_price, it.total_price, it.motif ?: retour.motif) },
         deleteEffects = listOf(
             if (mixedEffects) stringResource(R.string.retours_client_delete_mixed)
-            else if (asPertes) stringResource(R.string.retours_client_delete_pertes)
-            else stringResource(R.string.retours_client_delete_stock),
+            else if (asPertes) stringResource(if (atDepot) R.string.retours_client_delete_pertes_depot else R.string.retours_client_delete_pertes)
+            else stringResource(if (atDepot) R.string.retours_client_delete_stock_depot else R.string.retours_client_delete_stock),
             stringResource(R.string.retours_client_delete_balance, money.da(retour.total), retour.client_name)
         ),
         deleting       = deleting,

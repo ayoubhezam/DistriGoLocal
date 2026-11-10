@@ -28,5 +28,12 @@ data class RetourClientEntity(
     /** The device that created the row; null for rows created before version 48. */
     val origin_device_id: String? = null,
     /** The number printed on the document — `V-6DED-000124`, or its old id for one created before version 49. See DocumentNumberTriggers. */
-    val numero: String? = null
+    val numero: String? = null,
+    /** The sale this return was made from (FIN-02, v65); null for a return made before. */
+    val vente_id: Int? = null,
+    /**
+     * Where the goods came back: "depot" or "camion", the sale's source unless the user changed it (STK-02, v65).
+     * Null for a return made before, which all went into the camion.
+     */
+    val emplacement: String? = null
 )

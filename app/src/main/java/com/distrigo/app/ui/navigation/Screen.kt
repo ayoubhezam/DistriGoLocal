@@ -199,6 +199,7 @@ sealed class Screen(val route: String) {
     data object ClientsRetourFormGraph : Screen("clients_retour_form_graph/{clientId}") {
         fun createRoute(clientId: Int) = "clients_retour_form_graph/$clientId"
     }
+    data object ClientsRetourFormSale         : Screen("clients_retour_form_sale")
     data object ClientsRetourFormProducts     : Screen("clients_retour_form_products")
     data object ClientsRetourFormCart         : Screen("clients_retour_form_cart")
     data object ClientsRetourFormSummary      : Screen("clients_retour_form_summary")

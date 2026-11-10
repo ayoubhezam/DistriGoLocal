@@ -25,5 +25,10 @@ data class RetourClient(
     val items_count : Int? = null,
     val items       : List<RetourClientItem>? = null,
     /** See [numberLabel]. */
-    val numero      : String? = null
+    val numero      : String? = null,
+    /** The sale it was made from, and that sale's number (FIN-02, v65); null for a return made before. */
+    val vente_id    : Int? = null,
+    val vente_numero: String? = null,
+    /** "depot" or "camion": where the goods came back (STK-02, v65); null for a return made before, which went into the camion. */
+    val emplacement : String? = null
 )

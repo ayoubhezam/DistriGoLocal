@@ -7,7 +7,8 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "retour_client_items",
-    indices = [Index(value = ["retour_id"]), Index(value = ["uuid"], unique = true)]
+    // vente_item_id: what was already returned of a sale line, read for every line of the sale a return is made from.
+    indices = [Index(value = ["retour_id"]), Index(value = ["uuid"], unique = true), Index(value = ["vente_item_id"])]
 )
 data class RetourClientItemEntity(
     @PrimaryKey(autoGenerate = true)
@@ -26,5 +27,12 @@ data class RetourClientItemEntity(
     @ColumnInfo(defaultValue = "0")
     val updated_at: Long = System.currentTimeMillis(),
     /** Why this line came back — its own, since v61: it decides the line's stock effect and linked perte. */
-    val motif: String? = null
+    val motif: String? = null,
+    /** The sale line it came back from (FIN-02, v65): its price and cost are this line's. Null before v65. */
+    val vente_item_id: Int? = null,
+    /**
+     * The goods' cost, the sale line's purchase price snapshot (FIN-02, v65), so the Résultat takes back what they cost
+     * when sold. Null before v65: the report falls back to today's purchase price.
+     */
+    val purchase_price_snapshot: Double? = null
 )

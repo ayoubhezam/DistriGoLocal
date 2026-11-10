@@ -1,5 +1,6 @@
 package com.distrigo.app.data.local.database
 
+import com.distrigo.app.data.repository.recordedSale
 import android.content.Context
 import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
@@ -67,7 +68,13 @@ class DocumentNumberTest {
         repository.createPurchaseOrder(
             mapOf("supplier_id" to supplier, "items" to listOf(mapOf("product_id" to product, "quantity" to 5.0, "unit_cost" to 95.0)))
         )
-        RetourClientRepository(db).createRetour(client, null, "2026-09-16", "Client insatisfait", null, listOf(line(product)))
+        // From the first sale (FIN-02): its one line
+        val firstSale = sql.long("SELECT MIN(id) FROM ventes").toInt()
+        val soldLine = db.retourClientDao().getSaleLinesWithReturned(firstSale).single().vente_item_id
+        RetourClientRepository(db).createRetour(
+            client, firstSale, "depot", "2026-09-16", "Client insatisfait", null,
+            listOf(mapOf("vente_item_id" to soldLine, "product_id" to product, "quantity" to 1.0))
+        )
         RetourFournisseurRepository(db).createRetour(supplier, "2026-09-16", "Erreur de commande", null, listOf(line(product)))
 
         assertEquals(listOf("V-A0F1-000001", "V-A0F1-000002"), numbers("ventes"))
@@ -170,7 +177,8 @@ class DocumentNumberTest {
         open(DEVICE_A)
         val product = product()
         val client = repository.addClient(mapOf("name" to "Épicerie El Amel")).newId()
-        RetourClientRepository(db).createRetour(client, null, "2026-09-16", "Produit défectueux", null, listOf(line(product)))
+        val sold = db.recordedSale(client, "camion", product to 1.0)
+        RetourClientRepository(db).createRetour(client, sold.venteId, "camion", "2026-09-16", "Produit défectueux", null, listOf(sold.returning(0, 1.0)))
 
         assertEquals("Retour client RC-A0F1-000001", sql.text("SELECT motif FROM pertes"))
     }

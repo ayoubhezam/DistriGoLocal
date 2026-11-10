@@ -1249,6 +1249,21 @@ val MIGRATION_63_64 = object : Migration(63, 64) {
 }
 
 /**
+ * Version 65: a client return is made from a sale (FIN-02, STK-02; owner, 2026-11-10). The return keeps its sale and
+ * where the goods came back (`depot` or `camion`); each line its sale line and that line's cost. Adds only: rows made
+ * before keep nulls (they all went into the camion, valued at the catalogue price).
+ */
+val MIGRATION_64_65 = object : Migration(64, 65) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `retour_client` ADD COLUMN `vente_id` INTEGER")
+        db.execSQL("ALTER TABLE `retour_client` ADD COLUMN `emplacement` TEXT")
+        db.execSQL("ALTER TABLE `retour_client_items` ADD COLUMN `vente_item_id` INTEGER")
+        db.execSQL("ALTER TABLE `retour_client_items` ADD COLUMN `purchase_price_snapshot` REAL")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_retour_client_items_vente_item_id` ON `retour_client_items` (`vente_item_id`)")
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -1269,6 +1284,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_61_62,
     MIGRATION_62_63,
     MIGRATION_63_64,
+    MIGRATION_64_65,
 ).map(LicenseWriteGate::lifting).toTypedArray()
 
 /**

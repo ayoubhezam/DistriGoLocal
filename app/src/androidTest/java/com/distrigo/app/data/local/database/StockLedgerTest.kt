@@ -1,5 +1,6 @@
 package com.distrigo.app.data.local.database
 
+import com.distrigo.app.data.repository.recordedSale
 import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -207,10 +208,11 @@ class StockLedgerTest {
         val id = product(40.0)
         val client = client()
 
-        retours.createRetour(client, null, "2026-09-16", "Client insatisfait", null, listOf(line(id, 2.0)))
+        val sold = db.recordedSale(client, "camion", id to 5.0)
+        retours.createRetour(client, sold.venteId, "camion", "2026-09-16", "Client insatisfait", null, listOf(sold.returning(0, 2.0)))
         assertStock(id, total = 42.0, camion = 2.0)
 
-        retours.createRetour(client, null, "2026-09-16", "Produit défectueux", null, listOf(line(id, 3.0)))
+        retours.createRetour(client, sold.venteId, "camion", "2026-09-16", "Produit défectueux", null, listOf(sold.returning(0, 3.0)))
         assertStock(id, total = 42.0, camion = 2.0)
         val defective = db.retourClientDao().getRetoursForClient(client).single { it.motif == "Produit défectueux" }.id
         assertEquals(1, db.perteDao().getPertesBySource("retour_client", defective).size)
@@ -296,9 +298,10 @@ class StockLedgerTest {
         val expired = product(30.0, name = "Yaourt Soummam")
         val client = client()
 
+        val sold = db.recordedSale(client, "camion", back to 2.0, expired to 3.0)
         retours.createRetour(
-            client, null, "2026-10-05", null, null,
-            listOf(line(back, 2.0) + ("motif" to "Erreur de livraison"), line(expired, 3.0) + ("motif" to "Produit périmé"))
+            client, sold.venteId, "camion", "2026-10-05", null, null,
+            listOf(sold.returning(0, 2.0, "Erreur de livraison"), sold.returning(1, 3.0, "Produit périmé"))
         )
         assertStock(back, total = 42.0, camion = 2.0)
         assertStock(expired, total = 30.0, camion = 0.0)

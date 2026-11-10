@@ -87,7 +87,6 @@ class FractionalQuantityTest {
         val pertes = PerteRepository(db)
         pertes.seedDefaultPerteTypesIfNeeded()
         assertNotNull(pertes.addPerte(db.perteDao().getAllPerteTypes().first().id, id, 0.5, "depot", NOW, null, null)["error"])
-        assertNotNull(RetourClientRepository(db).createRetour(client, null, "2026-09-27", "Client insatisfait", null, listOf(line(id, 0.5)))["error"])
         assertNotNull(RetourFournisseurRepository(db).createRetour(supplier(), "2026-09-27", "Produit défectueux — refusé (perte)", null, listOf(line(id, 0.5)))["error"])
         val inventory = InventoryRepository(db)
         assertNotNull(inventory.recordScan(inventory.getOrCreateActiveSession().id, id, 2.5)["error"])
@@ -102,6 +101,15 @@ class FractionalQuantityTest {
                 "items" to listOf(mapOf("product_id" to id, "quantity" to 15.0, "unit_cost" to 30.0, "nb_colis" to 0.5, "unite_par_colis" to 30)))
         )
         assertEquals(0.5, sql.double("SELECT nb_colis FROM purchase_order_items ORDER BY id DESC LIMIT 1"), 0.0)
+        // Half a piece does not come back either, from the sale just made (FIN-02)
+        val sale = sql.long("SELECT MAX(id) FROM ventes").toInt()
+        val soldLine = db.retourClientDao().getSaleLinesWithReturned(sale).single().vente_item_id
+        assertNotNull(
+            RetourClientRepository(db).createRetour(
+                client, sale, "depot", "2026-09-27", "Client insatisfait", null,
+                listOf(mapOf("vente_item_id" to soldLine, "product_id" to id, "quantity" to 0.5))
+            )["error"]
+        )
         assertStock(id, total = 8.0, camion = 0.0)
     }
 

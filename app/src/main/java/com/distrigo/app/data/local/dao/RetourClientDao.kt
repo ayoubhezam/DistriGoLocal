@@ -62,4 +62,58 @@ interface RetourClientDao {
     /** The number printed on it, or null if it has none — see DocumentNumberTriggers. */
     @Query("SELECT numero FROM retour_client WHERE id = :id")
     suspend fun getNumero(id: Int): String?
+
+    /**
+     * The client's sales a return can still be made from, newest first: every sale whatever its status (UX-01) with
+     * at least one line not yet returned in full. [ReturnableSaleRow.lines] counts those lines.
+     */
+    @Query("""
+        SELECT v.id AS id, v.numero AS numero, v.created_at AS created_at, v.source AS source, v.total AS total,
+               COUNT(vi.id) AS lines
+        FROM ventes v JOIN vente_items vi ON vi.vente_id = v.id
+        WHERE v.client_id = :clientId
+          AND vi.quantity - COALESCE((SELECT SUM(ri.quantity) FROM retour_client_items ri WHERE ri.vente_item_id = vi.id), 0) > 0.0005
+        GROUP BY v.id
+        ORDER BY v.created_at DESC, v.id DESC
+    """)
+    suspend fun getReturnableSales(clientId: Int): List<ReturnableSaleRow>
+
+    /** Every line of a sale, with what was already returned of it (FIN-02: the cap is sold less returned, per line). */
+    @Query("""
+        SELECT vi.id AS vente_item_id, vi.vente_id AS vente_id, vi.product_id AS product_id, vi.quantity AS sold,
+               vi.unit_price AS unit_price, vi.purchase_price_snapshot AS purchase_price_snapshot,
+               COALESCE((SELECT SUM(ri.quantity) FROM retour_client_items ri WHERE ri.vente_item_id = vi.id), 0) AS returned
+        FROM vente_items vi
+        WHERE vi.vente_id = :venteId
+        ORDER BY vi.id
+    """)
+    suspend fun getSaleLinesWithReturned(venteId: Int): List<SaleLineReturned>
+
+    /** The sale's number, or null when it has none or is gone. */
+    @Query("SELECT numero FROM ventes WHERE id = :venteId")
+    suspend fun getVenteNumero(venteId: Int): String?
+}
+
+/** A sale a client return can be made from: its number, when, from where, its total, and how many lines are left. */
+data class ReturnableSaleRow(
+    val id: Int,
+    val numero: String?,
+    val created_at: String,
+    val source: String,
+    val total: Double,
+    val lines: Int,
+)
+
+/** A sale line as a return reads it: what it sold, at what price and cost, and how much of it already came back. */
+data class SaleLineReturned(
+    val vente_item_id: Int,
+    val vente_id: Int,
+    val product_id: Int,
+    val sold: Double,
+    val unit_price: Double,
+    val purchase_price_snapshot: Double,
+    val returned: Double,
+) {
+    /** What may still come back of this line. */
+    val left: Double get() = com.distrigo.app.data.model.Quantity.normalize(sold - returned)
 }

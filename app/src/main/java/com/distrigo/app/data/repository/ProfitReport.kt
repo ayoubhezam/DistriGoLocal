@@ -11,7 +11,8 @@ data class ChargeByType(val type: String, val count: Int, val value: Double)
  * - [sales] and [cost]: what the period's sales came to, and what the goods sold had cost — each line at
  *   the purchase price it was sold at;
  * - [returns] and [returnsCost]: the client returns of the period, at the price they were sold at, and
- *   what those goods cost — at today's purchase price, a return line keeping no cost of its own. A
+ *   what those goods cost when sold — each line's cost snapshot, taken from its sale line (FIN-02; today's
+ *   purchase price for a return made before v65). A
  *   return cancels its sale's margin: the refund goes, the goods' cost comes back. Goods that came back
  *   only to be thrown away are in [losses] too, which is right: the margin is cancelled, then the goods
  *   are lost;

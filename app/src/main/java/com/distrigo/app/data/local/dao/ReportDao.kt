@@ -114,12 +114,13 @@ interface ReportDao {
 
     /**
      * The client returns dated [firstDay] to [lastDay], both included: how many, their lines at the
-     * price they were sold at, and those goods at today's purchase price — a return line keeps no cost.
+     * price they were sold at, and what those goods cost when sold — the line's snapshot since v65 (FIN-02), today's
+     * purchase price for a line returned before.
      */
     @Query(
         """
         SELECT COUNT(DISTINCT r.id) AS count, COALESCE(SUM(i.total_price), 0) AS total,
-               COALESCE(SUM(i.quantity * COALESCE(p.purchase_price, 0)), 0) AS cost
+               COALESCE(SUM(i.quantity * COALESCE(i.purchase_price_snapshot, p.purchase_price, 0)), 0) AS cost
         FROM retour_client_items i JOIN retour_client r ON r.id = i.retour_id
         LEFT JOIN products p ON p.id = i.product_id
         WHERE r.date >= :firstDay AND r.date <= :lastDay

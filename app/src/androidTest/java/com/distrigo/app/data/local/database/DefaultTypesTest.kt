@@ -1,5 +1,6 @@
 package com.distrigo.app.data.local.database
 
+import com.distrigo.app.data.repository.recordedSale
 import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -108,9 +109,9 @@ class DefaultTypesTest {
         val repository = ProductRepository(db.productDao(), db.categoryDao(), db.supplierDao(), db)
         val product = (repository.addProduct(mapOf("name" to "Lait Candia 1L", "selling_price" to 110.0))["id"] as Number).toInt()
         val client = (repository.addClient(mapOf("name" to "Épicerie El Amel"))["id"] as Number).toInt()
+        val sold = db.recordedSale(client, "camion", product to 1.0)
         val result = RetourClientRepository(db).createRetour(
-            client, null, "2026-09-16", "Produit défectueux", null,
-            listOf(mapOf("product_id" to product, "quantity" to 1.0))
+            client, sold.venteId, "camion", "2026-09-16", "Produit défectueux", null, listOf(sold.returning(0, 1.0))
         )
         assertTrue(result.toString(), result["error"] == null)
         return sql.long("SELECT type_id FROM pertes")

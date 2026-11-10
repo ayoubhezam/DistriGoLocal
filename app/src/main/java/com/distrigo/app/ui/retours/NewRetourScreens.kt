@@ -92,6 +92,7 @@ import com.distrigo.app.ui.common.BuiltInNames
 import com.distrigo.app.ui.common.asString
 import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
+import com.distrigo.app.data.model.numberLabel
 import androidx.compose.ui.res.pluralStringResource
 
 /**
@@ -130,7 +131,7 @@ fun NewRetourListScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onOpe
     val all = eligible
     val shown = all?.let { viewModel.visible(it, cart, viewModel.search) }
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = stringResource(viewModel.title), subtitle = viewModel.partyName, leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(viewModel.title), subtitle = viewModel.subtitle, leading = DsTopBarLeading.Back(onBack))
         HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
 
         DsCompactSearchField(
@@ -169,9 +170,11 @@ fun NewRetourListScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onOpe
                     contentPadding = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = DsSpacing.md),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                 ) {
-                    items(shown, key = { it.product.id }) { r ->
+                    items(shown, key = { it.lineId }) { r ->
                         ProductCard(
-                            product = r.product, onClick = { message = ""; editing = r },
+                            // A client's line shows the price it was sold at, which is what it is credited at (FIN-02)
+                            product = if (viewModel.pricedBySale) r.product.copy(selling_price = r.unitPrice) else r.product,
+                            onClick = { message = ""; editing = r },
                             stock = r.maxQuantity, lowStock = false, stockPrefix = stringResource(R.string.retours_max_prefix)
                         )
                     }
@@ -206,7 +209,7 @@ fun NewRetourListScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onOpe
         RetourDialog(
             productName = r.product.name, unit = r.product.unit_type, max = r.maxQuantity,
             motifs = viewModel.motifs, initialMotif = null, initialQty = null,
-            onSave = { qty, motif -> viewModel.add(r.product.id, qty, motif); editing = null },
+            onSave = { qty, motif -> viewModel.add(r.lineId, qty, motif); editing = null },
             onDismiss = { editing = null }
         )
     }
@@ -327,7 +330,7 @@ fun NewRetourCartScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onNex
     BackHandler(onBack = onBack)
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
-        DsTopAppBar(title = stringResource(R.string.common_my_selection), subtitle = cart.distinctBy { it.product.id }.size.let { pluralStringResource(R.plurals.common_products_count, it, it) }, leading = DsTopBarLeading.Back(onBack))
+        DsTopAppBar(title = stringResource(R.string.common_my_selection), subtitle = cart.distinctBy { it.returnable.lineId }.size.let { pluralStringResource(R.plurals.common_products_count, it, it) }, leading = DsTopBarLeading.Back(onBack))
         Spacer(Modifier.height(DsSpacing.sm))
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (cart.isEmpty()) {
@@ -343,7 +346,7 @@ fun NewRetourCartScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onNex
                             avatarIcon      = Icons.AutoMirrored.Filled.AssignmentReturn,
                             title           = line.product.name,
                             metaLine        = quantityText(line.quantity, line.product.unit_type).asString() + " · " + BuiltInNames.motif(line.motif),
-                            totalPriceLabel = money.da(line.quantity * viewModel.priceOf(line.product)),
+                            totalPriceLabel = money.da(line.total),
                             isExpanded      = expanded,
                             onToggleExpand  = { expandedId = if (expanded) null else line.key },
                             statusLine      = {
@@ -417,7 +420,7 @@ fun NewRetourSummaryScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, on
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
-            title = stringResource(R.string.retours_summary_title), subtitle = viewModel.partyName,
+            title = stringResource(R.string.retours_summary_title), subtitle = viewModel.subtitle,
             leading = DsTopBarLeading.Back { if (confirmed != null) onDone() else onBack() }
         )
         LazyColumn(
@@ -426,6 +429,9 @@ fun NewRetourSummaryScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, on
             verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
         ) {
             item { InventoryDateField(date = viewModel.date, enabled = confirmed == null, onDateChange = { viewModel.date = it }) }
+            viewModel.location?.let { where ->
+                item { RetourLocationField(location = where, enabled = confirmed == null, onChange = { viewModel.location = it }) }
+            }
             item {
                 Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
                     StatCard(Icons.Default.Inventory2, "${lines.size}", stringResource(R.string.retours_stat_products), DsColors.Primary, Modifier.weight(1f))
@@ -451,7 +457,7 @@ fun NewRetourSummaryScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, on
                         Text(line.product.name, fontSize = DsTextSize.body, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
                         Text(quantityText(line.quantity, line.product.unit_type).asString() + " · " + BuiltInNames.motif(line.motif), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     }
-                    Text(money.da(line.quantity * viewModel.priceOf(line.product)), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
+                    Text(money.da(line.total), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.PrimaryDark)
                 }
             }
             if (error.isNotEmpty()) item { Text(error, color = DsColors.Danger, fontSize = DsTextSize.bodySmall) }
@@ -474,6 +480,123 @@ fun NewRetourSummaryScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, on
         }
     }
 }
+
+/**
+ * Where a client's return puts the goods back: the dépôt or the camion (STK-02). Starts on the sale's source; the
+ * user may pick the other, as when goods sold from the truck are brought back to the warehouse.
+ */
+@Composable
+private fun RetourLocationField(location: String, enabled: Boolean, onChange: (String) -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.Surface).border(1.dp, DsColors.Border, DsShapes.medium).padding(DsSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+    ) {
+        Text(stringResource(R.string.retours_location), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+            listOf("depot" to R.string.common_source_depot, "camion" to R.string.common_source_truck).forEach { (value, label) ->
+                val selected = value == location
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .clip(DsShapes.medium)
+                        .background(if (selected) DsColors.PrimaryLight else DsColors.Surface)
+                        .border(1.dp, if (selected) DsColors.Primary else DsColors.Border, DsShapes.medium)
+                        .clickable(enabled = enabled && !selected, role = Role.RadioButton) { onChange(value) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        stringResource(label), fontSize = DsTextSize.body,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (selected) DsColors.Primary else DsColors.TextPrimary
+                    )
+                }
+            }
+        }
+        Text(stringResource(R.string.retours_location_hint), fontSize = DsTextSize.caption, color = DsColors.TextTertiary)
+    }
+}
+
+/**
+ * The first step of a client's return: the sale it is made from (FIN-02). The client's sales with something left to
+ * return, newest first — any status (UX-01) — each with its number, when it was made, from where, its total and how
+ * many of its products can still come back.
+ */
+@Composable
+fun NewRetourSaleScreen(viewModel: NewRetourClientViewModel, onBack: () -> Unit, onPicked: () -> Unit) {
+    val money = LocalMoneyFormatter.current
+    val sales by viewModel.sales.collectAsState()
+    BackHandler(onBack = onBack)
+
+    Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
+        DsTopAppBar(title = stringResource(R.string.retours_choose_sale), subtitle = viewModel.partyName, leading = DsTopBarLeading.Back(onBack))
+        HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
+        val list = sales
+        if (list != null && list.isNotEmpty()) {
+            Text(
+                pluralStringResource(R.plurals.retours_sales_n, list.size, list.size),
+                fontSize = DsTextSize.caption, color = DsColors.TextSecondary,
+                modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.sm)
+            )
+        }
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            when {
+                list == null -> CircularProgressIndicator(color = DsColors.Primary, modifier = Modifier.align(Alignment.Center))
+                list.isEmpty() -> Text(
+                    stringResource(R.string.retours_no_sale), fontSize = DsTextSize.body, color = DsColors.TextSecondary,
+                    textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.Center).padding(DsSpacing.xl)
+                )
+                else -> LazyColumn(
+                    contentPadding = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = DsSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+                ) {
+                    items(list, key = { it.id }) { sale ->
+                        val selected = viewModel.sale?.id == sale.id
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(DsShapes.large)
+                                .background(DsColors.Surface)
+                                .border(1.dp, if (selected) DsColors.Primary else DsColors.Border, DsShapes.large)
+                                .clickable { viewModel.pickSale(sale); onPicked() }
+                                .padding(DsSpacing.md),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(Modifier.size(40.dp).clip(DsShapes.medium).background(DsColors.PrimaryLight), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.Receipt, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(20.dp))
+                            }
+                            Spacer(Modifier.width(DsSpacing.md))
+                            Column(Modifier.weight(1f)) {
+                                Text(numberLabel(sale.numero, sale.id), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.TextPrimary)
+                                Text(
+                                    listOf(
+                                        saleMoment(sale.created_at),
+                                        stringResource(if (sale.source == "camion") R.string.common_source_truck else R.string.common_source_depot)
+                                    ).filter { it.isNotEmpty() }.joinToString(" · "),
+                                    fontSize = DsTextSize.caption, color = DsColors.TextSecondary
+                                )
+                                Text(
+                                    pluralStringResource(R.plurals.retours_sale_lines_n, sale.lines, sale.lines),
+                                    fontSize = DsTextSize.caption, color = DsColors.TextTertiary
+                                )
+                            }
+                            Spacer(Modifier.width(DsSpacing.sm))
+                            Text(money.da(sale.total), fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.PrimaryDark)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** « 6 nov. 2026 · 21:20 », in the app's language: when a sale was made, from its stored instant. */
+private fun saleMoment(createdAt: String): String =
+    runCatching {
+        val at = java.time.Instant.parse(createdAt).atZone(java.time.ZoneId.systemDefault())
+        at.format(com.distrigo.app.core.format.AppDates.formatter("d MMM yyyy")) + " · " +
+            at.format(com.distrigo.app.core.format.AppDates.formatter("HH:mm"))
+    }.getOrDefault(createdAt.take(10))
 
 @Composable
 private fun StatCard(icon: ImageVector, value: String, label: String, color: Color, modifier: Modifier) {

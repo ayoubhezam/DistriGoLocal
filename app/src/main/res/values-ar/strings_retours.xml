@@ -19,7 +19,7 @@
     <string name="retours_stat_total">إجمالي المرتجع</string>
     <string name="retours_saved">سُجّل المرتجع · تم تحديث المخزون والرصيد</string>
     <string name="retours_finish">إنهاء</string>
-    <string name="retours_not_returnable_client">لا يمكن لهذا الزبون إرجاع « \u2068%1$s\u2069 »: لم يُسلَّم إليه قط</string>
+    <string name="retours_not_returnable_client">« \u2068%1$s\u2069 » ليس ضمن عملية البيع هذه، أو أُرجع بالكامل</string>
     <string name="retours_not_returnable_supplier">لا يمكن إرجاع « \u2068%1$s\u2069 » إلى هذا المورد: لم يسلّمه لك قط</string>
     <string name="retours_already_selected">« \u2068%1$s\u2069 » موجود بالكامل في الاختيارات</string>
     <string name="retours_add_one">أضف منتجًا واحدًا على الأقل</string>
@@ -48,4 +48,32 @@
     <string name="retours_new">مرتجع جديد</string>
     <string name="retours_search">البحث عن مرتجع</string>
     <string name="retours_number_party">مرتجع \u2068%1$s\u2069 · \u2068%2$s\u2069</string>
+    <string name="retours_choose_sale">اختيار عملية البيع</string>
+    <plurals name="retours_sales_n">
+        <item quantity="zero">لا عمليات بيع فيها منتجات للإرجاع</item>
+        <item quantity="one">عملية بيع واحدة فيها منتجات للإرجاع</item>
+        <item quantity="two">عمليتا بيع فيهما منتجات للإرجاع</item>
+        <item quantity="few">\u2068%1$d\u2069 عمليات بيع فيها منتجات للإرجاع</item>
+        <item quantity="many">\u2068%1$d\u2069 عملية بيع فيها منتجات للإرجاع</item>
+        <item quantity="other">\u2068%1$d\u2069 عملية بيع فيها منتجات للإرجاع</item>
+    </plurals>
+    <string name="retours_no_sale">لا توجد عملية بيع لهذا الزبون فيها منتج للإرجاع.</string>
+    <plurals name="retours_sale_lines_n">
+        <item quantity="zero">لا منتجات للإرجاع</item>
+        <item quantity="one">منتج واحد للإرجاع</item>
+        <item quantity="two">منتجان للإرجاع</item>
+        <item quantity="few">\u2068%1$d\u2069 منتجات للإرجاع</item>
+        <item quantity="many">\u2068%1$d\u2069 منتجًا للإرجاع</item>
+        <item quantity="other">\u2068%1$d\u2069 منتج للإرجاع</item>
+    </plurals>
+    <string name="retours_from_sale">عملية البيع \u2068%1$s\u2069</string>
+    <string name="retours_location">الإرجاع إلى</string>
+    <string name="retours_location_hint">افتراضيًا، المكان الذي خرجت منه عملية البيع.</string>
+    <string name="retours_exceeds_sale">« \u2068%1$s\u2069 »: يمكن أن يعود \u2068%2$s\u2069 كحد أقصى من عملية البيع هذه.</string>
+    <string name="retours_sale">عملية البيع الأصلية</string>
+    <string name="retours_client_effect_mixed_depot">حسب المنتج: يُعاد إلى مخزون المستودع أو يُسجَّل كخسارة</string>
+    <string name="retours_client_effect_pertes_depot">سُجّل كخسارة — لا يتغير مخزون المستودع</string>
+    <string name="retours_client_effect_stock_depot">أُعيد إلى مخزون المستودع</string>
+    <string name="retours_client_delete_pertes_depot">المخزون: تُحذف الخسائر المرتبطة بهذا المرتجع، ولا يتغير مخزون المستودع.</string>
+    <string name="retours_client_delete_stock_depot">المخزون: ستُسحب المنتجات المرتجعة من مخزون المستودع.</string>
 </resources>

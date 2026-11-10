@@ -74,6 +74,8 @@ internal fun RetourDetailContent(
     motif         : String?,
     stockEffect   : String,
     note          : String?,
+    /** The sale the return was made from — its number — for a client's return made from one; else null. */
+    origin        : String? = null,
     lines         : List<RetourLine>?,
     deleteEffects : List<String>,
     deleting      : Boolean,
@@ -123,6 +125,7 @@ internal fun RetourDetailContent(
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.md)) {
                 DetailRow(Icons.Default.Event, stringResource(R.string.inventory_date), dayLabel(date, createdAt))
                 DetailRow(Icons.Default.Person, partyLabel, partyName)
+                origin?.let { DetailRow(Icons.Default.Receipt, stringResource(R.string.retours_sale), it) }
                 // A return's lines can each have their own motif: then it is "Selon le produit", and each line says its own.
                 val lineMotifs = lines?.mapNotNull { it.motif }?.distinct().orEmpty()
                 DetailRow(Icons.AutoMirrored.Filled.Label, stringResource(R.string.pertes_motif), when {

@@ -16,7 +16,7 @@
     <string name="retours_stat_total">Total du retour</string>
     <string name="retours_saved">Retour enregistré · stock et solde mis à jour</string>
     <string name="retours_finish">Terminer</string>
-    <string name="retours_not_returnable_client">« %1$s » ne peut pas être retourné par ce client — il ne lui a jamais été livré</string>
+    <string name="retours_not_returnable_client">« %1$s » ne fait pas partie de cette vente, ou y a déjà été entièrement retourné</string>
     <string name="retours_not_returnable_supplier">« %1$s » ne peut pas être retourné par ce fournisseur — il ne vous l\'a jamais livré</string>
     <string name="retours_already_selected">« %1$s » est déjà entièrement dans la sélection</string>
     <string name="retours_add_one">Ajoutez au moins un produit</string>
@@ -45,4 +45,29 @@
     <string name="retours_new">Nouveau retour</string>
     <string name="retours_search">Rechercher un retour</string>
     <string name="retours_number_party">Retour %1$s · %2$s</string>
+    <!-- A client return is made from a sale (FIN-02, STK-02, UX-01) -->
+    <string name="retours_choose_sale">Choisir la vente</string>
+    <plurals name="retours_sales_n">
+        <item quantity="one">%1$d vente avec des produits à retourner</item>
+        <item quantity="other">%1$d ventes avec des produits à retourner</item>
+        <item quantity="many">%1$d ventes avec des produits à retourner</item>
+    </plurals>
+    <string name="retours_no_sale">Aucune vente de ce client n\'a de produit à retourner.</string>
+    <plurals name="retours_sale_lines_n">
+        <item quantity="one">%1$d produit à retourner</item>
+        <item quantity="other">%1$d produits à retourner</item>
+        <item quantity="many">%1$d produits à retourner</item>
+    </plurals>
+    <!-- Subtitle of the return's screens: the sale it is made from -->
+    <string name="retours_from_sale">Vente %1$s</string>
+    <string name="retours_location">Retour vers</string>
+    <string name="retours_location_hint">Par défaut, là d\'où la vente est partie.</string>
+    <!-- %2$s: a quantity, « 3 » -->
+    <string name="retours_exceeds_sale">« %1$s » : au plus %2$s peuvent encore revenir de cette vente.</string>
+    <string name="retours_sale">Vente d\'origine</string>
+    <string name="retours_client_effect_mixed_depot">Selon le produit : remis dans le stock dépôt, ou enregistré en perte</string>
+    <string name="retours_client_effect_pertes_depot">Enregistré en perte — le stock dépôt ne change pas</string>
+    <string name="retours_client_effect_stock_depot">Remis dans le stock dépôt</string>
+    <string name="retours_client_delete_pertes_depot">Stock : les pertes liées à ce retour seront supprimées ; le stock dépôt ne change pas.</string>
+    <string name="retours_client_delete_stock_depot">Stock : les produits retournés seront retirés du stock dépôt.</string>
 </resources>
