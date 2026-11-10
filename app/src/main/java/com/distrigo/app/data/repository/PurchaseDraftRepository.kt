@@ -66,9 +66,12 @@ class PurchaseDraftRepository(private val db: AppDatabase) {
      * session owns. `created_at` is preserved across updates so the card can distinguish when a
      * draft was started from when it was last touched.
      */
-    suspend fun upsert(draftId: Int?, snapshot: DraftSnapshot): Int = db.withTransaction {
+    suspend fun upsert(draftId: Int?, snapshot: DraftSnapshot): Int? = db.withTransaction {
         val now      = Instant.now().toString()
         val existing = draftId?.let { dao.getById(it) }
+        // A draft named but gone was deleted — by the save it was committed in, or by the user: it is not
+        // written again. Re-inserting it brought back a Brouillon of a sale already saved (DATA-01).
+        if (draftId != null && existing == null) return@withTransaction null
 
         if (existing == null) {
             return@withTransaction dao.insert(

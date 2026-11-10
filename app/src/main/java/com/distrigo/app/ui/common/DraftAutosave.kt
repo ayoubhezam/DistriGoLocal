@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * What a form's session ViewModel must expose for [DraftAutosave] to keep its Brouillon current.
@@ -45,7 +47,12 @@ interface DraftAutosaveHost<S> {
      */
     var draftRowId: Int?
 
-    suspend fun upsertDraft(existing: Int?, snapshot: S): Int
+    /**
+     * Writes [snapshot] to draft [existing], or to a new draft when [existing] is null. Returns the row's id, or null
+     * when [existing] names a draft that is gone — deleted by the save it was committed in, or by the user — which is
+     * never written again (DATA-01).
+     */
+    suspend fun upsertDraft(existing: Int?, snapshot: S): Int?
 
     suspend fun deleteDraft(id: Int)
 }
@@ -84,6 +91,12 @@ class DraftAutosave<S>(
      */
     private var touched = false
 
+    /**
+     * One write at a time, and [hold] waits for the one in progress. A write checks [armed] inside it, so none can
+     * start once a save has begun and none still running can land after the save deleted the draft (DATA-01).
+     */
+    private val writeLock = Mutex()
+
     private val watcher = combine(signals) { host.snapshot() }
         // combine emits the current tuple the instant it is collected — here, during init.
         // The armed filter below would already stop it, but dropping it makes the intent
@@ -116,6 +129,29 @@ class DraftAutosave<S>(
     }
 
     /**
+     * Before a save: no write may start from now on, and one already running is waited for. Without this a change
+     * typed just before « Confirmer » was written by the debounce while the save ran, after the save had deleted the
+     * draft, and a Brouillon holding the saved sale came back — resumed and saved, the sale was recorded twice
+     * (DATA-01). [disarm] after the save only stopped what came later.
+     *
+     * The save goes on with [release] if it fails, or [disarm] once it is committed.
+     */
+    suspend fun hold() {
+        armed = false
+        writeLock.withLock { }
+    }
+
+    /**
+     * The save [hold] stopped for failed: honour changes again, and write the form as it stands, since a change held
+     * back meanwhile was dropped by the debounce. Nothing happens after [disarm].
+     */
+    fun release() {
+        if (!watcher.isActive) return
+        armed = true
+        flush()
+    }
+
+    /**
      * Writes the current form now instead of waiting out the debounce window. Called on
      * `Lifecycle.Event.ON_STOP`, which is the real durability point: `debounce` drops its tail if
      * the process dies inside the window. ON_STOP is not guaranteed on a hard kill, but it covers
@@ -131,9 +167,9 @@ class DraftAutosave<S>(
         scope.launch { persist(host.snapshot()) }
     }
 
-    private suspend fun persist(snap: S) {
-        // The session may have committed between this write being scheduled and it running.
-        if (!armed) return
+    private suspend fun persist(snap: S) = writeLock.withLock {
+        // The session may have committed, or begun a save, between this write being scheduled and it running.
+        if (!armed) return@withLock
 
         val dirty = if (host.isEdit(snap)) {
             // An edit form is prefilled, so it is non-empty from its first emission and the
@@ -146,7 +182,8 @@ class DraftAutosave<S>(
 
         val existing = host.draftRowId
         if (dirty) {
-            host.draftRowId = host.upsertDraft(existing, snap)
+            // Null: the draft is gone and stays gone; the session keeps its id, so no later write inserts one either.
+            host.upsertDraft(existing, snap)?.let { host.draftRowId = it }
         } else if (existing != null) {
             // Edited, then undone back to the original values — leave nothing behind.
             host.deleteDraft(existing)

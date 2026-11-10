@@ -631,35 +631,38 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                         "unit_price" to ci.unitPrice
                     )
                 }
-                venteViewModel.createVente(
-                    clientId    = formClient!!.id,
-                    tourneeId   = tourneeId,
-                    source      = "camion",
-                    items       = items,
-                    note        = note.trim().ifEmpty { null },
-                    montantPaye = paidAmount,
-                    // Deleted as the final statement inside the sale's transaction, so the draft
-                    // outlives any failure: if the insert, the stock deltas or the balance
-                    // recalculation throw, the whole thing rolls back and the unsaved work is
-                    // still there to resume.
-                    tourneeDraftId = session.draftId,
-                    onSuccess   = {
-                        session.onCommitted()
-                        viewModel.refreshAfterVenteChange(tourneeId)
-                        if (clientIdArg != null) {
-                            viewModel.markTourneeClientVisited(
-                                tourneeId, clientIdArg,
-                                onSuccess = { viewModel.refreshAfterVenteChange(tourneeId) },
-                                onError   = {}
-                            )
-                        } else {
-                            viewModel.loadTourneeClients(tourneeId)
-                        }
-                        viewModel.camionProducts.reset()
-                        onSaved()
-                    },
-                    onError = { isSaving = false }
-                )
+                // No draft write may land after the save deletes the draft (DATA-01); draftId is read once it has been written
+                session.beforeCommit {
+                    venteViewModel.createVente(
+                        clientId    = formClient!!.id,
+                        tourneeId   = tourneeId,
+                        source      = "camion",
+                        items       = items,
+                        note        = note.trim().ifEmpty { null },
+                        montantPaye = paidAmount,
+                        // Deleted as the final statement inside the sale's transaction, so the draft
+                        // outlives any failure: if the insert, the stock deltas or the balance
+                        // recalculation throw, the whole thing rolls back and the unsaved work is
+                        // still there to resume.
+                        tourneeDraftId = session.draftId,
+                        onSuccess   = {
+                            session.onCommitted()
+                            viewModel.refreshAfterVenteChange(tourneeId)
+                            if (clientIdArg != null) {
+                                viewModel.markTourneeClientVisited(
+                                    tourneeId, clientIdArg,
+                                    onSuccess = { viewModel.refreshAfterVenteChange(tourneeId) },
+                                    onError   = {}
+                                )
+                            } else {
+                                viewModel.loadTourneeClients(tourneeId)
+                            }
+                            viewModel.camionProducts.reset()
+                            onSaved()
+                        },
+                        onError = { session.onCommitFailed(); isSaving = false }
+                    )
+                }
             }
 
             // An amount paid above the total is said once more before the sale is saved: paying ahead is allowed,

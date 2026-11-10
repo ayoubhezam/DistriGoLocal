@@ -1113,28 +1113,31 @@ fun NavGraphBuilder.purchaseFormGraph(
                         "expiry_date" to ci.expiryDate
                     )
                 }
-                if (isEdit) {
-                    viewModel.updateOrder(
-                        id          = orderIdArg!!,
-                        supplierId  = formSupplier!!.id,
-                        items       = orderItems,
-                        note        = note.trim().ifEmpty { null },
-                        montantPaye = paidAmount,
-                        draftId     = session.draftId,
-                        onSuccess   = { session.onCommitted(); onSaved() },
-                        onError     = { isSaving = false }
-                    )
-                } else {
-                    viewModel.createOrder(
-                        supplierId  = formSupplier!!.id,
-                        date        = LocalDate.now().toString(),
-                        items       = orderItems,
-                        note        = note.trim().ifEmpty { null },
-                        montantPaye = paidAmount,
-                        draftId     = session.draftId,
-                        onSuccess   = { session.onCommitted(); onSaved() },
-                        onError     = { isSaving = false }
-                    )
+                // No draft write may land after the save deletes the draft (DATA-01); draftId is read once it has been written
+                session.beforeCommit {
+                    if (isEdit) {
+                        viewModel.updateOrder(
+                            id          = orderIdArg!!,
+                            supplierId  = formSupplier!!.id,
+                            items       = orderItems,
+                            note        = note.trim().ifEmpty { null },
+                            montantPaye = paidAmount,
+                            draftId     = session.draftId,
+                            onSuccess   = { session.onCommitted(); onSaved() },
+                            onError     = { session.onCommitFailed(); isSaving = false }
+                        )
+                    } else {
+                        viewModel.createOrder(
+                            supplierId  = formSupplier!!.id,
+                            date        = LocalDate.now().toString(),
+                            items       = orderItems,
+                            note        = note.trim().ifEmpty { null },
+                            montantPaye = paidAmount,
+                            draftId     = session.draftId,
+                            onSuccess   = { session.onCommitted(); onSaved() },
+                            onError     = { session.onCommitFailed(); isSaving = false }
+                        )
+                    }
                 }
             }
 

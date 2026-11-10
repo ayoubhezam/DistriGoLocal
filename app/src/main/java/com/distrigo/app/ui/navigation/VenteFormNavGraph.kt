@@ -704,32 +704,36 @@ fun NavGraphBuilder.venteFormGraph(
                 val items = cartItems.map { ci ->
                     mapOf("product_id" to ci.product.id, "quantity" to ci.quantity, "unit_price" to ci.unitPrice)
                 }
-                if (isEdit) {
-                    viewModel.updateVente(
-                        id = venteId!!, clientId = formClient!!.id, items = items,
-                        note = note.trim().ifEmpty { null }, montantPaye = paidAmount,
-                        draftId = session.draftId,
-                        onSuccess = {
-                            session.onCommitted()
-                            clientViewModel.loadTransactions(formClient!!.id)
-                            viewModel.saleProducts.reset()
-                            onSaved()
-                        },
-                        onError = { error -> isSaving = false; saveError = error }
-                    )
-                } else {
-                    viewModel.createVente(
-                        clientId = formClient!!.id, tourneeId = null, source = "depot", items = items,
-                        note = note.trim().ifEmpty { null }, montantPaye = paidAmount,
-                        draftId = session.draftId,
-                        onSuccess = {
-                            session.onCommitted()
-                            clientViewModel.loadTransactions(formClient!!.id)
-                            viewModel.saleProducts.reset()
-                            onSaved()
-                        },
-                        onError = { error -> isSaving = false; saveError = error }
-                    )
+                // No draft write may land after the save deletes the draft (DATA-01); draftId is read once it has
+                // been written, so a draft just created goes with the sale
+                session.beforeCommit {
+                    if (isEdit) {
+                        viewModel.updateVente(
+                            id = venteId!!, clientId = formClient!!.id, items = items,
+                            note = note.trim().ifEmpty { null }, montantPaye = paidAmount,
+                            draftId = session.draftId,
+                            onSuccess = {
+                                session.onCommitted()
+                                clientViewModel.loadTransactions(formClient!!.id)
+                                viewModel.saleProducts.reset()
+                                onSaved()
+                            },
+                            onError = { error -> session.onCommitFailed(); isSaving = false; saveError = error }
+                        )
+                    } else {
+                        viewModel.createVente(
+                            clientId = formClient!!.id, tourneeId = null, source = "depot", items = items,
+                            note = note.trim().ifEmpty { null }, montantPaye = paidAmount,
+                            draftId = session.draftId,
+                            onSuccess = {
+                                session.onCommitted()
+                                clientViewModel.loadTransactions(formClient!!.id)
+                                viewModel.saleProducts.reset()
+                                onSaved()
+                            },
+                            onError = { error -> session.onCommitFailed(); isSaving = false; saveError = error }
+                        )
+                    }
                 }
             }
 

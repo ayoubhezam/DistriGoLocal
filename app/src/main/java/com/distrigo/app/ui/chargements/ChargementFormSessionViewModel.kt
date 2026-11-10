@@ -163,7 +163,7 @@ class ChargementFormSessionViewModel @Inject constructor(
     /** Never consulted — [DraftAutosave] only fingerprints an edit session, and this is never one. */
     override fun fingerprintOf(snapshot: ChargementDraftSnapshot) = ""
 
-    override suspend fun upsertDraft(existing: Int?, snapshot: ChargementDraftSnapshot): Int =
+    override suspend fun upsertDraft(existing: Int?, snapshot: ChargementDraftSnapshot): Int? =
         draftRepository.upsert(existing, snapshot)
 
     override suspend fun deleteDraft(id: Int) = draftRepository.delete(id)
@@ -298,6 +298,20 @@ class ChargementFormSessionViewModel @Inject constructor(
      * Called after the movement commits. The draft row is already gone — deleted inside the same
      * transaction — so this only clears the session's memory of it.
      */
+    /**
+     * Runs [save] once no draft write can land after it: autosave stops taking changes and the write in progress, if
+     * any, finishes first (DATA-01). [save] ends in [onCommitted], or in [onCommitFailed] when it is refused.
+     */
+    fun beforeCommit(save: () -> Unit) {
+        viewModelScope.launch {
+            autosave.hold()
+            save()
+        }
+    }
+
+    /** The save [beforeCommit] started was refused: the form is still being edited, and its draft kept current. */
+    fun onCommitFailed() = autosave.release()
+
     fun onCommitted() {
         autosave.disarm()
         savedState[KEY_DRAFT_ID] = null

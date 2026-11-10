@@ -233,7 +233,7 @@ class VenteFormSessionViewModel @Inject constructor(
     override fun isEmpty(snapshot: VenteDraftSnapshot) = snapshot.isEmpty
     override fun fingerprintOf(snapshot: VenteDraftSnapshot) = VenteFingerprint.of(snapshot)
 
-    override suspend fun upsertDraft(existing: Int?, snapshot: VenteDraftSnapshot): Int =
+    override suspend fun upsertDraft(existing: Int?, snapshot: VenteDraftSnapshot): Int? =
         draftRepository.upsert(existing, snapshot)
 
     override suspend fun deleteDraft(id: Int) = draftRepository.delete(id)
@@ -526,6 +526,20 @@ class VenteFormSessionViewModel @Inject constructor(
      * same success path — so this only clears the session's memory of it, keeping the handle from
      * pointing at a row that no longer exists.
      */
+    /**
+     * Runs [save] once no draft write can land after it: autosave stops taking changes and the write in progress, if
+     * any, finishes first (DATA-01). [save] ends in [onCommitted], or in [onCommitFailed] when it is refused.
+     */
+    fun beforeCommit(save: () -> Unit) {
+        viewModelScope.launch {
+            autosave.hold()
+            save()
+        }
+    }
+
+    /** The save [beforeCommit] started was refused: the form is still being edited, and its draft kept current. */
+    fun onCommitFailed() = autosave.release()
+
     fun onCommitted() {
         autosave.disarm()
         savedState[KEY_DRAFT_ID] = null

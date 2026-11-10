@@ -316,16 +316,19 @@ fun ChargementNavHost(
                     isSaving = false
                     return
                 }
-                viewModel.createChargement(
-                    // Deleted as the final statement inside the movement's own transaction, so the
-                    // draft outlives any failure.
-                    draftId   = session.draftId,
-                    note      = note.trim().ifEmpty { null },
-                    items     = items,
-                    onSuccess = { session.onCommitted(); onSaved() },
-                    // Shown: a refused save used to leave only a button that stopped spinning.
-                    onError   = { isSaving = false; saveError = it }
-                )
+                // No draft write may land after the save deletes the draft (DATA-01); draftId is read once it has been written
+                session.beforeCommit {
+                    viewModel.createChargement(
+                        // Deleted as the final statement inside the movement's own transaction, so the
+                        // draft outlives any failure.
+                        draftId   = session.draftId,
+                        note      = note.trim().ifEmpty { null },
+                        items     = items,
+                        onSuccess = { session.onCommitted(); onSaved() },
+                        // Shown: a refused save used to leave only a button that stopped spinning.
+                        onError   = { session.onCommitFailed(); isSaving = false; saveError = it }
+                    )
+                }
             }
 
             BackHandler { navController.popBackStack() }
