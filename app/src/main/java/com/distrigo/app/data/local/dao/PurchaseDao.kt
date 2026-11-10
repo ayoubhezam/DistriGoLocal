@@ -98,6 +98,10 @@ interface PurchaseDao {
     @Query("SELECT * FROM purchase_order_items WHERE purchase_order_id = :orderId")
     suspend fun getItemsForOrder(orderId: Int): List<PurchaseOrderItemEntity>
 
+    /** What a line's receipt did to its product's cost (FIN-04); nulls when undone. */
+    @Query("UPDATE purchase_order_items SET cost_before = :before, cost_after = :after WHERE id = :itemId")
+    suspend fun setItemCost(itemId: Int, before: Double?, after: Double?)
+
     @Query("DELETE FROM purchase_order_items WHERE purchase_order_id = :orderId")
     suspend fun deleteItemsForOrder(orderId: Int)
 

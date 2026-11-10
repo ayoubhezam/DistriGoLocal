@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BugReport
+import androidx.compose.material.icons.outlined.Calculate
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CloudUpload
 import androidx.compose.material.icons.outlined.Contrast
@@ -37,6 +38,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.core.format.MoneyFormat
 import com.distrigo.app.core.format.MoneyFormatter
+import com.distrigo.app.data.model.CostMethod
+import com.distrigo.app.data.model.Quantity
+import com.distrigo.app.ui.common.FittedText
+import com.distrigo.app.ui.format.LocalMoneyFormatter
 import com.distrigo.app.ui.designsystem.DsColors
 import com.distrigo.app.ui.designsystem.DsShapes
 import com.distrigo.app.ui.designsystem.DsSpacing
@@ -96,6 +101,8 @@ fun ParametresScreen(
                 SettingsRow(Icons.Outlined.Receipt, DsColors.Success, stringResource(R.string.settings_receipts), stringResource(R.string.settings_receipts_sub), onClick = onReceipt)
                 SettingsDivider()
                 NegativeStockRow()
+                SettingsDivider()
+                CostMethodRow()
             }
 
             SettingsSection(stringResource(R.string.settings_section_preferences)) {
@@ -177,6 +184,92 @@ private fun NegativeStockRow(viewModel: StockSettingsViewModel = hiltViewModel()
         )
     }
 }
+
+/** The title of each way a product's cost follows the bons received. */
+private val CostMethod.title: Int get() = when (this) {
+    CostMethod.WEIGHTED_AVERAGE -> R.string.settings_cost_cmup
+    CostMethod.LAST_PURCHASE    -> R.string.settings_cost_last
+    CostMethod.MANUAL           -> R.string.settings_cost_manual
+}
+
+/**
+ * « Coût des produits » (FIN-04): weighted average, last purchase price or by hand. Each choice shows what it does to the
+ * same example — 100 held at 50, 100 received at 60 — worked out by [CostMethod.costAfter] itself, in the user's money
+ * format. A choice applies from the next receipt.
+ */
+@Composable
+private fun CostMethodRow(viewModel: CostMethodSettingsViewModel = hiltViewModel()) {
+    val current by viewModel.method.collectAsState()
+    val money = LocalMoneyFormatter.current
+    var choosing by remember { mutableStateOf(false) }
+
+    SettingsRow(
+        icon     = Icons.Outlined.Calculate,
+        tint     = DsColors.Success,
+        title    = stringResource(R.string.settings_cost_method),
+        subtitle = current?.let { stringResource(it.title) } ?: "",
+        onClick  = { if (current != null) choosing = true },
+    )
+
+    val selected = current
+    if (choosing && selected != null) {
+        val held = stringResource(R.string.settings_cost_lot, Quantity.format(COST_SAMPLE_QTY), money.da(COST_SAMPLE_HELD))
+        val received = stringResource(R.string.settings_cost_lot, Quantity.format(COST_SAMPLE_QTY), money.da(COST_SAMPLE_RECEIVED))
+        val examples = CostMethod.entries.associateWith { method ->
+            val cost = money.da(method.costAfter(COST_SAMPLE_QTY, COST_SAMPLE_HELD, COST_SAMPLE_QTY, COST_SAMPLE_RECEIVED))
+            stringResource(if (method == CostMethod.MANUAL) R.string.settings_cost_example_unchanged else R.string.settings_cost_example, held, received, cost)
+        }
+        AlertDialog(
+            onDismissRequest = { choosing = false },
+            title = { Text(stringResource(R.string.settings_cost_method)) },
+            text  = {
+                Column {
+                    Text(stringResource(R.string.settings_cost_method_body), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                    Spacer(Modifier.height(DsSpacing.sm))
+                    CostMethod.entries.forEach { method ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(DsShapes.medium)
+                                .clickable {
+                                    viewModel.choose(method)
+                                    choosing = false
+                                }
+                                .padding(vertical = DsSpacing.xs),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = method == selected, onClick = null)
+                            Spacer(Modifier.width(DsSpacing.sm))
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    stringResource(method.title),
+                                    fontSize   = DsTextSize.body,
+                                    fontWeight = if (method == selected) FontWeight.SemiBold else FontWeight.Normal,
+                                    color      = DsColors.TextPrimary
+                                )
+                                // One line each, all three at the same size
+                                FittedText(
+                                    text = examples.getValue(method), fitTo = examples.values.toList(),
+                                    fontSize = DsTextSize.caption, modifier = Modifier.fillMaxWidth(), color = DsColors.TextSecondary,
+                                    fontWeight = null, textAlign = null, minScale = 0.6f, tabular = false,
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { choosing = false }) { Text(stringResource(R.string.common_action_close)) } },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
+        )
+    }
+}
+
+/** The example every cost method is shown on: 100 held at 50, 100 received at 60. */
+private const val COST_SAMPLE_QTY = 100.0
+private const val COST_SAMPLE_HELD = 50.0
+private const val COST_SAMPLE_RECEIVED = 60.0
 
 /** The amount every format is shown with, so the three can be told apart at a glance. */
 private const val MONEY_FORMAT_SAMPLE = 1_236_790.5

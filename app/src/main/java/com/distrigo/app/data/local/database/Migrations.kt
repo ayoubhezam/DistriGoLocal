@@ -1264,6 +1264,24 @@ val MIGRATION_64_65 = object : Migration(64, 65) {
 }
 
 /**
+ * Version 66: how a product's cost follows the bons received (FIN-04; owner, 2026-11-10).
+ *
+ * - `business_settings.cost_method`: a [com.distrigo.app.data.model.CostMethod] key, `'cmup'` (weighted average) by
+ *   default, on the existing row too: it applies to the receipts from now on.
+ * - `purchase_order_items.cost_before` / `cost_after`: the product's cost before and after this line's receipt, when it
+ *   moved it, so undoing the receipt can put it back. Null for every line received before.
+ *
+ * Appended last, so a migrated database lists its columns in a new one's order.
+ */
+val MIGRATION_65_66 = object : Migration(65, 66) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `business_settings` ADD COLUMN `cost_method` TEXT NOT NULL DEFAULT 'cmup'")
+        db.execSQL("ALTER TABLE `purchase_order_items` ADD COLUMN `cost_before` REAL")
+        db.execSQL("ALTER TABLE `purchase_order_items` ADD COLUMN `cost_after` REAL")
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -1285,6 +1303,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_62_63,
     MIGRATION_63_64,
     MIGRATION_64_65,
+    MIGRATION_65_66,
 ).map(LicenseWriteGate::lifting).toTypedArray()
 
 /**

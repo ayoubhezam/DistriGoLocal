@@ -7,6 +7,7 @@ import com.distrigo.app.data.image.ImageStore
 import com.distrigo.app.data.local.database.AppDatabase
 import com.distrigo.app.data.local.entity.BusinessSettingsEntity
 import com.distrigo.app.data.model.BusinessSettings
+import com.distrigo.app.data.model.CostMethod
 import com.distrigo.app.ui.common.ImageCapture
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -94,6 +95,18 @@ class BusinessSettingsRepository(
     suspend fun setMoneyFormat(format: MoneyFormat) {
         importLegacyIfNeeded()
         dao.updateMoneyFormat(format.key)
+    }
+
+    /** How a product's cost follows the bons received (FIN-04), and every change to it. */
+    fun observeCostMethod(): Flow<CostMethod> = flow {
+        importLegacyIfNeeded()
+        emitAll(dao.observeCostMethod().map { CostMethod.fromKey(it) }.distinctUntilChanged())
+    }
+
+    /** From the next receipt on: one already received keeps the cost it gave. */
+    suspend fun setCostMethod(method: CostMethod) {
+        importLegacyIfNeeded()
+        dao.updateCostMethod(method.key)
     }
 
     /**

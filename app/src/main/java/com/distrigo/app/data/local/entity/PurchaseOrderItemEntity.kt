@@ -30,5 +30,11 @@ data class PurchaseOrderItemEntity(
     @ColumnInfo(defaultValue = "''")
     val created_at: String = java.time.Instant.now().toString(),
     @ColumnInfo(defaultValue = "0")
-    val updated_at: Long = System.currentTimeMillis()
+    val updated_at: Long = System.currentTimeMillis(),
+    /**
+     * The product's cost before and after this line's receipt, when the receipt moved it (FIN-04, v66): undoing the
+     * receipt puts [cost_before] back, if the cost is still [cost_after]. Null when it did not move it, or before v66.
+     */
+    val cost_before: Double? = null,
+    val cost_after: Double? = null
 )

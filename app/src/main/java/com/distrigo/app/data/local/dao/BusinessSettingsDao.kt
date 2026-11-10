@@ -45,4 +45,14 @@ interface BusinessSettingsDao {
 
     @Query("SELECT money_format FROM business_settings WHERE id = 1")
     fun observeMoneyFormat(): Flow<String?>
+
+    @Query("UPDATE business_settings SET cost_method = :key WHERE id = 1")
+    suspend fun updateCostMethod(key: String)
+
+    /** Null when the row does not exist yet, which means the default method. */
+    @Query("SELECT cost_method FROM business_settings WHERE id = 1")
+    suspend fun costMethod(): String?
+
+    @Query("SELECT cost_method FROM business_settings WHERE id = 1")
+    fun observeCostMethod(): Flow<String?>
 }

@@ -57,6 +57,11 @@ data class BusinessSettingsEntity(
     // Last, after allow_negative_stock, for the same reason: MIGRATION_58_59 appends it.
     @ColumnInfo(defaultValue = "'spaces'")
     val money_format: String = MoneyFormat.DEFAULT.key,
+    /** How a product's cost follows the bons received: a [com.distrigo.app.data.model.CostMethod] key (FIN-04, v66). */
+    //
+    // Last, after money_format, for the same reason: MIGRATION_65_66 appends it.
+    @ColumnInfo(defaultValue = "'cmup'")
+    val cost_method: String = com.distrigo.app.data.model.CostMethod.DEFAULT.key,
 ) {
     companion object {
         const val ROW_ID = 1

@@ -187,4 +187,12 @@
     <string name="print_fail_not_configured_title">Aucune imprimante</string>
     <string name="print_fail_not_configured_detail">Choisissez une imprimante pour pouvoir imprimer.</string>
     <string name="print_fail_not_configured_action">Choisir</string>
+    <string name="settings_cost_method">Coût des produits</string>
+    <string name="settings_cost_method_body">Comment le prix d\'achat d\'un produit change quand un bon est reçu. S\'applique aux prochaines réceptions ; le prix d\'achat reste modifiable à la main sur le produit.</string>
+    <string name="settings_cost_cmup">Coût moyen pondéré (CMUP)</string>
+    <string name="settings_cost_last">Dernier prix d\'achat</string>
+    <string name="settings_cost_manual">Manuel</string>
+    <string name="settings_cost_lot">%1$s à %2$s</string>
+    <string name="settings_cost_example">%1$s + %2$s → %3$s</string>
+    <string name="settings_cost_example_unchanged">%1$s + %2$s → %3$s (inchangé)</string>
 </resources>

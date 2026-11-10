@@ -44,6 +44,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.distrigo.app.data.model.UnsettledBalanceException
+import com.distrigo.app.data.model.CostMethod
 import com.distrigo.app.R
 import com.distrigo.app.core.text.UiText
 class ProductRepository(
@@ -989,8 +990,12 @@ class ProductRepository(
 
             val supplierName = order.supplier_name ?: supplierDao.getSupplierById(order.supplier_id)?.name ?: "Fournisseur supprimé"
             val now = java.time.Instant.now().toString()
-            val items = db.purchaseDao().getItemsForOrder(id)
+            val items = db.purchaseDao().getItemsForOrder(id).sortedBy { it.id }
             val movementEntities = mutableListOf<StockMovementEntity>()
+            // The cost each product's lines move, as the setting says now (FIN-04); a product on two lines averages
+            // the second on top of the first, so stock and cost run through the bon here.
+            val costMethod = CostMethod.fromKey(db.businessSettingsDao().costMethod())
+            val running = mutableMapOf<Int, Pair<Double, Double>>()
 
             for (item in items) {
                 // A product moved to the bin since the bon was made still receives its goods — the stock is real
@@ -1009,6 +1014,14 @@ class ProductRepository(
                     productDao.updateProduct(product.copy(has_expiry = 1, expiry_date = item.expiry_date))
                 }
                 // The stock itself comes from the movement below.
+
+                val (stockBefore, costBefore) = running[item.product_id] ?: (product.stock to product.purchase_price)
+                val costAfter = costMethod.costAfter(stockBefore, costBefore, item.quantity, item.unit_cost)
+                running[item.product_id] = (stockBefore + item.quantity) to costAfter
+                if (kotlin.math.abs(costAfter - costBefore) >= COST_EPSILON) {
+                    productDao.updatePurchasePrice(item.product_id, costAfter)
+                    db.purchaseDao().setItemCost(item.id, costBefore, costAfter)
+                }
 
                 movementEntities += StockMovementEntity(
                     product_id   = item.product_id,
@@ -1110,8 +1123,25 @@ class ProductRepository(
             if (order.status != "received") return@withTransaction
             db.purchaseDao().updateOrderStatus(id, "pending")
             db.stockMovementDao().deleteBySource("purchase_order", id)
+            restoreReceiptCosts(id)
         }
         return mapOf("message" to "Réception annulée")
+    }
+
+    /**
+     * Undoing a receipt puts back the costs it moved (FIN-04), last line first — each only if the product's cost is
+     * still what that line made it: a cost edited by hand or moved by a later receipt since is left as it is.
+     */
+    private suspend fun restoreReceiptCosts(orderId: Int) {
+        for (item in db.purchaseDao().getItemsForOrder(orderId).sortedByDescending { it.id }) {
+            val before = item.cost_before ?: continue
+            val after = item.cost_after ?: continue
+            val product = productDao.getProductByIdIncludingBin(item.product_id)
+            if (product != null && kotlin.math.abs(product.purchase_price - after) < COST_EPSILON) {
+                productDao.updatePurchasePrice(item.product_id, before)
+            }
+            db.purchaseDao().setItemCost(item.id, null, null)
+        }
     }
 
     suspend fun reopenPurchaseOrder(id: Int): Map<String, Any> {
@@ -1123,6 +1153,7 @@ class ProductRepository(
             db.purchaseDao().updateOrderStatus(id, "pending")
             // Removing the reception's movements takes their quantities back out of stock.
             db.stockMovementDao().deleteBySource("purchase_order", id)
+            restoreReceiptCosts(id)
         }
         return mapOf("message" to "Bon rouvert avec succès")
     }
@@ -1134,6 +1165,7 @@ class ProductRepository(
 
             // A pending bon has no movements; a received one's take their quantities back out of stock.
             db.stockMovementDao().deleteBySource("purchase_order", id)
+            if (order.status == "received") restoreReceiptCosts(id)
             db.purchaseDao().deleteItemsForOrder(id)
             db.purchaseDao().deleteOrderById(id)
             supplierDao.recomputeBalance(order.supplier_id)
@@ -2148,3 +2180,6 @@ private const val AMOUNT_EPSILON = 1e-6
 
 /** The most values put in one SQL `IN (…)`: under the 999 older Android builds of SQLite accept. */
 private const val IN_LIST_CHUNK = 900
+
+/** Below half a centime, two costs are the same: what a receipt counts as no change, and its undo as untouched. */
+private const val COST_EPSILON = 0.005

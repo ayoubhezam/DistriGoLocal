@@ -112,6 +112,10 @@ interface ProductDao {
     suspend fun updateProduct(product: ProductEntity)
 
     // 5. حذف منتج بواسطة الـ ID — soft: the row stays, see MIGRATION_44_45
+    /** A product's cost, as a receipt moves it or its undo puts it back (FIN-04). */
+    @Query("UPDATE products SET purchase_price = :price WHERE id = :productId")
+    suspend fun updatePurchasePrice(productId: Int, price: Double)
+
     @Query("UPDATE products SET deleted_at = CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER) WHERE id = :productId AND deleted_at IS NULL")
     suspend fun softDeleteProductById(productId: Int)
 }
