@@ -11,7 +11,6 @@ class CostMethodTest {
     fun theSettingsExample() {
         assertEquals(55.0, CostMethod.WEIGHTED_AVERAGE.costAfter(100.0, 50.0, 100.0, 60.0), 0.0)
         assertEquals(60.0, CostMethod.LAST_PURCHASE.costAfter(100.0, 50.0, 100.0, 60.0), 0.0)
-        assertEquals(50.0, CostMethod.MANUAL.costAfter(100.0, 50.0, 100.0, 60.0), 0.0)
     }
 
     /** Weighted by quantity, to the centime: 30 at 100 and 10 at 120 is 105; 3 at 10 and 1 at 11 is 10,25. */
@@ -39,7 +38,9 @@ class CostMethodTest {
     fun anUnknownKeyIsTheDefault() {
         assertEquals(CostMethod.WEIGHTED_AVERAGE, CostMethod.DEFAULT)
         assertEquals(CostMethod.LAST_PURCHASE, CostMethod.fromKey("last"))
-        assertEquals(CostMethod.MANUAL, CostMethod.fromKey("manual"))
+        // « Manuel » was taken out: a phone that stored it averages from now on
+        assertEquals(CostMethod.WEIGHTED_AVERAGE, CostMethod.fromKey("manual"))
+        assertEquals(listOf(CostMethod.WEIGHTED_AVERAGE, CostMethod.LAST_PURCHASE), CostMethod.entries)
         assertEquals(CostMethod.DEFAULT, CostMethod.fromKey(null))
         assertEquals(CostMethod.DEFAULT, CostMethod.fromKey("fifo"))
     }

@@ -194,8 +194,6 @@
     <string name="settings_cost_method_body">كيف يتغير سعر شراء المنتج عند استلام وصل شراء. يُطبَّق على الاستلامات القادمة فقط، ويبقى سعر الشراء قابلًا للتعديل يدويًا في المنتج.</string>
     <string name="settings_cost_cmup">متوسط التكلفة المرجّح</string>
     <string name="settings_cost_last">آخر سعر شراء</string>
-    <string name="settings_cost_manual">يدوي</string>
     <string name="settings_cost_lot">\u2068%1$s\u2069 بسعر \u2068%2$s\u2069</string>
     <string name="settings_cost_example">%1$s + %2$s ← \u2068%3$s\u2069</string>
-    <string name="settings_cost_example_unchanged">%1$s + %2$s ← \u2068%3$s\u2069 (دون تغيير)</string>
 </resources>

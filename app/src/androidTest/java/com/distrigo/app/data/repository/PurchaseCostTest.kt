@@ -17,8 +17,9 @@ import org.junit.runner.RunWith
 
 /**
  * A product's cost follows the bons received as the setting says (FIN-04; owner, 2026-11-10): weighted average by
- * default, the last purchase price, or only by hand. A change of setting applies from the next receipt; undoing a
- * receipt puts back the cost it moved, unless something moved it since.
+ * default, or the last purchase price; a « Manuel » stored before it was taken out averages. A change of setting
+ * applies from the next receipt; the cost stays editable by hand; undoing a receipt puts back the cost it moved, unless
+ * something moved it since.
  */
 @RunWith(AndroidJUnit4::class)
 class PurchaseCostTest {
@@ -56,7 +57,7 @@ class PurchaseCostTest {
         assertEquals(400.0, db.productDao().getProductById(id)!!.stock, 0.0001)
     }
 
-    /** Last purchase price, then by hand; a change of setting leaves a cost already given alone. */
+    /** Last purchase price, then a stored « manual » read as the average; a change of setting leaves a cost already given alone. */
     @Test
     fun eachMethodFromTheNextReceiptOn() = runBlocking {
         val id = product(stock = 100.0, cost = 50.0)
@@ -68,13 +69,14 @@ class PurchaseCostTest {
         receive(bon(id to (10.0 to 64.0)))
         assertEquals(64.0, cost(id), 0.0)
 
-        method(CostMethod.MANUAL)
-        receive(bon(id to (10.0 to 80.0)))
-        assertEquals(64.0, cost(id), 0.0)
+        // The « Manuel » this setting once offered: averaged, 210 at 64 + 30 at 92 → 67,50
+        method("manual")
+        receive(bon(id to (30.0 to 92.0)))
+        assertEquals(67.5, cost(id), 0.0)
 
         // By hand, whatever the method
-        repository.updateProduct(id, mapOf("purchase_price" to 66.0))
-        assertEquals(66.0, cost(id), 0.0)
+        repository.updateProduct(id, mapOf("purchase_price" to 70.0))
+        assertEquals(70.0, cost(id), 0.0)
     }
 
     /** Undone, reopened or deleted: the receipt's cost goes back, and receiving again gives it again. */
@@ -126,9 +128,11 @@ class PurchaseCostTest {
 
     private suspend fun cost(id: Int): Double = db.productDao().getProductById(id)!!.purchase_price
 
-    private suspend fun method(method: CostMethod) {
+    private suspend fun method(method: CostMethod) = method(method.key)
+
+    private suspend fun method(key: String) {
         db.businessSettingsDao().insertIfAbsent(BusinessSettingsEntity(business_name = null, business_phone = null, logo_ref = null))
-        db.businessSettingsDao().updateCostMethod(method.key)
+        db.businessSettingsDao().updateCostMethod(key)
     }
 
     /** A pending bon of [lines] (product to (quantity to unit cost)); its id. */

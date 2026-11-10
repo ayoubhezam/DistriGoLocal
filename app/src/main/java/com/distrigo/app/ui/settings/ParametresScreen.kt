@@ -189,11 +189,10 @@ private fun NegativeStockRow(viewModel: StockSettingsViewModel = hiltViewModel()
 private val CostMethod.title: Int get() = when (this) {
     CostMethod.WEIGHTED_AVERAGE -> R.string.settings_cost_cmup
     CostMethod.LAST_PURCHASE    -> R.string.settings_cost_last
-    CostMethod.MANUAL           -> R.string.settings_cost_manual
 }
 
 /**
- * « Coût des produits » (FIN-04): weighted average, last purchase price or by hand. Each choice shows what it does to the
+ * « Coût des produits » (FIN-04): weighted average or last purchase price. Each choice shows what it does to the
  * same example — 100 held at 50, 100 received at 60 — worked out by [CostMethod.costAfter] itself, in the user's money
  * format. A choice applies from the next receipt.
  */
@@ -217,7 +216,7 @@ private fun CostMethodRow(viewModel: CostMethodSettingsViewModel = hiltViewModel
         val received = stringResource(R.string.settings_cost_lot, Quantity.format(COST_SAMPLE_QTY), money.da(COST_SAMPLE_RECEIVED))
         val examples = CostMethod.entries.associateWith { method ->
             val cost = money.da(method.costAfter(COST_SAMPLE_QTY, COST_SAMPLE_HELD, COST_SAMPLE_QTY, COST_SAMPLE_RECEIVED))
-            stringResource(if (method == CostMethod.MANUAL) R.string.settings_cost_example_unchanged else R.string.settings_cost_example, held, received, cost)
+            stringResource(R.string.settings_cost_example, held, received, cost)
         }
         AlertDialog(
             onDismissRequest = { choosing = false },
