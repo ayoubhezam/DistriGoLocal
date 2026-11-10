@@ -52,7 +52,7 @@
     <string name="purchases_reopen_failed">تعذّر إعادة فتح الوصل</string>
     <string name="purchases_receive_failed">تعذّر استلام الوصل</string>
     <string name="purchases_reopen_title">إعادة فتح الوصل؟</string>
-    <string name="purchases_reopen_body">تم استلام هذا الوصل. إعادة فتحه ستلغي تحديث المخزون. هل تريد المتابعة؟</string>
+    <string name="purchases_reopen_body">تم استلام هذا الوصل. إعادة فتحه ستلغي تحديث المخزون وسعر الشراء. هل تريد المتابعة؟</string>
     <string name="purchases_reopen">إعادة الفتح</string>
     <string name="purchases_delete_body_short">هل تريد حذف \u2068%1$s\u2069؟</string>
     <string name="purchases_reopen_order">إعادة فتح الوصل</string>

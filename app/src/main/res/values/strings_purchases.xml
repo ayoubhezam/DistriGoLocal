@@ -52,7 +52,7 @@
     <string name="purchases_reopen_failed">Impossible de rouvrir le bon</string>
     <string name="purchases_receive_failed">Impossible de recevoir le bon</string>
     <string name="purchases_reopen_title">Rouvrir le bon ?</string>
-    <string name="purchases_reopen_body">Ce bon a déjà été reçu. Le rouvrir annulera la mise à jour du stock. Voulez-vous continuer ?</string>
+    <string name="purchases_reopen_body">Ce bon a déjà été reçu. Le rouvrir annulera la mise à jour du stock et du prix d\'achat. Voulez-vous continuer ?</string>
     <string name="purchases_reopen">Rouvrir</string>
     <string name="purchases_delete_body_short">Voulez-vous supprimer %1$s ?</string>
     <string name="purchases_reopen_order">Rouvrir le bon</string>

@@ -54,6 +54,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -490,6 +491,22 @@ fun CompactQuantityStepper(
  */
 fun isBelowCost(price: Double, cost: Double): Boolean = cost > 0 && price < cost - 0.005
 
+/** The text a price field shows for [price] when it is set from outside: 2 decimals, digits and one '.'. */
+private fun priceText(price: Double): String = String.format(Locale.ROOT, "%.2f", price)
+
+/**
+ * What a price field shows once its line's price is [price]: [typed] while it already reads as that price — blank as 0,
+ * as « Montant payé » takes it since FIN-01 — and the price written afresh otherwise, when it was set from outside (a
+ * past price picked, another line opened).
+ *
+ * Keyed on the price, the field used to be written afresh at each keystroke that moved it: « 700.00 » deleted from the
+ * end went « 70.00 », then « 0.00 », with the caret at the start, and 800 typed then read 8000.00.
+ */
+internal fun priceFieldText(typed: String, price: Double): String {
+    val reads = if (typed.isBlank()) 0.0 else com.distrigo.app.data.model.Amount.parse(typed)
+    return if (reads != null && kotlin.math.abs(reads - price) < 0.005) typed else priceText(price)
+}
+
 /**
  * [floorPrice] is the product's purchase price on a sale's line: a price below it is still accepted —
  * clearing stock, a promotion — but said, in the line itself, so a typing slip such as 1 000 for
@@ -505,8 +522,9 @@ fun PriceFieldWithHistory(
 ) {
     val money = LocalMoneyFormatter.current
     // Locale.ROOT: this seeds a field that holds what Amount.sanitizeInput leaves — digits and one '.' — so a
-    // French-locale "120,00" is never put in it.
-    var priceStr    by remember(price) { mutableStateOf(String.format(Locale.ROOT, "%.2f", price)) }
+    // French-locale "120,00" is never put in it. What is typed stays as typed; see priceFieldText.
+    var priceStr    by remember { mutableStateOf(priceText(price)) }
+    LaunchedEffect(price) { priceStr = priceFieldText(priceStr, price) }
     var showHistory by remember { mutableStateOf(false) }
     val belowCost = floorPrice != null && isBelowCost(price, floorPrice)
 
@@ -525,7 +543,8 @@ fun PriceFieldWithHistory(
                     // the « .00 » was erased « 120,5 » read as 1205 (audit 2026-11-09, FIN-01).
                     val filtered = com.distrigo.app.data.model.Amount.sanitizeInput(raw)
                     priceStr = filtered
-                    val parsed = com.distrigo.app.data.model.Amount.parse(filtered)
+                    // Emptied, the line's price is 0 and the field stays empty, for the new price to be typed
+                    val parsed = if (filtered.isEmpty()) 0.0 else com.distrigo.app.data.model.Amount.parse(filtered)
                     if (parsed != null && parsed >= 0) onPriceChange(parsed)
                 },
                 modifier        = Modifier.weight(1f),
@@ -574,7 +593,7 @@ fun PriceFieldWithHistory(
                                     )
                                 },
                                 onClick = {
-                                    priceStr = String.format(Locale.ROOT, "%.2f", p)
+                                    priceStr = priceText(p)
                                     onPriceChange(p)
                                     showHistory = false
                                 }
