@@ -68,10 +68,28 @@ class InventoryFinishTest {
         assertEquals(1, result["zeroed"])
         assertEquals(3.0 to 3.0, stockOf(1))          // the dépôt's 7 gone, the camion's 3 kept
         val line = db.inventoryDao().getItemForSessionAndProduct(session.id, 1)!!
-        assertEquals(listOf(10.0, 3.0, -7.0, -700.0), listOf(line.qte_systeme, line.qte_physique, line.ecart, line.valeur_ecart))
+        // The dépôt's 7 against a count of 0: a count covers the dépôt only (STK-01).
+        assertEquals(listOf(7.0, 0.0, -7.0, -700.0), listOf(line.qte_systeme, line.qte_physique, line.ecart, line.valeur_ecart))
         assertEquals(4.0 to 0.0, stockOf(2))          // counted: its own count stands
         assertNull(db.inventoryDao().getItemForSessionAndProduct(session.id, 3))   // nothing to zero
         assertEquals("completed", db.inventoryDao().getSessionById(session.id)!!.status)
+    }
+
+    /** The audit's case: 7 at the dépôt, 3 in the camion, 7 found on the shelf — no écart, and the camion keeps its 3. */
+    @Test
+    fun aCountIsMeasuredAgainstTheDepotOnly(): Unit = runBlocking {
+        val session = repository.getOrCreateActiveSession()
+
+        val result = repository.recordScan(session.id, 1, 7.0)
+
+        assertEquals(7.0, result["qte_systeme"])
+        assertEquals(0.0, result["ecart"])
+        assertEquals(10.0 to 3.0, stockOf(1))
+        assertEquals(0L, db.openHelper.writableDatabase.query("SELECT COUNT(*) FROM stock_movements WHERE source_type = 'inventory_item'").use { it.moveToFirst(); it.getLong(0) })
+
+        val item = db.inventoryDao().getItemForSessionAndProduct(session.id, 1)!!
+        repository.updateScan(item.id, 5.0)              // 2 missing at the dépôt
+        assertEquals(8.0 to 3.0, stockOf(1))
     }
 
     @Test

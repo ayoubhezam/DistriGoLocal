@@ -19,7 +19,9 @@
     <string name="inventory_all_counted">تم جرد كل المنتجات المتوفرة في المخزون.</string>
     <string name="inventory_no_match">لا يوجد منتج للجرد مطابق.</string>
     <string name="inventory_gaps_value">الفروق \u2068%1$s\u2069</string>
-    <string name="inventory_qty_system">كمية النظام</string>
+    <string name="inventory_qty_system">كمية النظام (المستودع)</string>
+    <string name="inventory_depot_only_info">اعدُد مخزون المستودع فقط. مخزون الشاحنات لا يُحتسب.</string>
+    <string name="inventory_in_truck_not_counted">في الشاحنة: \u2068%1$s\u2069 (غير معدود)</string>
     <string name="inventory_history_title">سجل الجرد</string>
     <string name="inventory_add">إضافة جرد</string>
     <string name="inventory_search">البحث عن جرد</string>

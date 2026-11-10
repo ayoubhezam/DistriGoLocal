@@ -16,7 +16,11 @@
     <string name="inventory_all_counted">Tous les produits en stock ont été inventoriés.</string>
     <string name="inventory_no_match">Aucun produit à inventorier ne correspond.</string>
     <string name="inventory_gaps_value">Écarts %1$s</string>
-    <string name="inventory_qty_system">Qté système</string>
+    <string name="inventory_qty_system">Qté système (dépôt)</string>
+    <!-- Fixed at the top of the count: a count covers the dépôt only (STK-01) -->
+    <string name="inventory_depot_only_info">Comptez uniquement le stock du dépôt. Le stock des camions n\'est pas pris en compte.</string>
+    <!-- Under a product the camions hold some of: that part is not counted -->
+    <string name="inventory_in_truck_not_counted">En camion : %1$s (non compté)</string>
     <string name="inventory_history_title">Historique des inventaires</string>
     <string name="inventory_add">Ajouter un inventaire</string>
     <string name="inventory_search">Rechercher un inventaire</string>

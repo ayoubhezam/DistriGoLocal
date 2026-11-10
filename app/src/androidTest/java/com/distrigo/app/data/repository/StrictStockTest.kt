@@ -235,24 +235,27 @@ class StrictStockTest {
         assertEquals(0L, sql.long("SELECT COUNT(*) FROM stock_movements WHERE source_type = 'purchase_order' AND source_id = $order"))
     }
 
-    /** The count is of the total stock, booked at the dépôt: a count below what the camion holds is refused. */
+    /**
+     * A count covers the dépôt only (STK-01): measured against the dépôt's share, booked there, and the camion's stock
+     * never touched. A count below what the camion holds used to be refused here as a dépôt shortage.
+     */
     @Test
-    fun aStrictCountCannotGoBelowTheCamion() = runBlocking {
+    fun aStrictCountIsOfTheDepotAndLeavesTheCamion() = runBlocking {
         strict()
         val inventory = InventoryRepository(db)
         val id = product(10.0)
         repository.createChargement(null, listOf(transfer(id, 6.0, "vers_camion")))
         val session = inventory.getOrCreateActiveSession().id
 
-        assertNotNull(inventory.recordScan(session, id, 5.0)["error"])
-        assertDepot(id, 4.0)
-        assertTrue(db.inventoryDao().getItemsForSession(session).isEmpty())
+        assertNull(inventory.recordScan(session, id, 5.0)["error"])
+        assertDepot(id, 5.0)
+        assertEquals(6.0, db.productDao().getProductById(id)!!.camion_stock, 0.0)
+        val item = db.inventoryDao().getItemsForSession(session).single()
+        assertEquals(listOf(4.0, 5.0, 1.0), listOf(item.qte_systeme, item.qte_physique, item.ecart))
 
-        assertNull(inventory.recordScan(session, id, 6.0)["error"])
+        assertNull(inventory.updateScan(item.id, 0.0)["error"])
         assertDepot(id, 0.0)
-        val item = db.inventoryDao().getItemsForSession(session).single().id
-        assertNotNull(inventory.updateScan(item, 5.0)["error"])
-        assertDepot(id, 0.0)
+        assertEquals(6.0, db.productDao().getProductById(id)!!.camion_stock, 0.0)
     }
 
     @Test

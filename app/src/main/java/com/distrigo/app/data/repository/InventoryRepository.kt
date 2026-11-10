@@ -50,9 +50,10 @@ class InventoryRepository(
 
     /**
      * Closes the count. With [zeroUncounted], every product it did not count whose dépôt stock is not zero
-     * is found empty there: a line is written for it — counted at what the camions still hold, since a dépôt
-     * count does not see them — with the adjustment that takes the dépôt to zero: a sortie from a stock, an
-     * entrée from a shortage (a dépôt below zero, as a sale not yet matched by its purchase leaves it).
+     * is found empty there: a line is written for it — its dépôt stock against a count of 0, as a count covers
+     * the dépôt only (STK-01) and the camions are never touched — with the adjustment that takes the dépôt to
+     * zero: a sortie from a stock, an entrée from a shortage (a dépôt below zero, as a sale not yet matched by
+     * its purchase leaves it).
      * "raised" in the result is how many of the zeroed were short. Without
      * it, the products not counted keep their stock and get no line. One transaction: all or nothing.
      *
@@ -73,12 +74,12 @@ class InventoryRepository(
                 val now = at
                 val products = inventoryDao.uncountedWithDepotStock(sessionId)
                 val lines = products.map { p ->
-                    val counted = Quantity.normalize(p.camion_stock)
-                    val ecart = Quantity.normalize(counted - p.stock)
+                    val depot = Quantity.normalize(p.stock - p.camion_stock)
+                    val ecart = Quantity.normalize(0.0 - depot)
                     InventoryItemEntity(
                         session_id = sessionId, product_id = p.id, product_name = p.name,
                         product_image_uri = p.image_uri,
-                        qte_systeme = p.stock, qte_physique = counted, ecart = ecart,
+                        qte_systeme = depot, qte_physique = 0.0, ecart = ecart,
                         purchase_price_snapshot = p.purchase_price, valeur_ecart = ecart * p.purchase_price,
                         created_at = now
                     )
@@ -125,8 +126,9 @@ class InventoryRepository(
         // (session_id, product_id) is what guarantees it; this is what turns a second scan into the
         // message rather than a constraint error.
         //
-        // The count is of the total stock and its adjustment is booked at the dépôt, so a count below
-        // what the camion holds would leave the dépôt negative: strict stock refuses it.
+        // A count covers the dépôt only (STK-01): it is measured against the dépôt's share of the stock and its
+        // adjustment is booked there, so the camions' stock is never touched. A count is never below zero, so the
+        // guard has nothing to refuse today; it stays as every write that moves stock goes through it.
         return depotGuard.guardOrError(listOf(productId)) {
             if (inventoryDao.getItemForSessionAndProduct(sessionId, productId) != null) {
                 return@guardOrError mapOf("error" to com.distrigo.app.core.text.appText(R.string.error_already_scanned))
@@ -135,7 +137,7 @@ class InventoryRepository(
                 ?: return@guardOrError mapOf("error" to "Produit introuvable")
             unitError(product.name, product.unit_type, counted)?.let { return@guardOrError mapOf("error" to it) }
 
-            val qteSysteme  = product.stock
+            val qteSysteme  = Quantity.normalize(product.stock - product.camion_stock)   // the dépôt's share
             val ecart       = Quantity.normalize(counted - qteSysteme)
             val valeurEcart = ecart * product.purchase_price
             val now = java.time.Instant.now().toString()

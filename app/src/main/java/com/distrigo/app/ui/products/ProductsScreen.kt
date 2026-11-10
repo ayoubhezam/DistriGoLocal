@@ -782,6 +782,8 @@ fun ProductCard(
     lowStock    : Boolean = product.stock < product.min_stock,
     /** Said before the quantity on the right — "max" when it is what may be returned, not a stock. */
     stockPrefix : String? = null,
+    /** A small grey line under the price, when there is one — e.g. what an inventory count does not see. */
+    footnote    : String? = null,
 ) {
     val isLow = lowStock
 
@@ -800,7 +802,7 @@ fun ProductCard(
         // 6.dp back here, and another 6.dp off the spacer after it, leaves the image and the text
         // on exactly the pixels they were on when the target was 36.dp.
         Row(
-            modifier = Modifier.padding(start = 8.dp, top = 14.dp, end = 14.dp, bottom = 14.dp),
+            modifier = Modifier.padding(start = 8.dp, top = 14.dp, end = 14.dp, bottom = if (footnote != null) 2.dp else 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // 48.dp of touch around 36.dp of picture. The visible square is the inner Box; this
@@ -886,6 +888,18 @@ fun ProductCard(
 
             Spacer(Modifier.width(6.dp))
             Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = DsColors.TextSecondary, modifier = Modifier.size(16.dp))
+        }
+
+        // Under the whole row, where the stock column does not cut it short; lined up with the name (8 + 48 + 6).
+        if (footnote != null) {
+            Text(
+                footnote,
+                fontSize = DsTextSize.caption,
+                color    = DsColors.TextTertiary,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = 62.dp, end = 14.dp, bottom = 12.dp)
+            )
         }
     }
 }

@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -75,12 +76,16 @@ import androidx.compose.ui.res.stringResource
 import com.distrigo.app.ui.common.asString
 import com.distrigo.app.ui.common.quantityText
 import com.distrigo.app.R
+import kotlin.math.abs
 
 /**
  * Inventaire: the products still to count, the way the Ventes and Achats product steps list theirs —
  * Produits' search bar with its scanner, the count and "Filtres", and Produits' own rows, stock on the
  * right. A tap on a row, or a scanned code, opens [InventoryCountDialog] on that product; once counted
  * it leaves the list for the count's selection, which the bar at the bottom opens.
+ *
+ * A count covers the dépôt only (STK-01): the rows show the dépôt's stock, say what the camions hold apart,
+ * and a fixed line at the top says so.
  */
 @Composable
 fun InventoryCountScreen(
@@ -109,6 +114,22 @@ fun InventoryCountScreen(
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = stringResource(R.string.more_inventory), subtitle = numero, leading = DsTopBarLeading.Back(onBack))
         HorizontalDivider(color = DsColors.Border, thickness = 1.dp)
+
+        // Fixed, above the search: what a count covers, before anything is counted.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = DsSpacing.lg)
+                .padding(top = DsSpacing.md)
+                .clip(DsShapes.medium)
+                .background(DsColors.PrimaryLight)
+                .padding(horizontal = DsSpacing.md, vertical = DsSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Outlined.Info, contentDescription = null, tint = DsColors.Primary, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(DsSpacing.sm))
+            Text(stringResource(R.string.inventory_depot_only_info), fontSize = DsTextSize.caption, color = DsColors.PrimaryDark)
+        }
 
         DsCompactSearchField(
             value         = search,
@@ -157,7 +178,12 @@ fun InventoryCountScreen(
                 ) {
                     items(count = products.itemCount, key = products.itemKey { it.id }) { index ->
                         val product = products[index] ?: return@items
-                        ProductCard(product = product, onClick = { onProductClick(product) })
+                        ProductCard(
+                            product  = product,
+                            onClick  = { onProductClick(product) },
+                            stock    = product.depotStock,
+                            footnote = truckNote(product),
+                        )
                     }
                 }
             }
@@ -207,9 +233,18 @@ fun InventoryCountScreen(
 }
 
 /**
- * The count of one product, in a dialog centred on the screen: its system quantity, read-only, and the
- * quantity found on the shelf. [onSave] records it; [error] is the save's refusal, if any.
+ * The count of one product, in a dialog centred on the screen: its dépôt quantity, read-only, what the camions
+ * hold apart (not counted), and the quantity found on the shelf. [onSave] records it; [error] is the save's refusal, if any.
  */
+/** The dépôt's share of [this] product's stock: what a count covers (STK-01). */
+private val Product.depotStock: Double get() = Quantity.normalize(stock - camion_stock)
+
+/** « En camion : X (non compté) » when the camions hold some of [product], else null. */
+@Composable
+private fun truckNote(product: Product): String? =
+    if (abs(product.camion_stock) < 0.0005) null
+    else stringResource(R.string.inventory_in_truck_not_counted, quantityText(product.camion_stock, product.unit_type).asString())
+
 @Composable
 fun InventoryCountDialog(
     product   : Product,
@@ -247,10 +282,11 @@ fun InventoryCountDialog(
             ) {
                 Text(stringResource(R.string.inventory_qty_system), fontSize = DsTextSize.body, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
                 Text(
-                    quantityText(product.stock, product.unit_type).asString(),
+                    quantityText(product.depotStock, product.unit_type).asString(),
                     fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold, color = DsColors.TextPrimary
                 )
             }
+            truckNote(product)?.let { Text(it, fontSize = DsTextSize.caption, color = DsColors.TextTertiary) }
 
             OutlinedTextField(
                 value = text,
