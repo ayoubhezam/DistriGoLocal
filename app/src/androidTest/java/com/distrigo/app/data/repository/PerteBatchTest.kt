@@ -1,5 +1,7 @@
 package com.distrigo.app.data.repository
 
+import com.distrigo.app.core.text.appText
+import com.distrigo.app.R
 import android.content.Context
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -105,7 +107,8 @@ class PerteBatchTest {
         assertEquals(before + 1, repository.getPerteTypes().size)
         assertEquals("Ce type existe déjà", repository.createPerteType("rongeurs").second)
         assertEquals("Ce type existe déjà", repository.createPerteType("CASSE").second)
-        assertEquals("Saisissez un nom", repository.createPerteType("   ").second)
+        // The shared « enter a name » text, as Listes et catégories says it
+        assertEquals(appText(R.string.lists_enter_name), repository.createPerteType("   ").second)
         assertEquals(before + 1, repository.getPerteTypes().size)
     }
 }

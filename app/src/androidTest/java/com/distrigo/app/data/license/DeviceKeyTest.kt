@@ -106,12 +106,21 @@ class DeviceKeyTest {
         assertNull(LicenseStore(folder, KeystoreSeal(sealAlias)).load())
     }
 
+    /**
+     * The app's own manager on the phone's real license files, whatever the phone holds (reads only): with no license
+     * stored, « no license »; with one, a license this phone holds — its token verifies against this phone's device key
+     * and installation — unless the server revoked it.
+     */
     @Test
-    fun the_app_s_own_manager_starts_without_a_license() {
-        // Reads only: no license is installed on the phone before Phase L4.
+    fun the_app_s_own_manager_reads_the_phone_s_license() {
+        val stored = LicenseStore.forApp(context).readToken() != null
         val state = LicenseManager.forApp(context).evaluate()
-        Log.i(TAG, "forApp: $state")
-        assertTrue(state is LicenseState.NoLicense)
+        Log.i(TAG, "forApp: stored=$stored $state")
+        if (!stored) {
+            assertEquals(LicenseState.NoLicense(), state)
+        } else {
+            assertTrue("a stored license this phone does not hold: $state", state.heldLicense != null || state == LicenseState.Revoked)
+        }
     }
 
     /**

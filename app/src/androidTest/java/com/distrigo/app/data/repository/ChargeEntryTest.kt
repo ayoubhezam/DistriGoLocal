@@ -1,5 +1,7 @@
 package com.distrigo.app.data.repository
 
+import com.distrigo.app.core.text.appText
+import com.distrigo.app.R
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -90,7 +92,8 @@ class ChargeEntryTest {
         assertEquals(true, created.has_fournisseur)
         assertEquals("Ce sous-type existe déjà", charges.createSubType(vehicule, "lavage", false).second)
         assertEquals("Ce sous-type existe déjà", charges.createSubType(vehicule, "CARBURANT", false).second)
-        assertEquals("Saisissez un nom", charges.createSubType(vehicule, " ", false).second)
+        // The shared « enter a name » text, as Listes et catégories says it
+        assertEquals(appText(R.string.lists_enter_name), charges.createSubType(vehicule, " ", false).second)
     }
 
     /** "Modifier" can move a charge to another sub-type: its type follows, and a supplier it no longer takes is dropped. */
