@@ -56,10 +56,12 @@ data class RecentSale(
     val total: Double,
     val paid: Double,
     val createdAt: String,
+    /** Still to be paid once the client's later payments are spent (REP-02). */
+    val left: Double = total - paid,
 ) {
-    /** How much of the sale was paid with it (PaymentState, FIN-05). */
+    /** Where the sale stands, the client's later payments counted (PaymentState, REP-02). */
     val state: PaymentState
-        get() = PaymentState.of(total, paid)
+        get() = PaymentState.ofLeft(total, left)
 }
 
 /** Where a client of the open tournée stands today (plan, Part 1 §6). */

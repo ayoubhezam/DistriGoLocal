@@ -14,5 +14,7 @@ data class PurchaseOrder(
     val montant_paye       : Double? = null,
     val supplier_image_uri : String? = null,  // ← جديد
     /** See [numberLabel]. */
-    val numero             : String? = null
+    val numero             : String? = null,
+    /** Still to be paid once the supplier's later payments are spent, oldest bons first (REP-02); null if unknown. */
+    val reste              : Double? = null
 )

@@ -243,7 +243,7 @@ class ReportRepository(
     /** « Activité récente »: the latest [limit] sales that [filter] keeps. */
     suspend fun recentSales(filter: ActivityFilter, limit: Int = 8): List<RecentSale> =
         dao.recentSales(filter.ordinal, limit).map {
-            RecentSale(it.id, it.numero, it.client_name, it.client_image_uri, it.source, it.total, it.montant_paye, it.created_at)
+            RecentSale(it.id, it.numero, it.client_name, it.client_image_uri, it.source, it.total, it.montant_paye, it.created_at, it.reste)
         }
 
     /** A signal each time the objective's tables are written: sales, returns, payments, the policy. */

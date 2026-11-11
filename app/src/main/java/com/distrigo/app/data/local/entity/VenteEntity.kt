@@ -48,5 +48,11 @@ data class VenteEntity(
     /** The device that created the row; null for rows created before version 48. */
     val origin_device_id: String? = null,
     /** The number printed on the document — `V-6DED-000124`, or its old id for one created before version 49. See DocumentNumberTriggers. */
-    val numero: String? = null
+    val numero: String? = null,
+    /**
+     * What is still to be paid on it once the party's later payments are spent on its documents, oldest first
+     * (REP-02, v67): a cache, written by the party's recomputeBalance — see PaymentAllocation. 0 when settled.
+     */
+    @ColumnInfo(defaultValue = "0")
+    val reste: Double = 0.0
 )

@@ -373,4 +373,5 @@
     <string name="common_invalid_quantity">Quantité invalide</string>
     <string name="common_barcode_not_found">Aucun produit trouvé pour ce code-barres</string>
     <string name="common_action_apply">Appliquer</string>
+    <string name="common_settled_later">Réglé ensuite</string>
 </resources>

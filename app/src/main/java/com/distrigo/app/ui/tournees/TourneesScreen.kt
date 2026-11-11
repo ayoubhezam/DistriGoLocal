@@ -627,7 +627,7 @@ fun TourneeDetailScreen(
                         val matchStatus = viewModel.venteFilterStatus == null || v.status == viewModel.venteFilterStatus
                         // The rule the Ventes filter and the ribbons use (PaymentState, FIN-05)
                         val matchPayment = com.distrigo.app.data.model.PaymentState.fromKey(viewModel.venteFilterPaymentStatus)
-                            ?.let { it == com.distrigo.app.data.model.PaymentState.of(v.total, v.montant_paye ?: 0.0) } ?: true
+                            ?.let { it == com.distrigo.app.data.model.PaymentState.ofDocument(v.total, v.montant_paye, v.reste) } ?: true
                         val matchClient = viewModel.venteFilterClientId == null || v.client_id == viewModel.venteFilterClientId
                         matchSearch && matchStatus && matchPayment && matchClient
                     }
@@ -1672,9 +1672,10 @@ private fun TourneeVenteRow(
 ) {
     val money = LocalMoneyFormatter.current
     val total       = vente.total
-    val montantPaye = vente.montant_paye ?: 0.0
+    // Paid so far, the client's later payments counted (REP-02)
+    val montantPaye = com.distrigo.app.data.model.PaymentState.paidSoFar(total, vente.montant_paye, vente.reste)
     // The payment state by its key, its words from the language: the colour never depends on a translation
-    val paymentKey = com.distrigo.app.data.model.PaymentState.keyOf(com.distrigo.app.data.model.PaymentState.of(total, montantPaye))
+    val paymentKey = com.distrigo.app.data.model.PaymentState.keyOf(com.distrigo.app.data.model.PaymentState.ofDocument(total, vente.montant_paye, vente.reste))
     val statut = stringResource(
         when (paymentKey) { "paye" -> R.string.common_status_paid; "partiel" -> R.string.common_status_partial; else -> R.string.common_status_unpaid }
     )

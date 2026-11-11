@@ -153,7 +153,7 @@ class SupplierLedgerPagingSource(
 
 private fun PurchaseOrderEntity.toSupplierTransaction() = SupplierTransaction(
     type = "facture", id = id, amount = total,
-    montant_paye = montant_paye, status = status, note = note, created_at = created_at, numero = numero
+    montant_paye = montant_paye, status = status, note = note, created_at = created_at, numero = numero, reste = reste
 )
 
 private fun SupplierPaymentEntity.toSupplierTransaction() = SupplierTransaction(

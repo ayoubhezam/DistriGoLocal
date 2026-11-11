@@ -64,5 +64,34 @@ interface SupplierDao {
                  FROM retour_fournisseur WHERE supplier_id = :supplierId)
         WHERE id = :supplierId
     """)
-    suspend fun recomputeBalance(supplierId: Int)
+    suspend fun recomputeBalanceOnly(supplierId: Int)
+
+    @Query("SELECT balance FROM suppliers WHERE id = :supplierId")
+    suspend fun balanceOf(supplierId: Int): Double?
+
+    /** Each bon that left something unpaid, newest first by its date: what the balance is spent on (REP-02). */
+    @Query("""
+        SELECT id, total - montant_paye AS credit FROM purchase_orders
+        WHERE supplier_id = :supplierId AND total - montant_paye >= 0.005
+        ORDER BY date DESC, created_at DESC, id DESC
+    """)
+    suspend fun bonCredits(supplierId: Int): List<com.distrigo.app.data.model.PaymentAllocation.Credit>
+
+    @Query("UPDATE purchase_orders SET reste = 0 WHERE supplier_id = :supplierId AND reste != 0")
+    suspend fun clearBonReste(supplierId: Int)
+
+    @Query("UPDATE purchase_orders SET reste = :reste WHERE id = :id")
+    suspend fun setBonReste(id: Int, reste: Double)
+
+    /**
+     * The supplier's balance ([recomputeBalanceOnly]), then what each bon still has to be paid, that balance spent on
+     * them newest first — a payment settles the oldest bons first (REP-02, PaymentAllocation).
+     */
+    @androidx.room.Transaction
+    suspend fun recomputeBalance(supplierId: Int) {
+        recomputeBalanceOnly(supplierId)
+        val balance = balanceOf(supplierId) ?: return
+        clearBonReste(supplierId)
+        com.distrigo.app.data.model.PaymentAllocation.spend(balance, bonCredits(supplierId)).forEach { (id, reste) -> setBonReste(id, reste) }
+    }
 }

@@ -10,5 +10,7 @@ data class ClientTransaction(
     val note          : String?,
     val created_at    : String,
     /** A vente's number; null for a payment. See [numberLabel]. */
-    val numero        : String? = null
+    val numero        : String? = null,
+    /** A vente's amount still to pay once later payments are spent (REP-02); null for a payment. */
+    val reste         : Double? = null
 )

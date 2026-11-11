@@ -46,6 +46,9 @@ internal object UpdatedAtTriggers {
         "products" to setOf("stock", "camion_stock"),
         "clients" to setOf("balance"),
         "suppliers" to setOf("balance"),
+        // What is left to pay once the party's payments are spent on its documents (REP-02)
+        "ventes" to setOf("reste"),
+        "purchase_orders" to setOf("reste"),
     )
 
     private val NEVER_COMPARED = setOf("id", "uuid", "updated_at", "version", "origin_device_id", "numero")

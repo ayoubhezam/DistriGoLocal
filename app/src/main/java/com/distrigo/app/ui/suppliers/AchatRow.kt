@@ -45,10 +45,11 @@ fun AchatRow(
     val money = LocalMoneyFormatter.current
     when (transaction.type) {
         "facture" -> {
-            val montantPaye = transaction.montant_paye ?: 0.0
+            // Paid so far: with the document and, spent oldest first, by the payments after it (REP-02)
+            val montantPaye = com.distrigo.app.data.model.PaymentState.paidSoFar(transaction.amount ?: 0.0, transaction.montant_paye, transaction.reste)
             val total = transaction.amount ?: 0.0
             // The rule every list and filter uses (PaymentState, FIN-05)
-            val statut = com.distrigo.app.data.model.PaymentState.keyOf(com.distrigo.app.data.model.PaymentState.of(total, montantPaye))
+            val statut = com.distrigo.app.data.model.PaymentState.keyOf(com.distrigo.app.data.model.PaymentState.ofDocument(total, transaction.montant_paye, transaction.reste))
             val statusColor = when (statut) {
                 "paye" -> DsColors.Success
                 "partiel" -> DsColors.Warning

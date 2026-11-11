@@ -43,8 +43,9 @@ class DashboardReportTest {
 
     private fun vente(id: Int, client: Int, at: String, total: Double, paid: Double, cost: Double, source: String = "depot") {
         sql.execSQL(
-            "INSERT INTO ventes (id, client_id, tournee_id, source, total, montant_paye, status, note, created_at, uuid) " +
-                "VALUES ($id, $client, NULL, '$source', $total, $paid, 'delivered', NULL, '$at', 'u-vente-$id')"
+            // reste: no payment after it (REP-02), what it left unpaid
+            "INSERT INTO ventes (id, client_id, tournee_id, source, total, montant_paye, status, note, created_at, uuid, reste) " +
+                "VALUES ($id, $client, NULL, '$source', $total, $paid, 'delivered', NULL, '$at', 'u-vente-$id', ${maxOf(0.0, total - paid)})"
         )
         sql.execSQL(
             "INSERT INTO vente_items (vente_id, product_id, product_name, unit_type, quantity, unit_price, total_price, uuid, " +

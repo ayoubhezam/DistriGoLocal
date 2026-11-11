@@ -1282,6 +1282,38 @@ val MIGRATION_65_66 = object : Migration(65, 66) {
 }
 
 /**
+ * Version 67: `ventes.reste` and `purchase_orders.reste`, what each document still has to be paid once its party's
+ * payments are spent on its documents, oldest first (REP-02; owner, 2026-11-11). Every party's documents are allocated
+ * here once; from then on recomputeBalance keeps them. Appended last.
+ */
+val MIGRATION_66_67 = object : Migration(66, 67) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `ventes` ADD COLUMN `reste` REAL NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `purchase_orders` ADD COLUMN `reste` REAL NOT NULL DEFAULT 0")
+        allocateDocuments(db, "clients", "ventes", "client_id", "created_at DESC, id DESC")
+        allocateDocuments(db, "suppliers", "purchase_orders", "supplier_id", "date DESC, created_at DESC, id DESC")
+    }
+}
+
+/** Spends each party's stored balance on its documents' credit, newest first ([com.distrigo.app.data.model.PaymentAllocation]). */
+private fun allocateDocuments(db: SupportSQLiteDatabase, parties: String, documents: String, partyColumn: String, newestFirst: String) {
+    val balances = db.query("SELECT id, balance FROM `$parties`").use { c ->
+        buildList { while (c.moveToNext()) add(c.getInt(0) to c.getDouble(1)) }
+    }
+    for ((party, balance) in balances) {
+        val credits = db.query(
+            "SELECT id, total - montant_paye FROM `$documents` WHERE `$partyColumn` = ? AND total - montant_paye >= 0.005 ORDER BY $newestFirst",
+            arrayOf<Any>(party)
+        ).use { c ->
+            buildList { while (c.moveToNext()) add(com.distrigo.app.data.model.PaymentAllocation.Credit(c.getInt(0), c.getDouble(1))) }
+        }
+        com.distrigo.app.data.model.PaymentAllocation.spend(balance, credits).forEach { (id, reste) ->
+            db.execSQL("UPDATE `$documents` SET reste = ? WHERE id = ?", arrayOf<Any>(reste, id))
+        }
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -1304,6 +1336,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_63_64,
     MIGRATION_64_65,
     MIGRATION_65_66,
+    MIGRATION_66_67,
 ).map(LicenseWriteGate::lifting).toTypedArray()
 
 /**

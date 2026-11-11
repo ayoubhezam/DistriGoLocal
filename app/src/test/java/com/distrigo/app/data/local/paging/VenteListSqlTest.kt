@@ -39,7 +39,7 @@ class VenteListSqlTest {
 
     @Test
     fun `payment status is a fixed clause`() {
-        assertTrue(whereOf(VenteListQuery(paymentStatus = "partiel")).first.endsWith("(v.total - v.montant_paye >= 0.005 AND v.montant_paye >= 0.005)"))
+        assertTrue(whereOf(VenteListQuery(paymentStatus = "partiel")).first.endsWith("(v.reste >= 0.005 AND v.total - v.reste >= 0.0049999999)"))
     }
 
     @Test

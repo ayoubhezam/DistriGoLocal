@@ -333,7 +333,7 @@ interface ReportDao {
      */
     @Query(
         """
-        SELECT id, numero, client_name, client_image_uri, source, total, montant_paye, created_at
+        SELECT id, numero, client_name, client_image_uri, source, total, montant_paye, reste, created_at
         FROM ventes
         WHERE :filter = 0
            OR (:filter = 1 AND ${PaymentState.SQL_PAID})
@@ -490,5 +490,6 @@ data class RecentSaleRow(
     val source: String,
     val total: Double,
     val montant_paye: Double,
+    val reste: Double,
     val created_at: String,
 )

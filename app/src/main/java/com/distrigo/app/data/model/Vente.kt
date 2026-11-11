@@ -17,7 +17,9 @@ data class Vente(
     /** "Effectué par" — who made the sale. Null on sales recorded before it was stored. */
     val user_name      : String? = null,
     /** See [numberLabel]. */
-    val numero         : String? = null
+    val numero         : String? = null,
+    /** Still to be paid once the client's later payments are spent, oldest sales first (REP-02); null if unknown. */
+    val reste          : Double? = null
 )
 
 data class VenteItem(

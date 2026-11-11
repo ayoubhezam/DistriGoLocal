@@ -98,4 +98,5 @@
         <item quantity="other">%1$d articles · %2$s</item>
         <item quantity="many">%1$d articles · %2$s</item>
     </plurals>
+    <string name="ventes_paid_at_sale">Payé à la vente</string>
 </resources>

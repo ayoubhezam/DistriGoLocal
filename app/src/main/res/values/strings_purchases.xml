@@ -61,4 +61,5 @@
     <string name="purchases_confirm_receive_title">Confirmer la réception</string>
     <string name="purchases_confirm_receive_body">Le stock du dépôt sera mis à jour pour tous les articles de ce bon.</string>
     <string name="purchases_drafts_empty_body">Un bon non terminé est enregistré ici automatiquement, et vous pouvez le reprendre quand vous voulez.</string>
+    <string name="purchases_paid_with_bon">Payé avec le bon</string>
 </resources>

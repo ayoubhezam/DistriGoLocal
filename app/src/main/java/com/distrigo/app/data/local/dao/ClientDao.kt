@@ -84,5 +84,35 @@ interface ClientDao {
                  FROM retour_client   WHERE client_id = :clientId)
         WHERE id = :clientId
     """)
-    suspend fun recomputeBalance(clientId: Int)
+    suspend fun recomputeBalanceOnly(clientId: Int)
+
+    @Query("SELECT balance FROM clients WHERE id = :clientId")
+    suspend fun balanceOf(clientId: Int): Double?
+
+    /** Each sale that left something unpaid, newest first: what the balance is spent on (REP-02). */
+    @Query("""
+        SELECT id, total - montant_paye AS credit FROM ventes
+        WHERE client_id = :clientId AND total - montant_paye >= 0.005
+        ORDER BY created_at DESC, id DESC
+    """)
+    suspend fun venteCredits(clientId: Int): List<com.distrigo.app.data.model.PaymentAllocation.Credit>
+
+    @Query("UPDATE ventes SET reste = 0 WHERE client_id = :clientId AND reste != 0")
+    suspend fun clearVenteReste(clientId: Int)
+
+    @Query("UPDATE ventes SET reste = :reste WHERE id = :id")
+    suspend fun setVenteReste(id: Int, reste: Double)
+
+    /**
+     * The client's balance ([recomputeBalanceOnly]), then what each of their sales still has to be paid, that balance
+     * spent on them newest first — a versement settles the oldest sales first (REP-02, PaymentAllocation). Every write
+     * that moves a client's balance calls this, so each sale's `reste` stays true with it.
+     */
+    @androidx.room.Transaction
+    suspend fun recomputeBalance(clientId: Int) {
+        recomputeBalanceOnly(clientId)
+        val balance = balanceOf(clientId) ?: return
+        clearVenteReste(clientId)
+        com.distrigo.app.data.model.PaymentAllocation.spend(balance, venteCredits(clientId)).forEach { (id, reste) -> setVenteReste(id, reste) }
+    }
 }

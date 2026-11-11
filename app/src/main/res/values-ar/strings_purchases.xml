@@ -61,4 +61,5 @@
     <string name="purchases_confirm_receive_title">تأكيد الاستلام</string>
     <string name="purchases_confirm_receive_body">سيُحدَّث مخزون المستودع لكل مواد هذا الوصل.</string>
     <string name="purchases_drafts_empty_body">يُحفظ هنا تلقائيًا أي وصل غير مكتمل، ويمكنك استئنافه متى شئت.</string>
+    <string name="purchases_paid_with_bon">المدفوع مع الوصل</string>
 </resources>

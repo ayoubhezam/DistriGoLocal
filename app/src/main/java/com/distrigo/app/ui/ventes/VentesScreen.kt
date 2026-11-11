@@ -953,20 +953,34 @@ fun VenteDetailScreen(
 
                         Spacer(Modifier.height(DsSpacing.md))
 
-                        // Payment Rows
+                        // Payment Rows: what was paid with it, what later payments settled — spent on the party's
+                        // documents oldest first — and what is left (REP-02)
                         val montantPaye = displayVente.montant_paye ?: 0.0
-                        val reste       = displayVente.total - montantPaye
+                        val reste       = displayVente.reste ?: (displayVente.total - montantPaye)
+                        val settledLater = displayVente.total - montantPaye - reste
 
                         Row(
                             modifier              = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Text(stringResource(R.string.ventes_amount_paid), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
+                            Text(stringResource(R.string.ventes_paid_at_sale), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
                             Text(money.da(montantPaye), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
                         }
 
                         Spacer(Modifier.height(DsSpacing.sm))
+
+                        if (com.distrigo.app.data.model.Amount.owing(settledLater)) {
+                            Row(
+                                modifier              = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment     = Alignment.CenterVertically
+                            ) {
+                                Text(stringResource(R.string.common_settled_later), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
+                                Text(money.da(settledLater), fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.Bold, color = DsColors.Success)
+                            }
+                            Spacer(Modifier.height(DsSpacing.sm))
+                        }
 
                         // Owed to the half centime: 450.45 paid on 450.45000000000005 is settled (FIN-05)
                         if (com.distrigo.app.data.model.Amount.owing(reste)) {
@@ -1117,7 +1131,7 @@ fun VenteDetailScreen(
 
 /** Payment status derived the same way as the "Filtres" payment filter, for the corner ribbon. */
 private fun paymentStatusOf(vente: Vente): String =
-    com.distrigo.app.data.model.PaymentState.keyOf(com.distrigo.app.data.model.PaymentState.of(vente.total, vente.montant_paye ?: 0.0))
+    com.distrigo.app.data.model.PaymentState.keyOf(com.distrigo.app.data.model.PaymentState.ofDocument(vente.total, vente.montant_paye, vente.reste))
 
 /**
  * Same shape as the Tournée's bon rows, line for line.

@@ -191,7 +191,8 @@ class ProductRepository(
         created_at = this.created_at, items_count = itemsCount, items = items,
         client_image_uri = this.client_image_uri,  // ← جديد
         user_name = this.user_name,
-        numero = this.numero
+        numero = this.numero,
+        reste = this.reste
     )
     /**
      * The one place a tournée row becomes a Tournee. The callers supply the counters, and the sales
@@ -235,7 +236,8 @@ class ProductRepository(
         items_count = items.size, created_at = this.created_at, items = items,
         montant_paye = this.montant_paye,
         supplier_image_uri = this.supplier_image_uri,
-        numero = this.numero
+        numero = this.numero,
+        reste = this.reste
     )
 
     private fun PriceHistoryEntity.toPriceHistory() = PriceHistory(
@@ -1501,7 +1503,7 @@ class ProductRepository(
                 SupplierTransaction(
                     type = "facture", id = order.id, amount = order.total,
                     montant_paye = order.montant_paye, status = order.status,
-                    note = order.note, created_at = order.created_at, numero = order.numero
+                    note = order.note, created_at = order.created_at, numero = order.numero, reste = order.reste
                 )
             }
 
@@ -1876,7 +1878,7 @@ class ProductRepository(
                 type = "vente", id = vente.id, amount = null,
                 total = vente.total, montant_paye = vente.montant_paye,
                 status = vente.status, note = vente.note, created_at = vente.created_at,
-                numero = vente.numero
+                numero = vente.numero, reste = vente.reste
             )
         }
 

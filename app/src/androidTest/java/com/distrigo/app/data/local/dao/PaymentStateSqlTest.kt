@@ -50,12 +50,13 @@ class PaymentStateSqlTest {
         rows.forEachIndexed { i, (total, paid) ->
             val at = "2026-11-09T10:00:0${i}Z"
             db.venteDao().insertVente(
+                // No payment after it (REP-02): what is left is what it left unpaid
                 VenteEntity(client_id = 1, tournee_id = null, source = "depot", total = total, montant_paye = paid,
-                    status = "pending", note = null, created_at = at)
+                    status = "pending", note = null, created_at = at, reste = maxOf(0.0, total - paid))
             )
             db.purchaseDao().insertOrder(
                 PurchaseOrderEntity(supplier_id = 1, date = "2026-11-09", total = total, status = "pending", note = null,
-                    montant_paye = paid, created_at = at)
+                    montant_paye = paid, created_at = at, reste = maxOf(0.0, total - paid))
             )
         }
     }

@@ -125,4 +125,5 @@
         <item quantity="many">\u2068%1$d\u2069 منتجًا · \u2068%2$s\u2069</item>
         <item quantity="other">\u2068%1$d\u2069 منتج · \u2068%2$s\u2069</item>
     </plurals>
+    <string name="ventes_paid_at_sale">المدفوع عند البيع</string>
 </resources>

@@ -41,9 +41,24 @@ class PaymentStateTest {
     @Test
     fun theSqlUsesTheSameHalfCentime() {
         assertEquals(Amount.HALF_CENTIME, PaymentState.HALF_CENTIME_SQL.toDouble(), 0.0)
-        assertEquals("(v.total - v.montant_paye < 0.005)", PaymentState.sql(PaymentState.PAID, "v"))
-        assertEquals("(o.total - o.montant_paye >= 0.005 AND o.montant_paye < 0.005)", PaymentState.sql(PaymentState.UNPAID, "o"))
-        assertEquals("(v.total - v.montant_paye >= 0.005 AND v.montant_paye >= 0.005)", PaymentState.sql(PaymentState.PARTIAL, "v"))
+        // Over what is left once later payments are spent (REP-02)
+        assertEquals("(v.reste < 0.005)", PaymentState.sql(PaymentState.PAID, "v"))
+        assertEquals("(o.reste >= 0.005 AND o.total - o.reste < 0.0049999999)", PaymentState.sql(PaymentState.UNPAID, "o"))
+        assertEquals("(v.reste >= 0.005 AND v.total - v.reste >= 0.0049999999)", PaymentState.sql(PaymentState.PARTIAL, "v"))
+        // Half a centime paid, read back from what is left
+        assertEquals(PaymentState.PARTIAL, PaymentState.ofLeft(1000.0, 999.995))
+    }
+
+    /** From what is left: nothing left is paid, all of it unpaid, some of it partial (REP-02). */
+    @Test
+    fun theStateOfWhatIsLeft() {
+        assertEquals(PaymentState.PAID, PaymentState.ofLeft(1000.0, 0.0))
+        assertEquals(PaymentState.UNPAID, PaymentState.ofLeft(1000.0, 1000.0))
+        assertEquals(PaymentState.PARTIAL, PaymentState.ofLeft(1000.0, 400.0))
+        // Unknown: what was paid with it
+        assertEquals(PaymentState.UNPAID, PaymentState.ofDocument(1000.0, 0.0, null))
+        assertEquals(PaymentState.PAID, PaymentState.ofDocument(1000.0, 0.0, 0.0))
+        assertEquals(600.0, PaymentState.paidSoFar(1000.0, 0.0, 400.0), 0.0)
     }
 
     @Test

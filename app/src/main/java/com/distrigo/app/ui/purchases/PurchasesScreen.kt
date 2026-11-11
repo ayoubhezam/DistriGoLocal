@@ -722,7 +722,7 @@ fun UnifiedStatColumn(icon: androidx.compose.ui.graphics.vector.ImageVector, val
 
 /** Payment status derived the same way as the "Filtres" payment filter, for the corner ribbon. */
 private fun paymentStatusOf(order: PurchaseOrder): String =
-    com.distrigo.app.data.model.PaymentState.keyOf(com.distrigo.app.data.model.PaymentState.of(order.total, order.montant_paye ?: 0.0))
+    com.distrigo.app.data.model.PaymentState.keyOf(com.distrigo.app.data.model.PaymentState.ofDocument(order.total, order.montant_paye, order.reste))
 
 /**
  * Same shape as the Tournée's bon rows, line for line.

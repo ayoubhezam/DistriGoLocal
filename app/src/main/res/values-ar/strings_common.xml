@@ -435,4 +435,5 @@
     <string name="common_invalid_quantity">كمية غير صالحة</string>
     <string name="common_barcode_not_found">لا يوجد منتج بهذا الكودبار</string>
     <string name="common_action_apply">تطبيق</string>
+    <string name="common_settled_later">سُدِّد لاحقًا</string>
 </resources>
