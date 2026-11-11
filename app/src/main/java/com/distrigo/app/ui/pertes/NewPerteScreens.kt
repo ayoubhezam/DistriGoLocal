@@ -209,9 +209,10 @@ fun NewPerteListScreen(
         val existing = viewModel.inCart(product.id)
         PerteDialog(
             productName = product.name, unit = product.unit_type,
-            stock = product.depotStock, cap = viewModel.capFor(product),
+            depotStock = product.depotStock, camionStock = product.camion_stock, capFor = { viewModel.capFor(product, it) },
             types = types, initialType = existing?.typeId, initialQty = existing?.quantity, initialMotif = existing?.motif,
-            onSave = { typeId, qty, motif -> viewModel.put(product, typeId, qty, motif); editing = null },
+            initialSource = existing?.source, transportTypeId = viewModel.transportTypeId,
+            onSave = { typeId, qty, motif, source -> viewModel.put(product, typeId, qty, motif, source); editing = null },
             onAddType = viewModel::addType,
             onDismiss = { editing = null }
         )
@@ -257,15 +258,19 @@ fun NewPerteCartScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onNext:
                         SelectionCartCard(
                             avatarIcon      = Icons.Default.RemoveShoppingCart,
                             title           = line.product.name,
-                            metaLine        = quantityText(line.quantity, line.product.unit_type).asString() + " · " + BuiltInNames.perteType(line.typeName) + (line.motif?.let { " · $it" } ?: ""),
+                            metaLine        = quantityText(line.quantity, line.product.unit_type).asString() + " · " + BuiltInNames.perteType(line.typeName) +
+                                " · " + stringResource(placeLabel(line.source)) + (line.motif?.let { " · $it" } ?: ""),
                             totalPriceLabel = money.da(line.value),
                             isExpanded      = expanded,
                             onToggleExpand  = { expandedId = if (expanded) null else line.product.id },
                             statusLine      = {
                                 CartStatusLine(
                                     icon = Icons.Default.Inventory2,
-                                    text = stringResource(R.string.pertes_depot_change, formatQty(line.product.depotStock), quantityText(line.product.depotStock - line.quantity, line.product.unit_type).asString()),
-                                    tone = if (line.product.depotStock - line.quantity < 0) CartStatusTone.WARNING else CartStatusTone.NEUTRAL
+                                    text = stringResource(
+                                        if (line.source == PerteSource.CAMION) R.string.pertes_camion_change else R.string.pertes_depot_change,
+                                        formatQty(line.placeStock), quantityText(line.placeStock - line.quantity, line.product.unit_type).asString()
+                                    ),
+                                    tone = if (line.placeStock - line.quantity < 0) CartStatusTone.WARNING else CartStatusTone.NEUTRAL
                                 )
                             },
                             expandedContent = {
@@ -311,9 +316,10 @@ fun NewPerteCartScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onNext:
     editing?.let { line ->
         PerteDialog(
             productName = line.product.name, unit = line.product.unit_type,
-            stock = line.product.depotStock, cap = viewModel.capFor(line.product),
+            depotStock = line.product.depotStock, camionStock = line.product.camion_stock, capFor = { viewModel.capFor(line.product, it) },
             types = types, initialType = line.typeId, initialQty = line.quantity, initialMotif = line.motif,
-            onSave = { typeId, qty, motif -> viewModel.put(line.product, typeId, qty, motif); editing = null; expandedId = null },
+            initialSource = line.source, transportTypeId = viewModel.transportTypeId,
+            onSave = { typeId, qty, motif, source -> viewModel.put(line.product, typeId, qty, motif, source); editing = null; expandedId = null },
             onAddType = viewModel::addType,
             onDismiss = { editing = null }
         )
@@ -379,7 +385,7 @@ fun NewPerteSummaryScreen(
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(line.product.name, fontSize = DsTextSize.body, fontWeight = FontWeight.Medium, color = DsColors.TextPrimary)
-                        Text(BuiltInNames.perteType(line.typeName) + " · " + quantityText(line.quantity, line.product.unit_type).asString() + (line.motif?.let { " · $it" } ?: ""), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+                        Text(BuiltInNames.perteType(line.typeName) + " · " + quantityText(line.quantity, line.product.unit_type).asString() + " · " + stringResource(placeLabel(line.source)) + (line.motif?.let { " · $it" } ?: ""), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
                     }
                     Text(money.da(line.value), fontSize = DsTextSize.body, fontWeight = FontWeight.SemiBold, color = DsColors.Danger)
                 }
@@ -419,3 +425,6 @@ private fun StatCard(icon: ImageVector, value: String, label: String, color: Col
         }
     }
 }
+
+/** The name of a perte's place (STK-03). */
+private fun placeLabel(source: String): Int = if (source == PerteSource.CAMION) R.string.common_source_truck else R.string.common_source_depot

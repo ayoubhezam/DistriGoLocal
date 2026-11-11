@@ -34,19 +34,32 @@ import javax.inject.Inject
 import com.distrigo.app.R
 import com.distrigo.app.core.text.UiText
 
-/** One product in a new perte's selection: how much was lost, and why. */
-data class PerteCartLine(val product: Product, val typeId: Int, val typeName: String, val quantity: Double, val motif: String? = null) {
+/** One product in a new perte's selection: how much was lost, why, and where — "depot" or "camion" (STK-03). */
+data class PerteCartLine(val product: Product, val typeId: Int, val typeName: String, val quantity: Double, val motif: String? = null, val source: String = PerteSource.DEPOT) {
     val value: Double get() = quantity * product.purchase_price
+
+    /** The stock of [product] at this line's place. */
+    val placeStock: Double get() = product.stockAt(source)
 }
+
+/** Where a perte was lost (STK-03): the dépôt, or the camion. */
+object PerteSource {
+    const val DEPOT = "depot"
+    const val CAMION = "camion"
+}
+
+/** [Product]'s stock at [source]: its dépôt part, or what the camion holds. */
+fun Product.stockAt(source: String): Double = if (source == PerteSource.CAMION) camion_stock else stock - camion_stock
 
 /**
  * A new perte, from its list to its confirmation — held by the new perte's own graph, so leaving it
  * starts the next one empty.
  *
  * Nothing is written until "Confirmer": the selection is the products lost so far, and the list
- * leaves them out, as the Inventaire's list leaves out what was counted. The pertes are recorded at
- * the dépôt; under strict stock ("Autoriser le stock négatif" off) none may take more than the dépôt
- * holds — the dialog says so, and the repository refuses it regardless.
+ * leaves them out, as the Inventaire's list leaves out what was counted. Each line is recorded at its
+ * place, the dépôt or the camion (STK-03): under strict stock ("Autoriser le stock négatif" off) none may
+ * take more than the dépôt holds, and none ever more than the camion holds — the dialog says so, and the
+ * repository refuses it regardless.
  */
 @HiltViewModel
 class NewPerteViewModel @Inject constructor(
@@ -61,6 +74,10 @@ class NewPerteViewModel @Inject constructor(
 
     private val _types = MutableStateFlow<List<PerteType>>(emptyList())
     val types: StateFlow<List<PerteType>> = _types
+
+    /** « Perdus pendant le transport »: picking it moves the dialog's place to the camion. */
+    var transportTypeId by mutableStateOf<Int?>(null)
+        private set
 
     private val _cart = MutableStateFlow<List<PerteCartLine>>(emptyList())
     val cart: StateFlow<List<PerteCartLine>> = _cart
@@ -85,6 +102,7 @@ class NewPerteViewModel @Inject constructor(
         viewModelScope.launch {
             repository.seedDefaultPerteTypesIfNeeded()
             _types.value = repository.getPerteTypes()
+            transportTypeId = repository.findDefaultPerteType(com.distrigo.app.data.model.DefaultPerteType.PERTE_TRANSPORT)?.id
         }
     }
 
@@ -100,15 +118,20 @@ class NewPerteViewModel @Inject constructor(
     /** The product a scanned code belongs to, or null. */
     suspend fun productByBarcode(code: String): Product? = products.findLiveProductByBarcode(code)
 
-    /** The most a perte of [product] may take: its dépôt stock under strict stock, no limit otherwise. */
-    fun capFor(product: Product): Double? = stockPolicy.value.depotCap(product)
+    /**
+     * The most a perte of [product] at [source] may take: at the dépôt, its dépôt stock under strict stock and no limit
+     * otherwise; in the camion, what the camion holds, always.
+     */
+    fun capFor(product: Product, source: String): Double? =
+        if (source == PerteSource.CAMION) com.distrigo.app.data.model.Quantity.normalize(maxOf(0.0, product.camion_stock))
+        else stockPolicy.value.depotCap(product)
 
     fun inCart(productId: Int): PerteCartLine? = _cart.value.find { it.product.id == productId }
 
     /** Adds [product] to the selection, or replaces its line. */
-    fun put(product: Product, typeId: Int, quantity: Double, motif: String?) {
+    fun put(product: Product, typeId: Int, quantity: Double, motif: String?, source: String) {
         val name = _types.value.find { it.id == typeId }?.name ?: ""
-        val line = PerteCartLine(product, typeId, name, quantity, motif)
+        val line = PerteCartLine(product, typeId, name, quantity, motif, source)
         _cart.value = _cart.value.filter { it.product.id != product.id } + line
     }
 
@@ -120,7 +143,7 @@ class NewPerteViewModel @Inject constructor(
         if (lines.isEmpty()) return onError(com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.pertes_no_product)))
         val at = date.atTime(LocalTime.now()).atZone(ZoneId.systemDefault()).toInstant().toString()
         viewModelScope.launch {
-            val result = caughtAsError { repository.addPertes(lines.map { PerteRepository.PerteLine(it.product.id, it.typeId, it.quantity, it.motif) }, at) }
+            val result = caughtAsError { repository.addPertes(lines.map { PerteRepository.PerteLine(it.product.id, it.typeId, it.quantity, it.motif, it.source) }, at) }
             val error = result["error"] as? String
             if (error != null) onError(error) else { _cart.value = emptyList(); onSuccess(lines.size) }
         }

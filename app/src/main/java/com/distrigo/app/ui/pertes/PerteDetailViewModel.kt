@@ -37,25 +37,28 @@ class PerteDetailViewModel @Inject constructor(
     /** The perte's product, live — the stock "Modifier" shows and caps — and the types it can take. */
     var product by mutableStateOf<Product?>(null); private set
     var types by mutableStateOf<List<PerteType>>(emptyList()); private set
+    /** « Perdus pendant le transport »: picking it in « Modifier » moves the place to the camion (STK-03). */
+    var transportTypeId by mutableStateOf<Int?>(null); private set
     var policy by mutableStateOf(StockPolicy.ALLOWED); private set
     var saving by mutableStateOf(false); private set
     var saveError by mutableStateOf(""); private set
 
+    /** What the perte took from [source]: its quantity at its own place, nothing elsewhere. */
+    private fun ownAt(source: String): Double = if (perte?.source == source) perte?.quantity ?: 0.0 else 0.0
+
     /**
-     * The most this perte may now take: under strict stock, what its place holds plus what the perte
-     * already took from it; no limit when negative stock is allowed and the perte is at the dépôt.
+     * The most this perte may now take at [source] (STK-03): what the camion holds, or under strict stock what the
+     * dépôt holds — each plus what the perte already took from there; no limit at the dépôt when negative stock is allowed.
      */
-    fun cap(): Double? {
+    fun cap(source: String): Double? {
         val p = product ?: return null
-        val own = perte?.quantity ?: 0.0
-        return if (perte?.source == "camion") p.camion_stock + own else policy.depotCap(p, ownQuantity = own)
+        return if (source == PerteSource.CAMION) maxOf(0.0, p.camion_stock + ownAt(source)) else policy.depotCap(p, ownQuantity = ownAt(source))
     }
 
-    /** What the perte's place holds without the perte: the stock it was taken from. */
-    fun stockBefore(): Double {
+    /** What [source] holds without the perte: the stock it would be taken from. */
+    fun stockBefore(source: String): Double {
         val p = product ?: return 0.0
-        val own = perte?.quantity ?: 0.0
-        return (if (perte?.source == "camion") p.camion_stock else p.stock - p.camion_stock) + own
+        return (if (source == PerteSource.CAMION) p.camion_stock else p.stock - p.camion_stock) + ownAt(source)
     }
 
     /** Creates a custom type from the dialog; [onDone] gets it, or why not. */
@@ -67,14 +70,14 @@ class PerteDetailViewModel @Inject constructor(
         }
     }
 
-    /** Changes the perte's type and quantity — its product, place and date stay. */
-    fun update(typeId: Int, quantity: Double, motif: String?, onDone: () -> Unit) {
+    /** Changes the perte's type, quantity and place (STK-03) — its product and date stay. */
+    fun update(typeId: Int, quantity: Double, motif: String?, source: String, onDone: () -> Unit) {
         val current = perte ?: return
         saving = true; saveError = ""
         viewModelScope.launch {
             val result = repository.updatePerte(
                 id = current.id, productId = current.product_id, typeId = typeId, quantity = quantity,
-                source = current.source, dateTime = current.date_time, motif = motif, photoPath = current.photo_path
+                source = source, dateTime = current.date_time, motif = motif, photoPath = current.photo_path
             )
             saving = false
             val error = result["error"] as? String
@@ -103,6 +106,7 @@ class PerteDetailViewModel @Inject constructor(
             type = found?.let { repository.getPerteType(it.type_id) }
             product = found?.let { productRepository.getLiveProduct(it.product_id) }
             types = repository.getPerteTypes()
+            transportTypeId = repository.findDefaultPerteType(com.distrigo.app.data.model.DefaultPerteType.PERTE_TRANSPORT)?.id
             policy = StockPolicy(allowNegative = businessSettings.observeAllowNegativeStock().first())
         }
     }

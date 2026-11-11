@@ -62,37 +62,50 @@ import com.distrigo.app.core.text.UiText
 
 /**
  * Why a quantity cannot be recorded as lost, or null when it can: nothing, or more than [cap] — the
- * dépôt stock under strict stock ("Autoriser le stock négatif" off). A null [cap] is no limit.
+ * dépôt stock under strict stock ("Autoriser le stock négatif" off), or what the camion holds. A null [cap] is no limit.
  */
-fun perteQuantityError(quantity: Double?, cap: Double?, unit: String): String? = when {
+fun perteQuantityError(quantity: Double?, cap: Double?, unit: String, source: String = PerteSource.DEPOT): String? = when {
     quantity == null || quantity <= 0 -> com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.common_invalid_quantity))
-    cap != null && Quantity.exceeds(quantity, cap) -> com.distrigo.app.core.text.AppStrings.write(UiText.Res(R.string.pertes_stock_short, com.distrigo.app.core.text.AppStrings.write(quantityText(cap, unit))))
+    cap != null && Quantity.exceeds(quantity, cap) -> com.distrigo.app.core.text.AppStrings.write(
+        UiText.Res(
+            if (source == PerteSource.CAMION) R.string.pertes_stock_short_camion else R.string.pertes_stock_short,
+            com.distrigo.app.core.text.AppStrings.write(quantityText(cap, unit))
+        )
+    )
     else -> null
 }
 
 /**
- * A product's loss, in a dialog centred on the screen: the type of perte, the stock it is taken from
- * (read-only), and the quantity lost. [cap] is the most it may take — the dépôt stock when negative
- * stock is not allowed, null when it is — and "Enregistrer" stays off past it, saying why.
+ * A product's loss, in a dialog centred on the screen: the type of perte, where it was lost — the dépôt or the camion
+ * (STK-03) — the stock it is taken from there (read-only), and the quantity lost. [capFor] is the most it may take at a
+ * place — the dépôt stock when negative stock is not allowed, what the camion holds — and "Enregistrer" stays off past
+ * it, saying why. The place starts at the dépôt, or [initialSource]; picking [transportTypeId] moves it to the camion.
  */
 @Composable
 fun PerteDialog(
     productName : String,
     unit        : String,
-    stock       : Double,
-    cap         : Double?,
+    depotStock  : Double,
+    camionStock : Double,
+    capFor      : (source: String) -> Double?,
     types       : List<PerteType>,
     initialType : Int?,
     initialQty  : Double?,
     initialMotif: String? = null,
+    initialSource: String? = null,
+    /** « Perdus pendant le transport »: chosen, the loss is in the camion. */
+    transportTypeId: Int? = null,
     isSaving    : Boolean = false,
     error       : String = "",
-    onSave      : (typeId: Int, quantity: Double, motif: String?) -> Unit,
+    onSave      : (typeId: Int, quantity: Double, motif: String?, source: String) -> Unit,
     /** Creates a type named so; its callback gets the new type, or why not. */
     onAddType   : (name: String, onDone: (PerteType?, String?) -> Unit) -> Unit,
     onDismiss   : () -> Unit,
 ) {
     var typeId by remember { mutableStateOf(initialType ?: types.firstOrNull()?.id) }
+    var source by remember { mutableStateOf(initialSource ?: if (initialType != null && initialType == transportTypeId) PerteSource.CAMION else PerteSource.DEPOT) }
+    // A type picked: the transport one is a loss in the camion; the place stays the user's to change after
+    val pickType = { id: Int -> typeId = id; if (id == transportTypeId) source = PerteSource.CAMION }
     var text by remember { mutableStateOf(initialQty?.let { formatQty(it) } ?: "") }
     var motif by remember { mutableStateOf(initialMotif ?: "") }
     var typeMenu by remember { mutableStateOf(false) }
@@ -113,7 +126,8 @@ fun PerteDialog(
     }
 
     val quantity = Quantity.parse(text)
-    val problem = if (text.isBlank()) null else perteQuantityError(quantity, cap, unit)
+    val stock = if (source == PerteSource.CAMION) camionStock else depotStock
+    val problem = if (text.isBlank()) null else perteQuantityError(quantity, capFor(source), unit, source)
     val type = types.find { it.id == typeId }
 
     Dialog(onDismissRequest = { if (!isSaving) onDismiss() }) {
@@ -154,7 +168,7 @@ fun PerteDialog(
                             addingType = true
                             onAddType(typing) { created, failure ->
                                 addingType = false
-                                if (created != null) { typeId = created.id; newType = null } else newTypeError = failure ?: ""
+                                if (created != null) { pickType(created.id); newType = null } else newTypeError = failure ?: ""
                             }
                         },
                         enabled = !addingType && typing.isNotBlank(),
@@ -183,7 +197,7 @@ fun PerteDialog(
                         DropdownMenuItem(
                             text = { Text(BuiltInNames.perteType(t.name), fontWeight = if (t.id == typeId) FontWeight.SemiBold else FontWeight.Normal,
                                 color = if (t.id == typeId) DsColors.Primary else DsColors.TextPrimary) },
-                            onClick = { typeId = t.id; typeMenu = false }
+                            onClick = { pickType(t.id); typeMenu = false }
                         )
                     }
                     HorizontalDivider(color = DsColors.Border)
@@ -195,11 +209,16 @@ fun PerteDialog(
                 }
             }
 
+            PertePlaceField(source = source, enabled = !isSaving, onChange = { source = it })
+
             Row(
                 Modifier.fillMaxWidth().clip(DsShapes.medium).background(DsColors.SurfaceMuted).padding(DsSpacing.md),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(stringResource(R.string.pertes_qty_system_depot), fontSize = DsTextSize.body, color = DsColors.TextSecondary, modifier = Modifier.weight(1f))
+                Text(
+                    stringResource(if (source == PerteSource.CAMION) R.string.pertes_qty_system_camion else R.string.pertes_qty_system_depot),
+                    fontSize = DsTextSize.body, color = DsColors.TextSecondary, modifier = Modifier.weight(1f)
+                )
                 Text(quantityText(stock, unit).asString(), fontSize = DsTextSize.bodyLarge, fontWeight = FontWeight.Bold,
                     color = if (stock < 0) DsColors.Danger else DsColors.TextPrimary)
             }
@@ -233,13 +252,42 @@ fun PerteDialog(
                     Text(stringResource(R.string.common_action_cancel))
                 }
                 Button(
-                    onClick = { val t = typeId; if (t != null && quantity != null) onSave(t, quantity, motif.trim().takeIf { it.isNotEmpty() }) },
+                    onClick = { val t = typeId; if (t != null && quantity != null) onSave(t, quantity, motif.trim().takeIf { it.isNotEmpty() }, source) },
                     enabled = !isSaving && newType == null && typeId != null && text.isNotBlank() && problem == null,
                     modifier = Modifier.weight(1f).height(48.dp), shape = DsShapes.medium,
                     colors = ButtonDefaults.buttonColors(containerColor = DsColors.PrimaryDark)
                 ) {
                     if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp))
                     else Text(stringResource(R.string.common_action_save), fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}
+
+/** Where the loss happened (STK-03): the dépôt or the camion, as two boxes side by side. */
+@Composable
+private fun PertePlaceField(source: String, enabled: Boolean, onChange: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.xs)) {
+        Text(stringResource(R.string.pertes_place), fontSize = DsTextSize.caption, color = DsColors.TextSecondary)
+        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
+            listOf(PerteSource.DEPOT to R.string.common_source_depot, PerteSource.CAMION to R.string.common_source_truck).forEach { (place, label) ->
+                val chosen = place == source
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .clip(DsShapes.medium)
+                        .background(if (chosen) DsColors.PrimaryLight else DsColors.Surface)
+                        .border(if (chosen) 1.5.dp else 1.dp, if (chosen) DsColors.Primary else DsColors.Border, DsShapes.medium)
+                        .clickable(enabled = enabled, role = Role.RadioButton) { onChange(place) }
+                        .padding(vertical = DsSpacing.sm),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        stringResource(label), fontSize = DsTextSize.body,
+                        fontWeight = if (chosen) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (chosen) DsColors.Primary else DsColors.TextPrimary
+                    )
                 }
             }
         }

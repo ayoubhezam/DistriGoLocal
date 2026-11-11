@@ -75,6 +75,40 @@ class PerteBatchTest {
         assertTrue(pertes.all { it.date_time == "2026-10-03T10:00:00Z" })
     }
 
+    /**
+     * A loss in the camion comes out of the camion (STK-03): the dépôt keeps what it had, and under strict stock a
+     * dépôt at zero does not refuse it.
+     */
+    @Test
+    fun aLossInTheCamionComesOutOfTheCamion(): Unit = runBlocking {
+        strict(true)
+        load(2, 3.0)   // all of P2 in the camion: the dépôt holds none
+        val type = repository.getPerteTypes().first().id
+        val result = repository.addPertes(listOf(PerteRepository.PerteLine(2, type, 2.0, source = "camion")), dateTime = "2026-10-03T10:00:00Z")
+        assertEquals(1, result["count"])
+        val product = db.productDao().getProductById(2)!!
+        assertEquals(listOf(1.0, 1.0, 0.0), listOf(product.stock, product.camion_stock, product.stock - product.camion_stock))
+        assertEquals(listOf("camion"), db.perteDao().getPertesForType(type).map { it.source })
+    }
+
+    /** The camion never gives more than it holds, even with negative stock allowed; nothing is written. */
+    @Test
+    fun aLossInTheCamionIsCappedAtWhatItHolds(): Unit = runBlocking {
+        strict(false)
+        load(1, 4.0)
+        val type = repository.getPerteTypes().first().id
+        val result = repository.addPertes(listOf(PerteRepository.PerteLine(1, type, 5.0, source = "camion")), dateTime = "2026-10-03T10:00:00Z")
+        assertTrue(result.containsKey("error"))
+        assertEquals(4.0, db.productDao().getProductById(1)!!.camion_stock, 0.0)
+        assertEquals(0, db.perteDao().getPertesForType(type).size)
+    }
+
+    /** [quantity] of product [id] loaded from the dépôt into the camion. */
+    private suspend fun load(id: Int, quantity: Double) {
+        ProductRepository(db.productDao(), db.categoryDao(), db.supplierDao(), db)
+            .createChargement(null, listOf(mapOf("product_id" to id, "quantity" to quantity, "direction" to "vers_camion")))
+    }
+
     @Test
     fun underStrictStockOneLineTooManyRecordsNone(): Unit = runBlocking {
         strict(true)

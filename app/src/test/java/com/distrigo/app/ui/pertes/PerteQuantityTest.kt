@@ -28,6 +28,16 @@ class PerteQuantityTest {
         assertEquals(invalid, perteQuantityError(0.0, cap = 5.0, unit = "pièce"))
     }
 
+    /** A loss in the camion is capped at what the camion holds, and says so (STK-03). */
+    @Test
+    fun `in the camion a loss is capped at the camion stock`() {
+        assertNull(perteQuantityError(2.0, cap = 2.0, unit = "pièce", source = PerteSource.CAMION))
+        assertEquals(
+            AppStrings.write(UiText.Res(R.string.pertes_stock_short_camion, AppStrings.write(quantityText(2.0, "pièce")))),
+            perteQuantityError(3.0, cap = 2.0, unit = "pièce", source = PerteSource.CAMION)
+        )
+    }
+
     // The words are resources now (Phase 4): the test checks which message is given, not its French.
     private val invalid = AppStrings.write(UiText.Res(R.string.common_invalid_quantity))
 

@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
     <string name="pertes_new">Nouvelle perte</string>
-    <string name="pertes_new_subtitle">Produits perdus au dépôt</string>
+    <string name="pertes_new_subtitle">Produits perdus</string>
     <string name="pertes_no_product_match">Aucun produit ne correspond.</string>
     <string name="pertes_no_product">Aucun produit</string>
     <string name="pertes_depot_change">Dépôt : %1$s → %2$s</string>
@@ -40,4 +40,8 @@
     </plurals>
     <string name="pertes_no_match">Aucune perte ne correspond.</string>
     <string name="pertes_finish">Terminer</string>
+    <string name="pertes_place">Lieu de la perte</string>
+    <string name="pertes_qty_system_camion">Qté système (camion)</string>
+    <string name="pertes_stock_short_camion">Stock insuffisant : %1$s dans le camion</string>
+    <string name="pertes_camion_change">Camion : %1$s → %2$s</string>
 </resources>

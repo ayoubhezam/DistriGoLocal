@@ -1,6 +1,6 @@
 <resources>
     <string name="pertes_new">خسارة جديدة</string>
-    <string name="pertes_new_subtitle">منتجات مفقودة في المستودع</string>
+    <string name="pertes_new_subtitle">منتجات مفقودة</string>
     <string name="pertes_no_product_match">لا يوجد منتج مطابق.</string>
     <string name="pertes_no_product">لا توجد منتجات</string>
     <string name="pertes_depot_change">المستودع: \u2068%1$s\u2069 ← \u2068%2$s\u2069</string>
@@ -43,4 +43,8 @@
     </plurals>
     <string name="pertes_no_match">لا توجد خسارة مطابقة.</string>
     <string name="pertes_finish">إنهاء</string>
+    <string name="pertes_place">مكان الخسارة</string>
+    <string name="pertes_qty_system_camion">كمية النظام (الشاحنة)</string>
+    <string name="pertes_stock_short_camion">مخزون غير كافٍ: \u2068%1$s\u2069 في الشاحنة</string>
+    <string name="pertes_camion_change">الشاحنة: \u2068%1$s\u2069 ← \u2068%2$s\u2069</string>
 </resources>

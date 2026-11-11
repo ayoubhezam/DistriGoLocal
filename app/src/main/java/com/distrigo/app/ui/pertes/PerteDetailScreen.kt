@@ -214,14 +214,15 @@ fun PerteDetailScreen(
             containerColor   = DsColors.Surface
         )
     }
-    // "Modifier": the type and the quantity, in the dialog a new perte is entered with.
+    // "Modifier": the type, the place and the quantity, in the dialog a new perte is entered with.
     if (editing && perte != null) {
         PerteDialog(
             productName = perte.product_name, unit = perte.unit,
-            stock = vm.stockBefore(), cap = vm.cap(),
+            depotStock = vm.stockBefore(PerteSource.DEPOT), camionStock = vm.stockBefore(PerteSource.CAMION), capFor = vm::cap,
             types = vm.types, initialType = perte.type_id, initialQty = perte.quantity, initialMotif = perte.motif,
+            initialSource = perte.source, transportTypeId = vm.transportTypeId,
             isSaving = vm.saving, error = vm.saveError,
-            onSave = { typeId, qty, motif -> vm.update(typeId, qty, motif) { editing = false } },
+            onSave = { typeId, qty, motif, source -> vm.update(typeId, qty, motif, source) { editing = false } },
             onAddType = vm::addType,
             onDismiss = { editing = false }
         )

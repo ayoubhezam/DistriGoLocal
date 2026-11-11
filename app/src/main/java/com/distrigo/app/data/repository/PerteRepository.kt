@@ -136,12 +136,12 @@ class PerteRepository(
 
     suspend fun getPerteTypes(): List<PerteType> = perteDao.getAllPerteTypes().map { it.toPerteType() }
 
-    /** One line of a new perte: a product lost, how much, and why. */
-    data class PerteLine(val productId: Int, val typeId: Int, val quantity: Double, val motif: String? = null)
+    /** One line of a new perte: a product lost, how much, why, and where — "depot" or "camion" (STK-03). */
+    data class PerteLine(val productId: Int, val typeId: Int, val quantity: Double, val motif: String? = null, val source: String = "depot")
 
     /**
-     * Records every line of a new perte at the dépôt, dated [dateTime], in one transaction: all of
-     * them, or — the first one refused (strict stock, a product gone) — none, with its reason.
+     * Records every line of a new perte at its place, dated [dateTime], in one transaction: all of them, or — the first
+     * one refused (strict stock at the dépôt, more than the camion holds, a product gone) — none, with its reason.
      */
     suspend fun addPertes(lines: List<PerteLine>, dateTime: String, userName: String? = null): Map<String, Any> =
         try {
@@ -149,7 +149,7 @@ class PerteRepository(
                 lines.forEach { line ->
                     val result = addPerte(
                         typeId = line.typeId, productId = line.productId, quantity = line.quantity,
-                        source = "depot", dateTime = dateTime, motif = line.motif?.trim()?.takeIf { it.isNotEmpty() }, photoPath = null, userName = userName
+                        source = line.source, dateTime = dateTime, motif = line.motif?.trim()?.takeIf { it.isNotEmpty() }, photoPath = null, userName = userName
                     )
                     (result["error"] as? String)?.let { throw IllegalStateException(it) }
                 }
@@ -195,8 +195,9 @@ class PerteRepository(
 
         if (qty <= 0) return mapOf("error" to com.distrigo.app.core.text.appText(R.string.common_invalid_quantity))
 
-        if (source == "camion" && qty > product.camion_stock) {
-            return mapOf("error" to "Stock camion insuffisant : disponible ${Quantity.format(product.camion_stock)}, demandé ${Quantity.format(qty)}")
+        // The camion never gives more than it holds, whatever the setting — as a tournée sale; the dépôt is DepotStockGuard's
+        if (source == "camion" && Quantity.exceeds(qty, product.camion_stock)) {
+            return mapOf("error" to com.distrigo.app.core.text.appText(R.string.error_truck_stock_insufficient, Quantity.format(product.camion_stock), Quantity.format(qty)))
         }
 
         val valeurTotale = product.purchase_price * qty
