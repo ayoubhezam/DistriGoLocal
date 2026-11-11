@@ -9,7 +9,10 @@ import com.distrigo.app.core.text.UiText
 
 /**
  * Strict stock: with "Autoriser le stock négatif" off, no write may leave a product's dépôt stock
- * (`stock - camion_stock`) below zero.
+ * (`stock - camion_stock`) below zero. And whatever the setting, no write may leave the camion below zero
+ * (STK-04, audit 2026-11-09): what a truck does not hold cannot leave it — a tournée sale and a camion perte
+ * already refuse it, and this catches the paths that take truck stock back, such as deleting a client return
+ * that went into the camion after the truck was unloaded.
  *
  * ### Why a net check around the whole write
  *
@@ -27,21 +30,28 @@ import com.distrigo.app.core.text.UiText
  */
 internal class DepotStockGuard(private val db: AppDatabase) {
 
-    /** Runs [block] in a transaction and refuses it if it breaks strict stock for any of [productIds]. */
+    /**
+     * Runs [block] in a transaction and refuses it if, for any of [productIds], it leaves the camion — always — or the
+     * dépôt — under strict stock — below zero and lower than it started.
+     */
     suspend fun <T> guard(productIds: Collection<Int>, block: suspend () -> T): T = db.withTransaction {
-        if (db.businessSettingsDao().allowNegativeStock() != false || productIds.isEmpty()) {
-            return@withTransaction block()
-        }
+        if (productIds.isEmpty()) return@withTransaction block()
+        val strict = db.businessSettingsDao().allowNegativeStock() == false
         val ids = productIds.distinct()
-        val before = depots(ids).associate { it.id to it.depot }
+        val before = stocks(ids).associateBy { it.id }
         val result = block()
-        val broken = depots(ids).filter { row ->
-            val was = before[row.id] ?: 0.0
-            Quantity.isBelow(row.depot, 0.0) && Quantity.isBelow(row.depot, was)
+        val after = stocks(ids)
+        val camionBroken = after.filter { row -> worse(row.camion, before[row.id]?.camion ?: 0.0) }
+        if (camionBroken.isNotEmpty()) throw CamionStockException(camionText(camionBroken))
+        if (strict) {
+            val broken = after.filter { row -> worse(row.depot, before[row.id]?.depot ?: 0.0) }
+            if (broken.isNotEmpty()) throw DepotStockException(text(broken))
         }
-        if (broken.isNotEmpty()) throw DepotStockException(text(broken))
         result
     }
+
+    /** Below zero and lower than it was: stock already negative may still be restocked or edited without being made worse. */
+    private fun worse(now: Double, was: Double): Boolean = Quantity.isBelow(now, 0.0) && Quantity.isBelow(now, was)
 
     /**
      * [guard], for the repositories that report a failure as an `"error"` entry rather than by
@@ -55,8 +65,14 @@ internal class DepotStockGuard(private val db: AppDatabase) {
         }
 
     // SQLite takes at most 999 bound parameters.
-    private suspend fun depots(ids: List<Int>): List<DepotStockRow> =
+    private suspend fun stocks(ids: List<Int>): List<DepotStockRow> =
         ids.chunked(900).flatMap { db.productDao().getDepotStocks(it) }
+
+    private fun camionText(broken: List<DepotStockRow>): UiText {
+        val first = broken.first()
+        // The quantity with its unit word in the app's language (« -1 carton », « -1 علبة »)
+        return UiText.Res(R.string.error_camion_stock_negative, first.name, com.distrigo.app.ui.common.quantityText(first.camion, first.unit_type))
+    }
 
     private fun text(broken: List<DepotStockRow>): UiText {
         val first = broken.first()
@@ -67,4 +83,10 @@ internal class DepotStockGuard(private val db: AppDatabase) {
 }
 
 /** A write refused by strict stock. An IllegalStateException, so the forms show its message as they show any other. */
-class DepotStockException(text: UiText) : com.distrigo.app.core.text.UserFacingException(text)
+open class DepotStockException(text: UiText) : com.distrigo.app.core.text.UserFacingException(text)
+
+/**
+ * A write that would leave the camion below zero (STK-04). A [DepotStockException], so whatever already reports a
+ * stock refusal reports this one the same way.
+ */
+class CamionStockException(text: UiText) : DepotStockException(text)

@@ -227,7 +227,9 @@ class RetourClientRepository(
 
     suspend fun deleteRetour(id: Int): Map<String, Any> {
         val retour = retourDao.getRetourById(id) ?: return mapOf("error" to "Retour introuvable")
-        db.withTransaction {
+        // Taking back what the return brought in may not leave the camion — or, under strict stock, the dépôt — below
+        // zero: the goods may have been unloaded or sold since (STK-04)
+        return DepotStockGuard(db).guardOrError(retourDao.getItemsForRetour(id).map { it.product_id }) {
             // The linked pertes go with their movements, which puts back what they took out. Deleted
             // here rather than through PerteRepository.deletePerte, which refuses any perte linked to
             // a return — so deleting a "Produit défectueux" or "Produit périmé" return used to throw.
@@ -240,7 +242,7 @@ class RetourClientRepository(
             retourDao.deleteItemsForRetour(id)
             retourDao.deleteRetourById(id)
             clientDao.recomputeBalance(retour.client_id)
+            mapOf("message" to "Retour supprimé, stock restauré")
         }
-        return mapOf("message" to "Retour supprimé, stock restauré")
     }
 }
