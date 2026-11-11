@@ -89,7 +89,7 @@ alternatives after it. Change any line by giving its number and your choice.
 | 54 | Stock faible | مخزون منخفض | |
 | 55 | Rupture de stock | نفاد المخزون | |
 | 56 | Stock minimum | الحد الأدنى للمخزون | |
-| 57 | Carton / cartons | علبة / علب (2: علبتان) | unit; owner, 2026-10-29 (was كرتونة / كراتين) |
+| 57 | Carton / cartons | كرتونة / كراتين (2: كرتونتان) | unit; owner, 2026-11-11 (back from علبة / علب, chosen 2026-10-29: « علبة » reads as a box or a can, and is offered for « Colis ») |
 | 57b | Article(s) of a sale (« Articles (3) ») | منتج (1) / المنتجات (n) | owner, 2026-10-29 (was المواد / مادة) |
 | 58 | Pièce / pièces | قطعة / قطع | unit |
 | 59 | Kg | كغ | unit |

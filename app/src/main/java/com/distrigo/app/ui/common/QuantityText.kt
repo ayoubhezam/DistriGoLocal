@@ -24,7 +24,7 @@ fun quantityText(quantity: Double, unit: String?): UiText {
 }
 
 /**
- * The unit alone, agreeing with [quantity], for a figure set apart from its unit: « cartons », « علب ». A unit the app
+ * The unit alone, agreeing with [quantity], for a figure set apart from its unit: « cartons », « كراتين ». A unit the app
  * does not know is written as [quantityText] writes it.
  */
 fun unitWordText(quantity: Double, unit: String?): UiText {

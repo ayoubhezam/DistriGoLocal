@@ -29,7 +29,7 @@
     <string name="purchases_cart_total_pieces">مجموع القطع المشتراة:</string>
     <string name="purchases_cart_whole_pieces">لا تُجزّأ القطعة: اختر عدد طرود يعطي قطعًا كاملة.</string>
     <string name="purchases_cart_total_weight">الوزن الإجمالي (كغ)</string>
-    <string name="purchases_cart_nb_cartons">عدد العلب</string>
+    <string name="purchases_cart_nb_cartons">عدد الكراتين</string>
     <string name="purchases_delete_title">حذف الوصل؟</string>
     <string name="purchases_delete_body">هل تريد حذف \u2068%1$s\u2069 الخاص بـ \u2068%2$s\u2069؟</string>
     <string name="purchases_delete_order">حذف الوصل</string>

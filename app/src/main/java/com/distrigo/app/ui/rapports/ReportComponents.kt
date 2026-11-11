@@ -283,7 +283,7 @@ fun plural(count: Int, one: String, many: String) = "$count ${if (count <= 1) on
 fun plural(@androidx.annotation.PluralsRes id: Int, count: Int): String =
     com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.core.text.UiText.Plural(id, count))
 
-/** A quantity with its unit, as the app's language writes it: « 3 cartons », « 3 علب ». */
+/** A quantity with its unit, as the app's language writes it: « 3 cartons », « 3 كراتين ». */
 internal fun quantityWords(quantity: Double, unit: String?): String =
     com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.ui.common.quantityText(quantity, unit))
 

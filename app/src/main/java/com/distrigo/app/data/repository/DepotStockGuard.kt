@@ -70,13 +70,13 @@ internal class DepotStockGuard(private val db: AppDatabase) {
 
     private fun camionText(broken: List<DepotStockRow>): UiText {
         val first = broken.first()
-        // The quantity with its unit word in the app's language (« -1 carton », « -1 علبة »)
+        // The quantity with its unit word in the app's language (« -1 carton », « -1 كرتونة »)
         return UiText.Res(R.string.error_camion_stock_negative, first.name, com.distrigo.app.ui.common.quantityText(first.camion, first.unit_type))
     }
 
     private fun text(broken: List<DepotStockRow>): UiText {
         val first = broken.first()
-        // The quantity with its unit word in the app's language (« -2 cartons », « -2 علبة »), as the camion's refusal
+        // The quantity with its unit word in the app's language (« -2 cartons », « -2 كرتونة »), as the camion's refusal
         val left = com.distrigo.app.ui.common.quantityText(first.depot, first.unit_type)
         return if (broken.size > 1) UiText.Res(R.string.error_depot_stock_insufficient_more, first.name, broken.size - 1, left)
         else UiText.Res(R.string.error_depot_stock_insufficient, first.name, left)
