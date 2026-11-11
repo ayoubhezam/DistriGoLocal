@@ -288,13 +288,13 @@
     <string name="rapports_low_n">\u2068%1$d\u2069 بمخزون منخفض</string>
     <string name="rapports_nothing_to_restock">لا شيء للتموين.</string>
     <string name="rapports_net_result">صافي النتيجة</string>
-    <string name="rapports_info_net_result">صافي النتيجة = الهامش الإجمالي − مرتجعات الزبائن − المصاريف − الخسائر</string>
+    <string name="rapports_info_net_result">صافي النتيجة = الهامش الإجمالي − مرتجعات الزبائن − المصاريف − الخسائر ± فروق الجرد</string>
     <string name="rapports_charges">المصاريف</string>
     <string name="rapports_info_charges">المصاريف = مجموع مصاريف الفترة</string>
     <string name="rapports_profitability">المردودية</string>
     <string name="rapports_info_profitability" formatted="false">المردودية (%) = صافي النتيجة ÷ رقم الأعمال × 100</string>
     <string name="rapports_statement">حساب النتيجة</string>
-    <string name="rapports_info_statement">الهامش الإجمالي = رقم الأعمال − تكلفة المبيعات\nصافي النتيجة = الهامش الإجمالي − مرتجعات الزبائن − المصاريف − الخسائر\n\nتكلفة المبيعات = الكمية المبيعة × سعر الشراء وقت البيع\nمرتجعات الزبائن = المبلغ المُعاد − تكلفة المنتجات المرتجعة</string>
+    <string name="rapports_info_statement">الهامش الإجمالي = رقم الأعمال − تكلفة المبيعات\nصافي النتيجة = الهامش الإجمالي − مرتجعات الزبائن − المصاريف − الخسائر ± فروق الجرد\n\nتكلفة المبيعات = الكمية المبيعة × سعر الشراء وقت البيع\nمرتجعات الزبائن = المبلغ المُعاد − تكلفة المنتجات المرتجعة\nفروق الجرد = (الكمية المعدودة − كمية النظام) × سعر الشراء، للجرد المكتمل: النقص يخفّض النتيجة والزيادة ترفعها</string>
     <string name="rapports_charges_by_type">المصاريف حسب النوع</string>
     <string name="rapports_info_charges_by_type">الحصة = مصاريف النوع ÷ المصاريف × 100. أول 5، والباقي في « أنواع أخرى ».</string>
     <string name="rapports_profit_sub">ما يبقى بعد دفع كل شيء</string>
@@ -303,4 +303,5 @@
     <string name="rapports_taken_off">المخصوم</string>
     <string name="rapports_cost_of_sales">تكلفة المبيعات</string>
     <string name="rapports_charges_total">مجموع المصاريف</string>
+    <string name="rapports_inventory_gaps">فروق الجرد</string>
 </resources>

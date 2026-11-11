@@ -210,6 +210,7 @@ class ReportRepository(
             returnsCost = returns.cost,
             charges = dao.chargesByType(range.start, range.end).map { ChargeByType(it.type, it.count, it.value) },
             losses = dao.lossesByType(range.start, range.end, null).map { LossByType(it.type, it.count, it.value) },
+            inventoryGaps = dao.inventoryGaps(range.start, range.end),
         )
     }
 
@@ -307,7 +308,7 @@ private val GOAL_TABLES = arrayOf("ventes", "retour_client", "client_payments", 
 private val TOURNEE_TABLES = arrayOf("tournees", "tournee_clients", "ventes", "clients")
 
 /** The tables the Résultat report reads. */
-private val PROFIT_TABLES = arrayOf("ventes", "vente_items", "retour_client", "retour_client_items", "charges", "pertes", "products")
+private val PROFIT_TABLES = arrayOf("ventes", "vente_items", "retour_client", "retour_client_items", "charges", "pertes", "products", "inventory_sessions", "inventory_items")
 
 /** The tables the Clients et fournisseurs report reads. */
 private val PARTY_TABLES = arrayOf("ventes", "vente_items", "clients", "purchase_orders", "suppliers")

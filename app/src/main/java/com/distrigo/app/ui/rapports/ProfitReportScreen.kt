@@ -104,7 +104,7 @@ private fun NetCard(report: ProfitReport) {
         info = INFO_NET,
         halves = listOf(
             HeroHalf(stringResource(R.string.rapports_gross_margin), money.figure(report.grossMargin)),
-            HeroHalf(stringResource(R.string.rapports_taken_off), money.figure(report.returnsMargin + report.chargesTotal + report.lossesTotal, prefix = "− ")),
+            HeroHalf(stringResource(R.string.rapports_taken_off), money.figure(report.takenOff, prefix = "− ")),
         ),
     )
 }
@@ -133,9 +133,9 @@ private fun Tiles(report: ProfitReport) {
     }
 }
 
-/** One line of the statement: its label, and its amount — taken off when [minus], a total when [total]. */
+/** One line of the statement: its label, and its amount — taken off when [minus], added when [plus], a total when [total]. */
 @Composable
-private fun StatementLine(label: String, amount: Double, minus: Boolean = false, total: Boolean = false, color: Color = DsColors.PrimaryDark) {
+private fun StatementLine(label: String, amount: Double, minus: Boolean = false, total: Boolean = false, color: Color = DsColors.PrimaryDark, plus: Boolean = false) {
     val money = LocalMoneyFormatter.current
     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, fontSize = if (total) DsTextSize.body else DsTextSize.bodySmall,
@@ -143,7 +143,7 @@ private fun StatementLine(label: String, amount: Double, minus: Boolean = false,
             color = if (total) DsColors.TextPrimary else DsColors.TextSecondary,
             maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         Spacer(Modifier.width(DsSpacing.sm))
-        Text((if (minus) "− " else "") + money.da(amount),
+        Text((if (minus) "− " else if (plus) "+ " else "") + money.da(amount),
             fontSize = if (total) DsTextSize.body else DsTextSize.bodySmall,
             fontWeight = if (total) FontWeight.Bold else FontWeight.Medium, color = color, maxLines = 1, softWrap = false)
     }
@@ -164,6 +164,9 @@ private fun Statement(report: ProfitReport) {
         }
         StatementLine(stringResource(R.string.rapports_charges), report.chargesTotal, minus = true)
         StatementLine(stringResource(R.string.rapports_losses), report.lossesTotal, minus = true)
+        // Signed: a shortage is taken off, a surplus added (REP-01)
+        val gaps = report.inventoryGaps
+        StatementLine(stringResource(R.string.rapports_inventory_gaps), kotlin.math.abs(gaps), minus = gaps < 0, plus = gaps > 0)
         HorizontalDivider(color = DsColors.Border)
         // Colour is news here: green when the period earned, red when it lost.
         StatementLine(stringResource(R.string.rapports_net_result), report.net, total = true, color = if (report.net < 0) DsColors.Danger else DsColors.Success)

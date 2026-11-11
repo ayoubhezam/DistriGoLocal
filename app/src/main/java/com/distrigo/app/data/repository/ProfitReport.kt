@@ -16,7 +16,9 @@ data class ChargeByType(val type: String, val count: Int, val value: Double)
  *   return cancels its sale's margin: the refund goes, the goods' cost comes back. Goods that came back
  *   only to be thrown away are in [losses] too, which is right: the margin is cancelled, then the goods
  *   are lost;
- * - [charges] and [losses]: the period's expenses and pertes.
+ * - [charges] and [losses]: the period's expenses and pertes;
+ * - [inventoryGaps]: what the period's completed inventory counts found, at the purchase price they were counted at
+ *   (REP-01, audit 2026-11-09) — signed: a shortage is negative and lowers the result, a surplus raises it.
  */
 data class ProfitReport(
     val range: ReportRange,
@@ -27,6 +29,7 @@ data class ProfitReport(
     val returnsCost: Double,
     val charges: List<ChargeByType>,
     val losses: List<LossByType>,
+    val inventoryGaps: Double = 0.0,
 ) {
     val grossMargin: Double get() = sales - cost
     /** The margin the period's returns cancelled. */
@@ -35,8 +38,10 @@ data class ProfitReport(
     val chargesCount: Int get() = charges.sumOf { it.count }
     val lossesTotal: Double get() = losses.sumOf { it.value }
     val lossesCount: Int get() = losses.sumOf { it.count }
-    /** What is left: the gross margin, less the returns' margin, the charges and the pertes. */
-    val net: Double get() = grossMargin - returnsMargin - chargesTotal - lossesTotal
+    /** What is left: the gross margin, less the returns' margin, the charges and the pertes, with the inventory écarts. */
+    val net: Double get() = grossMargin - returnsMargin - chargesTotal - lossesTotal + inventoryGaps
+    /** All that came off the gross margin, net: what « Retiré » shows. */
+    val takenOff: Double get() = grossMargin - net
     /** Of every 100 DA sold, what is left once everything is taken off. */
     val netShare: Double? get() = if (sales > 0) net / sales else null
 }

@@ -255,13 +255,13 @@
     <string name="rapports_low_n">%1$d en stock bas</string>
     <string name="rapports_nothing_to_restock">Rien à réapprovisionner.</string>
     <string name="rapports_net_result">Résultat net</string>
-    <string name="rapports_info_net_result">Résultat net = Marge brute − Retours clients − Charges − Pertes</string>
+    <string name="rapports_info_net_result">Résultat net = Marge brute − Retours clients − Charges − Pertes ± Écarts d\'inventaire</string>
     <string name="rapports_charges">Charges</string>
     <string name="rapports_info_charges">Charges = somme des dépenses de la période</string>
     <string name="rapports_profitability">Rentabilité</string>
     <string name="rapports_info_profitability" formatted="false">Rentabilité (%) = Résultat net ÷ Chiffre d\'affaires × 100</string>
     <string name="rapports_statement">Compte de résultat</string>
-    <string name="rapports_info_statement">Marge brute = Chiffre d\'affaires − Coût des ventes\nRésultat net = Marge brute − Retours clients − Charges − Pertes\n\nCoût des ventes = Quantité vendue × Prix d\'achat au moment de la vente\nRetours clients = Remboursé − Coût des produits revenus</string>
+    <string name="rapports_info_statement">Marge brute = Chiffre d\'affaires − Coût des ventes\nRésultat net = Marge brute − Retours clients − Charges − Pertes ± Écarts d\'inventaire\n\nCoût des ventes = Quantité vendue × Prix d\'achat au moment de la vente\nRetours clients = Remboursé − Coût des produits revenus\nÉcarts d\'inventaire = (Quantité comptée − Quantité système) × Prix d\'achat, des inventaires terminés : un manque baisse le résultat, un surplus l\'augmente</string>
     <string name="rapports_charges_by_type">Charges par type</string>
     <string name="rapports_info_charges_by_type">Part = Charges du type ÷ Charges × 100. Les 5 premiers, le reste dans « Autres types ».</string>
     <string name="rapports_profit_sub">Ce qui reste une fois tout payé</string>
@@ -270,4 +270,5 @@
     <string name="rapports_taken_off">Retiré</string>
     <string name="rapports_cost_of_sales">Coût des ventes</string>
     <string name="rapports_charges_total">Total des charges</string>
+    <string name="rapports_inventory_gaps">Écarts d\'inventaire</string>
 </resources>

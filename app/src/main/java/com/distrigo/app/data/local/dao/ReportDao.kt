@@ -244,6 +244,18 @@ interface ReportDao {
     )
     suspend fun restockCounts(): RestockCounts
 
+    /**
+     * The écarts of the inventory counts completed in the period, valued at the purchase price each line was counted at,
+     * signed — shortages negative (REP-01). A count still in progress is left out: its lines may yet change.
+     */
+    @Query(
+        """
+        SELECT COALESCE(SUM(i.valeur_ecart), 0) FROM inventory_items i JOIN inventory_sessions s ON s.id = i.session_id
+        WHERE s.status = 'completed' AND s.completed_at >= :start AND s.completed_at < :end
+        """
+    )
+    suspend fun inventoryGaps(start: String, end: String): Double
+
     /** The period's pertes by type, from [source] or both, costliest first. */
     @Query(
         """

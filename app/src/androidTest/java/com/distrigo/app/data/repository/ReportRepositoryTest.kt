@@ -58,6 +58,34 @@ class ReportRepositoryTest {
     @After
     fun close() = db.close()
 
+    private var inventoryItem = 0
+
+    /** A count [status] at [completedAt], with lines of these signed écart values. */
+    private fun inventory(id: Int, status: String, completedAt: String?, vararg gaps: Double) {
+        sql.execSQL(
+            "INSERT INTO inventory_sessions (id, status, started_at, completed_at, uuid, created_at, updated_at, version) VALUES (?, ?, ?, ?, ?, ?, 0, 1)",
+            arrayOf<Any?>(id, status, "2026-09-01T08:00:00Z", completedAt, "u-inv-$id", "2026-09-01T08:00:00Z")
+        )
+        gaps.forEach { value ->
+            val item = ++inventoryItem
+            sql.execSQL(
+                "INSERT INTO inventory_items (id, session_id, product_id, product_name, qte_systeme, qte_physique, ecart, purchase_price_snapshot, " +
+                    "valeur_ecart, created_at, uuid, updated_at) VALUES (?, ?, ?, 'P', 0, 0, 0, 100, ?, '2026-09-01T08:00:00Z', ?, 0)",
+                arrayOf<Any?>(item, id, item, value, "u-item-$item")   // one line per product in a count
+            )
+        }
+    }
+
+    /** REP-01: the counts completed in the period, signed — a shortage of 300 and a surplus of 100 are −200. */
+    @Test
+    fun theResultCountsThePeriodsInventoryGaps() = runBlocking {
+        inventory(1, "completed", "2026-10-01T09:00:00Z", -300.0, 100.0)
+        inventory(2, "completed", "2026-09-30T22:59:00Z", -5000.0)   // 23:59 on 30 September: another month
+        inventory(3, "draft", null, -700.0)                          // still being counted
+        val report = repository.profitReport(ReportFilter(ReportPeriod.CE_MOIS, ReportSource.TOUT), today, algiers)
+        assertEquals(-200.0, report.inventoryGaps, 1e-9)
+    }
+
     private fun vente(id: Int, source: String, client: Int, at: String, total: Double, paid: Double) = sql.execSQL(
         "INSERT INTO ventes (id, client_id, tournee_id, source, total, montant_paye, status, note, created_at, uuid) " +
             "VALUES ($id, $client, NULL, '$source', $total, $paid, 'pending', NULL, '$at', 'u-vente-$id')"

@@ -11,12 +11,13 @@ class ProfitReportTest {
 
     private fun report(
         sales: Double, cost: Double, returns: Double = 0.0, returnsCost: Double = 0.0,
-        charges: Double = 0.0, losses: Double = 0.0,
+        charges: Double = 0.0, losses: Double = 0.0, gaps: Double = 0.0,
     ) = ProfitReport(
         ReportRange(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30), "", "", null),
         sales, cost, if (returns > 0) 1 else 0, returns, returnsCost,
         if (charges > 0) listOf(ChargeByType("Véhicule", 1, charges)) else emptyList(),
         if (losses > 0) listOf(LossByType("Casse", 1, losses)) else emptyList(),
+        gaps,
     )
 
     @Test
@@ -39,6 +40,17 @@ class ProfitReportTest {
         // Sold 140, cost 100; returned périmé: the margin is cancelled, then the goods are a perte of 100.
         val r = report(sales = 140.0, cost = 100.0, returns = 140.0, returnsCost = 100.0, losses = 100.0)
         assertEquals(-100.0, r.net, 1e-9)
+    }
+
+    /** REP-01: an inventory shortage lowers the result, a surplus raises it, and « Retiré » follows. */
+    @Test
+    fun `inventory gaps move the net, shortages down and surpluses up`() {
+        val short = report(sales = 10_000.0, cost = 8_000.0, charges = 500.0, gaps = -300.0)
+        assertEquals(1_200.0, short.net, 1e-9)
+        assertEquals(800.0, short.takenOff, 1e-9)
+        val surplus = report(sales = 10_000.0, cost = 8_000.0, charges = 500.0, gaps = 200.0)
+        assertEquals(1_700.0, surplus.net, 1e-9)
+        assertEquals(300.0, surplus.takenOff, 1e-9)
     }
 
     @Test
