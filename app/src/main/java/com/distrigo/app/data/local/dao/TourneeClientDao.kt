@@ -35,4 +35,8 @@ interface TourneeClientDao {
 
     @Query("DELETE FROM tournee_clients WHERE tournee_id = :tourneeId AND client_id = :clientId")
     suspend fun remove(tourneeId: Int, clientId: Int)
+
+    /** A deleted tournée's whole client plan (DATA-02). */
+    @Query("DELETE FROM tournee_clients WHERE tournee_id = :tourneeId")
+    suspend fun deleteForTournee(tourneeId: Int)
 }

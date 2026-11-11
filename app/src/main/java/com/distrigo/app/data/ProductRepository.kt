@@ -2089,11 +2089,18 @@ class ProductRepository(
         )
     }
 
+    /**
+     * Deletes a tournée with no sale, and everything that is only its own: its secteurs, its client plan and its
+     * unfinished sales (drafts). The check and the deletes in one transaction, so no sale can attach in between — and a
+     * tournée refused for its sales keeps its drafts (DATA-02, audit 2026-11-09: they used to be deleted before it).
+     */
     suspend fun deleteTournee(id: Int): Map<String, Any> {
-        // The check and the delete in one transaction, so no sale can attach in between.
         val linked = db.withTransaction {
             val linkedVentes = db.venteDao().getVentesForTournee(id)
             if (linkedVentes.isNotEmpty()) return@withTransaction true
+            // No foreign key cascades: nothing else would ever reach these rows again
+            db.tourneeVenteDraftDao().deleteForTournee(id)
+            db.tourneeClientDao().deleteForTournee(id)
             db.tourneeSecteurDao().deleteForTournee(id)
             db.tourneeDao().deleteTourneeById(id)
             false

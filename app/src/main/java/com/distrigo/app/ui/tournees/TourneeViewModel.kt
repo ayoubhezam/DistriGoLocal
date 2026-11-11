@@ -382,9 +382,8 @@ class TourneeViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             try {
-                // Before the tournée goes, so a failure leaves both intact. There is no foreign
-                // key to cascade, so nothing else would ever reach these rows again.
-                draftRepository.deleteForTournee(id)
+                // Its drafts and client plan go with it, inside the repository's transaction: refused for its sales,
+                // the tournée keeps its drafts (DATA-02).
                 val result = repository.deleteTournee(id)
                 if (result.containsKey("error")) {
                     onError(result["error"] as String)
