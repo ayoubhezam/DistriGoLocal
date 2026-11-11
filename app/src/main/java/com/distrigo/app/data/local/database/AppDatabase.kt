@@ -170,6 +170,8 @@ abstract class AppDatabase : RoomDatabase() {
                     .withMigrationPolicy()
                     .withChangeTracking()
                     .withDeviceIdentity { DeviceIdentity.id(context) }
+                    // After the counters exist: none goes below what this phone has already issued (BAK-01)
+                    .withDocumentCounterFloor(DocumentCounterMarks.forApp(context))
                     .withLicenseGate()
                     .build()
                 INSTANCE = instance

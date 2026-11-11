@@ -1,5 +1,6 @@
 package com.distrigo.app.data.backup
 
+import com.distrigo.app.data.local.database.DocumentCounterMarks
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.util.Log
@@ -58,6 +59,11 @@ class RestoreInstaller(
     private val databaseFile: File,
     private val imagesDir: File,
     val restoreDir: File,
+    /**
+     * This phone's document counter marks, raised from the data about to be replaced (BAK-01), so the restored
+     * data's numbers continue after those already issued. Null where nothing is numbered (tests).
+     */
+    private val counterMarks: DocumentCounterMarks? = null,
     /** Clears ImageBackfill's done flag, so a restored database is checked for base64 photos again. */
     private val clearImageBackfill: () -> Unit,
 ) {
@@ -194,6 +200,8 @@ class RestoreInstaller(
 
         // An earlier install cleans previous/ up before it ends; files still there are someone's data.
         if (previousDir.list()?.isNotEmpty() == true) throw java.io.IOException("files from an earlier install remain in $previousDir")
+        // The numbers the phone has issued until now, before its data goes: the restored data continues after them
+        counterMarks?.rememberFrom(databaseFile)
         writeState(State(STAGE_MOVING_OLD, attempt))
         previousDir.mkdirs()
         for (file in liveDatabaseFiles()) move(file, File(previousDir, file.name))
@@ -400,6 +408,7 @@ class RestoreInstaller(
                 imagesDir = ImageStore.imagesDir(app),
                 restoreDir = File(app.noBackupFilesDir, "restore"),
                 clearImageBackfill = { ImageBackfill.reset(app) },
+                counterMarks = DocumentCounterMarks.forApp(app),
             )
         }
     }
