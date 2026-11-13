@@ -30,11 +30,8 @@ import java.security.MessageDigest
  *    and it cannot be broken by a later edit.
  *  - **Writes are idempotent.** Saving the same image twice is a no-op the second time.
  *
- * The cost is that nothing is ever deleted: a file whose last referring row is gone stays on disk.
- * There are no foreign keys to hang a cascade on yet, and a sweep needs one, so reclaiming them is
- * a later change rather than a correctness problem — but the arithmetic that made it easy to defer
- * has moved. At the 400 px the store shipped with, an orphan cost ~11 KB; at 1024 px it costs six
- * to ten times that, and a few days of ordinary use leaves several behind.
+ * The cost is that a file outlives its last referring row: no foreign key can cascade to it.
+ * [ImageSweep] reclaims those once a day, a day after it first finds one unreferenced (DB-02).
  *
  * ### Durability
  *

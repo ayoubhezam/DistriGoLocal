@@ -63,6 +63,10 @@ class DistriGoApplication : Application(), Configuration.Provider, coil.ImageLoa
     @Inject
     lateinit var licenseCheckInScheduler: dagger.Lazy<LicenseCheckInScheduler>
 
+    // Lazy: it opens the database, which waits for a restore being installed (RestoreStartup).
+    @Inject
+    lateinit var housekeeping: dagger.Lazy<com.distrigo.app.data.maintenance.Housekeeping>
+
     @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate() {
         // French until the user picks another language (AppLanguage, D1), then digits 0–9 whatever the language,
@@ -120,6 +124,8 @@ class DistriGoApplication : Application(), Configuration.Provider, coil.ImageLoa
                 Log.w("DistriGoApplication", "could not read the account or the license", e)
             }
         }, "account-restore").start()
+        // Old tombstones and the photo files nothing names any more, at most once a day (DB-02)
+        Thread({ housekeeping.get().runIfDue() }, "housekeeping").apply { priority = Thread.MIN_PRIORITY }.start()
     }
 
     /** Android has just set the default locale again from the phone's settings: Latin digits again (WesternDigits). */
