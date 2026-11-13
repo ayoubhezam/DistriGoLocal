@@ -7,7 +7,8 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "products",
-    indices = [Index(value = ["supplier_id"]), Index(value = ["uuid"], unique = true)]
+    // deleted_at (DB-03, v68): the Corbeille's products, and the live ones every list reads
+    indices = [Index(value = ["supplier_id"]), Index(value = ["uuid"], unique = true), Index(value = ["deleted_at"])]
 )
 data class ProductEntity(
     @PrimaryKey(autoGenerate = true)

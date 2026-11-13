@@ -12,6 +12,8 @@ import androidx.room.PrimaryKey
         // The month totals group by type_id, so they read a range of this one instead of the table.
         Index(value = ["type_id", "date_time"]),
         Index(value = ["uuid"], unique = true),
+        // DB-03 (v68): the period's charges with no type chosen — the history and the Résultat
+        Index(value = ["date_time"]),
     ]
 )
 data class ChargeEntity(

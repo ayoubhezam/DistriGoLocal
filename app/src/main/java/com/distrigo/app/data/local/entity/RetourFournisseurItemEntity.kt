@@ -7,7 +7,8 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "retour_fournisseur_items",
-    indices = [Index(value = ["retour_id"]), Index(value = ["uuid"], unique = true)]
+    // product_id (DB-03, v68): what was sent back of a product, for the returnable quantities and the Corbeille
+    indices = [Index(value = ["retour_id"]), Index(value = ["uuid"], unique = true), Index(value = ["product_id"])]
 )
 data class RetourFournisseurItemEntity(
     @PrimaryKey(autoGenerate = true)

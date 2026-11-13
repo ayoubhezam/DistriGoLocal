@@ -8,7 +8,8 @@ import androidx.room.PrimaryKey
 @Entity(
     tableName = "retour_client_items",
     // vente_item_id: what was already returned of a sale line, read for every line of the sale a return is made from.
-    indices = [Index(value = ["retour_id"]), Index(value = ["uuid"], unique = true), Index(value = ["vente_item_id"])]
+    // product_id (DB-03, v68): a product's returns, for the Corbeille and the duplicate checks
+    indices = [Index(value = ["retour_id"]), Index(value = ["uuid"], unique = true), Index(value = ["vente_item_id"]), Index(value = ["product_id"])]
 )
 data class RetourClientItemEntity(
     @PrimaryKey(autoGenerate = true)

@@ -1314,6 +1314,21 @@ private fun allocateDocuments(db: SupportSQLiteDatabase, parties: String, docume
 }
 
 /**
+ * Version 68: indexes current queries were missing (DB-03, audit 2026-11-09) — a product's pertes and returns, the bin's
+ * products, and the pertes and charges of a period read with no type chosen. Indexes only; the names are Room's.
+ */
+val MIGRATION_67_68 = object : Migration(67, 68) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_pertes_product_id` ON `pertes` (`product_id`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_pertes_date_time` ON `pertes` (`date_time`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_retour_client_items_product_id` ON `retour_client_items` (`product_id`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_retour_fournisseur_items_product_id` ON `retour_fournisseur_items` (`product_id`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_products_deleted_at` ON `products` (`deleted_at`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_charges_date_time` ON `charges` (`date_time`)")
+    }
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -1337,6 +1352,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_64_65,
     MIGRATION_65_66,
     MIGRATION_66_67,
+    MIGRATION_67_68,
 ).map(LicenseWriteGate::lifting).toTypedArray()
 
 /**

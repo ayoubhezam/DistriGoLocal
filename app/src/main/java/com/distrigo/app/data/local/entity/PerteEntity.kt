@@ -11,6 +11,9 @@ import androidx.room.PrimaryKey
         Index(value = ["type_id", "date_time"]),
         Index(value = ["source_type", "source_id"]),
         Index(value = ["uuid"], unique = true),
+        // DB-03 (v68): a product's pertes (Corbeille, duplicate checks), and the period with no type chosen
+        Index(value = ["product_id"]),
+        Index(value = ["date_time"]),
     ]
 )
 data class PerteEntity(
