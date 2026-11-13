@@ -7,6 +7,9 @@ import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.layout.Box
@@ -16,9 +19,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.VerticalAlignTop
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,12 +33,21 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.R
+import com.distrigo.app.ui.designsystem.DsColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -87,8 +98,8 @@ fun ScrollToTopBox(
 private const val LINGER_MS = 1_700L
 
 /**
- * The round "back to top" button of a long list, as in Samsung Contacts: it shows while the list
- * scrolls (either way) and is not at its top, stays [LINGER_MS] after the scroll stops, then fades.
+ * The round "back to top" button of a long list, as in Samsung Contacts, in the owner's design
+ * (see [ButtonFill]): it shows while the list scrolls (either way) and is not at its top, stays [LINGER_MS] after the scroll stops, then fades.
  * A new scroll shows it again and restarts the wait. A tap glides back to the first item
  * ([glideToTop]): quick, easing out, the same length however far down the list is.
  *
@@ -172,12 +183,16 @@ private fun ScrollToTopButton(state: ScrollableState, jumpToTop: suspend () -> U
         exit     = fadeOut(tween(if (quickExit) 100 else 300)),
         modifier = modifier
     ) {
+        val interaction = remember { MutableInteractionSource() }
+        val pressed by interaction.collectIsPressedAsState()
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(48.dp)
+                .drawBehind { softShadow() }
                 .clip(CircleShape)
-                .background(Color(0xFF2B2B2B).copy(alpha = 0.72f))
-                .clickable(role = Role.Button) {
+                .background(ButtonFill.copy(alpha = if (pressed) 1f else 0.92f))
+                .border(1.dp, DsColors.PrimaryDark.copy(alpha = 0.08f), CircleShape)
+                .clickable(interactionSource = interaction, indication = ripple(color = DsColors.PrimaryDark), role = Role.Button) {
                     quickExit = true
                     visible = false
                     jumping = true
@@ -188,11 +203,49 @@ private fun ScrollToTopButton(state: ScrollableState, jumpToTop: suspend () -> U
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                Icons.Default.VerticalAlignTop,
+                ScrollTopIcon,
                 contentDescription = stringResource(R.string.common_cd_scroll_to_top),
-                tint     = Color.White,
-                modifier = Modifier.size(22.dp)
+                tint     = DsColors.PrimaryDark,
+                modifier = Modifier.size(24.dp)
             )
         }
     }
 }
+
+// The owner's design (« زر العودة للأعلى ») in the app's colours: a near-solid light circle, 48dp,
+// fill #F4F6FB at 92 % (100 % and a navy ripple while pressed), a 1dp navy border at 8 %, a soft
+// shadow (0 2 10 rgba(0,0,0,.08)) and a navy line over a chevron. Near solid because Compose has no
+// backdrop blur: a see-through fill let the row behind run into the icon.
+private val ButtonFill = Color(0xFFF4F6FB)
+
+/** The design's shadow, drawn outside the circle only, so the glass stays clear. */
+private fun DrawScope.softShadow() {
+    val r = size.minDimension / 2
+    val spread = 10.dp.toPx()
+    val c = center.copy(y = center.y + 2.dp.toPx())
+    drawCircle(
+        brush = Brush.radialGradient(
+            0f to Color.Transparent,
+            (r / (r + spread)) to Color.Black.copy(alpha = 0.08f),
+            1f to Color.Transparent,
+            center = c,
+            radius = r + spread,
+        ),
+        radius = r + spread,
+        center = c,
+    )
+}
+
+/** The design's icon, its SVG paths on a 24-unit grid: a line, and a chevron under it. */
+private val ScrollTopIcon: ImageVector = ImageVector.Builder(
+    name = "ScrollTop", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f
+).path(
+    fill = null,
+    stroke = SolidColor(Color.Black),
+    strokeLineWidth = 2f,
+    strokeLineCap = StrokeCap.Round,
+    strokeLineJoin = StrokeJoin.Round,
+) {
+    moveTo(6.5f, 6f); horizontalLineToRelative(11f)
+    moveTo(6.5f, 17f); lineToRelative(5.5f, -5.5f); lineToRelative(5.5f, 5.5f)
+}.build()
