@@ -1065,6 +1065,8 @@ class ProductRepository(
 
             val existing = db.purchaseDao().getOrderById(id)
                 ?: refuse(R.string.error_bon_not_found, id)
+            // Its lines rewritten, a received bon's stock movements would be left as they were (FIN-06): reopen it first
+            if (existing.status == "received") refuse(R.string.error_bon_received_edit)
             val supplierName = existing.supplier_name ?: supplierDao.getSupplierById(existing.supplier_id)?.name ?: "Fournisseur supprimé"
 
             val total = Amount.documentTotal(itemsList.map { Amount.lineTotal(it.lineQuantity(), (it["unit_cost"] as Number).toDouble()) })
@@ -1397,6 +1399,9 @@ class ProductRepository(
         depotGuard.guard(productIdsOf(items)) {
             val existing = db.venteDao().getVenteById(id)
                 ?: refuse(R.string.error_vente_not_found, id)
+            // A sale stays its client's: the edit never writes client_id, and another client's balance would be the one
+            // recomputed while the real one stayed stale (FIN-06)
+            if (existing.client_id != clientId) refuse(R.string.error_vente_client_changed)
 
             // عكس تأثير العناصر القديمة على المخزون — removing the sale's movements puts their
             // quantities back, so the camion check below sees the stock as it was before this sale.

@@ -31,4 +31,6 @@
     <string name="error_barcode_taken_generic">هذا الكودبار مسجَّل مسبقًا.</string>
     <string name="error_too_many_barcodes">لا يمكن أن يكون للمنتج أكثر من \u2068%1$d\u2069 كودبار.</string>
     <string name="error_camion_stock_negative">مخزون الشاحنة غير كافٍ لـ« \u2068%1$s\u2069 »: ستتركه العملية عند \u2068%2$s\u2069.</string>
+    <string name="error_vente_client_changed">لا يمكن تغيير زبون عملية البيع.</string>
+    <string name="error_bon_received_edit">لا يمكن تعديل وصل مستلَم: أعد فتحه أولًا.</string>
 </resources>

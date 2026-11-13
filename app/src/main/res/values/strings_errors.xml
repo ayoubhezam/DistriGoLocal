@@ -31,4 +31,6 @@
     <string name="error_barcode_taken_generic">Ce code-barres est déjà enregistré.</string>
     <string name="error_too_many_barcodes">Un produit ne peut pas avoir plus de %1$d codes-barres.</string>
     <string name="error_camion_stock_negative">Stock camion insuffisant pour « %1$s » : l\'opération le laisserait à %2$s.</string>
+    <string name="error_vente_client_changed">Le client d\'une vente ne peut pas être changé.</string>
+    <string name="error_bon_received_edit">Un bon reçu ne peut pas être modifié : rouvrez-le d\'abord.</string>
 </resources>

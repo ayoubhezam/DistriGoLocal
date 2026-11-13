@@ -197,11 +197,13 @@ class RetourClientRepository(
                 definition.perteType?.let { builtIn ->
                     val perteType = PerteRepository(db).findDefaultPerteType(builtIn)
                         ?: throw IllegalStateException("Type de perte introuvable : ${builtIn.seedName}. Assurez-vous que seedDefaultPerteTypesIfNeeded() a été exécuté.")
-                    PerteRepository(db).addPerte(
+                    val perte = PerteRepository(db).addPerte(
                         typeId = perteType.id, productId = product.id, quantity = line.quantity, source = emplacement,
                         dateTime = now, motif = "Retour client ${numberLabel(retourDao.getNumero(retourId), retourId)}", photoPath = null, userName = userName,
                         sourceType = "retour_client", sourceId = retourId
                     )
+                    // A refused perte refuses the return: saved without it, its goods would count as back in stock (FIN-06)
+                    (perte["error"] as? String)?.let { throw com.distrigo.app.core.text.UserFacingException(com.distrigo.app.core.text.UiText.Raw(it)) }
                 }
 
                 RetourClientItemEntity(

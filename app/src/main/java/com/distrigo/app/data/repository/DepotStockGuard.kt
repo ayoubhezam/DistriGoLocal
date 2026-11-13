@@ -56,13 +56,19 @@ internal class DepotStockGuard(private val db: AppDatabase) {
     /**
      * [guard], for the repositories that report a failure as an `"error"` entry rather than by
      * throwing: a refusal becomes that entry. Anything else [block] throws still propagates.
+     *
+     * Only at the top. Called inside a transaction already open — a return recording its perte — the refusal is thrown
+     * (FIN-06): the inner transaction has failed, so the outer one is rolled back whatever it does next, and an entry
+     * returned instead would let it carry on as if it had been saved.
      */
-    suspend fun guardOrError(productIds: Collection<Int>, block: suspend () -> Map<String, Any>): Map<String, Any> =
-        try {
+    suspend fun guardOrError(productIds: Collection<Int>, block: suspend () -> Map<String, Any>): Map<String, Any> {
+        if (db.inTransaction()) return guard(productIds, block)
+        return try {
             guard(productIds, block)
         } catch (e: DepotStockException) {
             mapOf("error" to e.message)
         }
+    }
 
     // SQLite takes at most 999 bound parameters.
     private suspend fun stocks(ids: List<Int>): List<DepotStockRow> =
