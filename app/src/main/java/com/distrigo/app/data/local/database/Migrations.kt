@@ -1329,6 +1329,44 @@ val MIGRATION_67_68 = object : Migration(67, 68) {
 }
 
 /**
+ * Version 69 (DB-01; owner, 2026-11-13): `price_history.purchase_order_id`, the bon each price was paid on, so a bon
+ * deleted takes its prices with it; and the rows earlier deletes left behind, which nothing reaches any more.
+ *
+ * Only the bons ever wrote prices, one per line, so the history is rebuilt from them: each line's cost, at its bon's
+ * date, supplier and creation time. Matching the old rows instead could not tell two bons of the same day, supplier and
+ * product apart, nor an edit's second copy from the first. A deleted bon's prices are simply not rebuilt.
+ */
+val MIGRATION_68_69 = object : Migration(68, 69) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `price_history` ADD COLUMN `purchase_order_id` INTEGER")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_price_history_purchase_order_id` ON `price_history` (`purchase_order_id`)")
+        rebuildPriceHistory(db)
+        // What deleted tournées, sales and bons left behind. Edit Brouillons of a deleted document stay: the drafts
+        // list badges them, so the user's unsaved work is not lost
+        db.execSQL("DELETE FROM tournee_clients WHERE tournee_id NOT IN (SELECT id FROM tournees)")
+        db.execSQL("DELETE FROM tournee_secteurs WHERE tournee_id NOT IN (SELECT id FROM tournees)")
+        db.execSQL("DELETE FROM tournee_vente_drafts WHERE tournee_id NOT IN (SELECT id FROM tournees)")
+        db.execSQL("DELETE FROM vente_items WHERE vente_id NOT IN (SELECT id FROM ventes)")
+        db.execSQL("DELETE FROM purchase_order_items WHERE purchase_order_id NOT IN (SELECT id FROM purchase_orders)")
+    }
+}
+
+/**
+ * The price history as the bons give it: one row per bon line, its cost at the bon's date and supplier (DB-01). The
+ * rows replaced are recorded as deleted by the tombstone triggers, as any delete is.
+ */
+internal fun rebuildPriceHistory(db: SupportSQLiteDatabase) {
+    db.execSQL("DELETE FROM price_history")
+    db.execSQL(
+        "INSERT INTO price_history (product_id, unit_cost, date, created_at, supplier_name, uuid, updated_at, version, purchase_order_id) " +
+            "SELECT i.product_id, i.unit_cost, o.date, o.created_at, " +
+            "COALESCE(o.supplier_name, (SELECT s.name FROM suppliers s WHERE s.id = o.supplier_id), ''), " +
+            "$UUID_V4_SQL, CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER), 1, o.id " +
+            "FROM purchase_order_items i JOIN purchase_orders o ON o.id = i.purchase_order_id ORDER BY o.created_at, i.id"
+    )
+}
+
+/**
  * Every registered migration, in order. The one list both the app's builder and the migration
  * tests read, so a migration that is written but not added here fails the tests instead of
  * shipping unregistered.
@@ -1353,6 +1391,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_65_66,
     MIGRATION_66_67,
     MIGRATION_67_68,
+    MIGRATION_68_69,
 ).map(LicenseWriteGate::lifting).toTypedArray()
 
 /**

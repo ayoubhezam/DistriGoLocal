@@ -109,6 +109,10 @@ interface PurchaseDao {
     @Insert
     suspend fun insertPriceHistory(entries: List<PriceHistoryEntity>)
 
+    /** A bon's prices, as it is deleted or its lines rewritten (DB-01). */
+    @Query("DELETE FROM price_history WHERE purchase_order_id = :orderId")
+    suspend fun deletePriceHistoryForOrder(orderId: Int)
+
     @Query("SELECT * FROM price_history WHERE product_id = :productId ORDER BY created_at DESC")
     suspend fun getPriceHistoryForProduct(productId: Int): List<PriceHistoryEntity>
 

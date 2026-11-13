@@ -44,4 +44,5 @@
     <string name="receipt_share_the_pdf">مشاركة ملف PDF</string>
     <string name="receipt_copied">نُسخ الوصل إلى الحافظة</string>
     <string name="products_form_pack_example">مثال: 6</string>
+    <string name="error_vente_has_returns">تعذّر الحذف: هناك مرتجعات من عملية البيع هذه. احذف مرتجعاتها أولًا.</string>
 </resources>

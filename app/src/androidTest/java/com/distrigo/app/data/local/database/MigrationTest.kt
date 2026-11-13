@@ -879,6 +879,44 @@ class MigrationTest {
             .build()
 
     /** One client and one supplier with a small ledger each, and deliberately wrong stored balances. */
+    /**
+     * DB-01: the price history is rebuilt from the bons — one row per line, linked to its bon. Two bons of the same day,
+     * supplier and product each keep their own price; an edit's second copy and a deleted bon's price are gone.
+     */
+    @Test
+    fun migration68To69RebuildsThePriceHistoryFromTheBons() {
+        helper.createDatabase(TEST_DB, 68).apply {
+            execSQL("INSERT INTO suppliers (id, name, balance, initial_balance, created_at, uuid) VALUES (1, 'Soummam', 0, 0, '2026-11-06T08:00:00Z', 'u-s1')")
+            fun bon(id: Int, at: String, cost: Double) {
+                execSQL(
+                    "INSERT INTO purchase_orders (id, supplier_id, date, total, status, montant_paye, created_at, supplier_name, uuid) " +
+                        "VALUES ($id, 1, '2026-11-06', $cost, 'received', 0, '$at', 'Soummam', 'u-o$id')"
+                )
+                execSQL(
+                    "INSERT INTO purchase_order_items (purchase_order_id, product_id, quantity, unit_cost, total_cost, product_name, unit_type, " +
+                        "nb_colis, unite_par_colis, has_expiry, uuid) VALUES ($id, 7, 1, $cost, $cost, 'Barre 1800g', 'carton', 1, 1, 0, 'u-i$id')"
+                )
+            }
+            fun price(id: Int, cost: Double, at: String) = execSQL(
+                "INSERT INTO price_history (id, product_id, unit_cost, date, created_at, supplier_name, uuid) " +
+                    "VALUES ($id, 7, $cost, '2026-11-06', '$at', 'Soummam', 'u-p$id')"
+            )
+            bon(2, "2026-11-06T09:00:00Z", 140.0)
+            bon(3, "2026-11-06T10:00:00Z", 700.0)
+            price(1, 140.0, "2026-11-06T09:00:00Z")
+            price(2, 700.0, "2026-11-06T10:00:00Z")
+            price(3, 0.0, "2026-11-06T11:00:00Z")     // an edit's copy, of the same day, supplier and product
+            price(4, 650.0, "2026-11-05T09:00:00Z")   // a deleted bon's
+            close()
+        }
+        val sql = helper.runMigrationsAndValidate(TEST_DB, 69, true, MIGRATION_68_69)
+        assertEquals(
+            listOf("2:140.0", "3:700.0"),
+            sql.texts("SELECT purchase_order_id || ':' || unit_cost FROM price_history ORDER BY purchase_order_id")
+        )
+        sql.close()
+    }
+
     private fun SupportSQLiteDatabase.insertLedgerAtVersion33() {
         val now = "2026-09-01T09:30:00Z"
         execSQL(

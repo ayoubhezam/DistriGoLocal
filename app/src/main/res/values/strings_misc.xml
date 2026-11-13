@@ -38,4 +38,5 @@
     <string name="receipt_share_the_pdf">Partager le PDF</string>
     <string name="receipt_copied">Reçu copié dans le presse-papiers</string>
     <string name="products_form_pack_example">Ex: 6</string>
+    <string name="error_vente_has_returns">Impossible de supprimer : des retours ont été faits de cette vente. Supprimez d\'abord ses retours.</string>
 </resources>

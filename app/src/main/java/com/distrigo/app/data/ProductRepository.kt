@@ -972,7 +972,8 @@ class ProductRepository(
                 historyEntities.add(
                     PriceHistoryEntity(
                         product_id = productId, unit_cost = unitCost,
-                        date = date, created_at = now, supplier_name = supplierName ?: ""
+                        date = date, created_at = now, supplier_name = supplierName ?: "",
+                        purchase_order_id = orderId
                     )
                 )
             }
@@ -1096,12 +1097,15 @@ class ProductRepository(
                 historyEntities.add(
                     PriceHistoryEntity(
                         product_id = productId, unit_cost = unitCost,
-                        date = existing.date, created_at = now, supplier_name = supplierName
+                        date = existing.date, created_at = now, supplier_name = supplierName,
+                        purchase_order_id = id
                     )
                 )
             }
 
             db.purchaseDao().insertItems(itemEntities)
+            // Its prices replaced, as its lines are: an edit no longer adds a second copy of each (DB-01)
+            db.purchaseDao().deletePriceHistoryForOrder(id)
             db.purchaseDao().insertPriceHistory(historyEntities)
             db.purchaseDao().updateOrderFields(id, note, Amount.normalize(montantPaye), total)
 
@@ -1169,6 +1173,8 @@ class ProductRepository(
             db.stockMovementDao().deleteBySource("purchase_order", id)
             if (order.status == "received") restoreReceiptCosts(id)
             db.purchaseDao().deleteItemsForOrder(id)
+            // Its prices go with it (DB-01). A Brouillon editing it stays, badged in the drafts list, so no edit is lost
+            db.purchaseDao().deletePriceHistoryForOrder(id)
             db.purchaseDao().deleteOrderById(id)
             supplierDao.recomputeBalance(order.supplier_id)
         }
@@ -1466,6 +1472,9 @@ class ProductRepository(
         db.withTransaction {
             val existing = db.venteDao().getVenteById(id)
                 ?: refuse(R.string.error_vente_not_found, id)
+            // A sale its client returned goods from keeps them: deleting the returns too would move stock and the
+            // balance behind the user's back, as a tournée with sales is kept (DB-01)
+            if (db.retourClientDao().countForVente(id) > 0) refuse(R.string.error_vente_has_returns)
             // Removing the sale's movements puts its quantities back in stock.
             db.stockMovementDao().deleteBySource("vente", id)
             db.venteDao().deleteItemsForVente(id)

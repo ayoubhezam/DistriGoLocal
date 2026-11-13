@@ -35,6 +35,10 @@ interface RetourClientDao {
     @Query("SELECT retour_id, COUNT(*) AS count FROM retour_client_items WHERE retour_id IN (:retourIds) GROUP BY retour_id")
     suspend fun getItemCountsForRetours(retourIds: List<Int>): List<RetourItemCount>
 
+    /** How many returns were made from sale [venteId] (FIN-02): such a sale is not deleted (DB-01). */
+    @Query("SELECT COUNT(*) FROM retour_client WHERE vente_id = :venteId")
+    suspend fun countForVente(venteId: Int): Int
+
     @Query("SELECT * FROM retour_client WHERE id = :id")
     suspend fun getRetourById(id: Int): RetourClientEntity?
 
