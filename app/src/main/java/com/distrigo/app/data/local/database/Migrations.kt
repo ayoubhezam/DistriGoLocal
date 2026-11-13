@@ -1341,13 +1341,23 @@ val MIGRATION_68_69 = object : Migration(68, 69) {
         db.execSQL("ALTER TABLE `price_history` ADD COLUMN `purchase_order_id` INTEGER")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_price_history_purchase_order_id` ON `price_history` (`purchase_order_id`)")
         rebuildPriceHistory(db)
-        // What deleted tournées, sales and bons left behind. Edit Brouillons of a deleted document stay: the drafts
-        // list badges them, so the user's unsaved work is not lost
+        // What deleted tournées, sales and bons left behind (their edit Brouillons: MIGRATION_69_70)
         db.execSQL("DELETE FROM tournee_clients WHERE tournee_id NOT IN (SELECT id FROM tournees)")
         db.execSQL("DELETE FROM tournee_secteurs WHERE tournee_id NOT IN (SELECT id FROM tournees)")
         db.execSQL("DELETE FROM tournee_vente_drafts WHERE tournee_id NOT IN (SELECT id FROM tournees)")
         db.execSQL("DELETE FROM vente_items WHERE vente_id NOT IN (SELECT id FROM ventes)")
         db.execSQL("DELETE FROM purchase_order_items WHERE purchase_order_id NOT IN (SELECT id FROM purchase_orders)")
+    }
+}
+
+/**
+ * Version 70 (DB-01; owner, 2026-11-13): an edit Brouillon goes with its sale or bon, so those a deleted sale or bon
+ * left behind go now. No schema change.
+ */
+val MIGRATION_69_70 = object : Migration(69, 70) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("DELETE FROM vente_drafts WHERE source_vente_id IS NOT NULL AND source_vente_id NOT IN (SELECT id FROM ventes)")
+        db.execSQL("DELETE FROM purchase_drafts WHERE source_order_id IS NOT NULL AND source_order_id NOT IN (SELECT id FROM purchase_orders)")
     }
 }
 
@@ -1392,6 +1402,7 @@ internal val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_66_67,
     MIGRATION_67_68,
     MIGRATION_68_69,
+    MIGRATION_69_70,
 ).map(LicenseWriteGate::lifting).toTypedArray()
 
 /**

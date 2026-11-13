@@ -53,6 +53,28 @@ class ParentDeleteTest {
         assertEquals(listOf(kept), db.purchaseDao().getPriceHistoryForProduct(milk).map { it.purchase_order_id })
     }
 
+    /** A sale's edit Brouillon goes with it (owner, 2026-11-13); another sale's stays. */
+    @Test
+    fun aSalesEditDraftGoesWithIt() = runBlocking {
+        val milk = (repo.addProduct(mapOf("name" to "Lait", "selling_price" to 120.0, "purchase_price" to 90.0, "stock" to 20.0))["id"] as Number).toInt()
+        val client = (repo.addClient(mapOf("name" to "MOSTAFA"))["id"] as Number).toInt()
+        val gone = db.recordedSale(client, "depot", milk to 1.0).venteId
+        val kept = db.recordedSale(client, "depot", milk to 2.0).venteId
+        listOf(gone, kept).forEach { sale ->
+            db.venteDraftDao().insert(
+                com.distrigo.app.data.local.entity.VenteDraftEntity(
+                    client_id = client, client_name = "MOSTAFA", items_json = "[]", note = "", montant_paye = "", user_name = "",
+                    item_count = 0, total = 0.0, last_step = "products", created_at = "2026-11-13T08:00:00Z",
+                    updated_at = "2026-11-13T08:00:00Z", source_vente_id = sale
+                )
+            )
+        }
+
+        repo.deleteVente(gone)
+        assertEquals(null, db.venteDraftDao().getForVente(gone))
+        assertNotNull(db.venteDraftDao().getForVente(kept))
+    }
+
     /** A sale goods were returned from is not deleted: its returns would lose their sale. */
     @Test
     fun aSaleWithReturnsIsKept() = runBlocking {

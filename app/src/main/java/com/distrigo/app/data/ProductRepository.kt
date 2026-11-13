@@ -1173,8 +1173,9 @@ class ProductRepository(
             db.stockMovementDao().deleteBySource("purchase_order", id)
             if (order.status == "received") restoreReceiptCosts(id)
             db.purchaseDao().deleteItemsForOrder(id)
-            // Its prices go with it (DB-01). A Brouillon editing it stays, badged in the drafts list, so no edit is lost
+            // Its prices and a Brouillon editing it go with it (DB-01; owner, 2026-11-13)
             db.purchaseDao().deletePriceHistoryForOrder(id)
+            db.purchaseDraftDao().deleteForOrder(id)
             db.purchaseDao().deleteOrderById(id)
             supplierDao.recomputeBalance(order.supplier_id)
         }
@@ -1478,6 +1479,8 @@ class ProductRepository(
             // Removing the sale's movements puts its quantities back in stock.
             db.stockMovementDao().deleteBySource("vente", id)
             db.venteDao().deleteItemsForVente(id)
+            // A Brouillon editing it goes with it (DB-01; owner, 2026-11-13)
+            db.venteDraftDao().deleteForVente(id)
             db.venteDao().deleteVenteById(id)
             clientDao.recomputeBalance(existing.client_id)
             // The sale was what made the client "visité" on its tournée: without it, and with no
