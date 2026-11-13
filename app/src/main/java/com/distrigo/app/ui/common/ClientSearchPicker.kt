@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.distrigo.app.data.local.paging.SecteurCount
@@ -87,29 +88,33 @@ fun ClientSearchPicker(
 
         Spacer(Modifier.height(DsSpacing.sm))
 
-        LazyColumn(
-            modifier            = Modifier.weight(1f),
-            contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
-            verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
-        ) {
-            secteurFolds(
-                groups      = groups,
-                items       = items,
-                isOpen      = ::isOpen,
-                showHeaders = groups.size > 1,
-                header      = { group ->
-                    val key = group.key()
-                    SecteurHeader(
-                        name     = key,
-                        count    = group.count,
-                        expanded = isOpen(group),
-                        onToggle = { opened = if (key in opened) opened - key else opened + key }
-                    )
-                },
-                row         = { client ->
-                    ClientPickerRow(client, selectedClient?.id == client.id, showBalance) { onClientSelected(client) }
-                },
-            )
+        val listState = rememberLazyListState()
+        ScrollToTopBox(state = listState, modifier = Modifier.weight(1f)) {
+            LazyColumn(
+                state               = listState,
+                modifier            = Modifier.fillMaxSize(),
+                contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
+            ) {
+                secteurFolds(
+                    groups      = groups,
+                    items       = items,
+                    isOpen      = ::isOpen,
+                    showHeaders = groups.size > 1,
+                    header      = { group ->
+                        val key = group.key()
+                        SecteurHeader(
+                            name     = key,
+                            count    = group.count,
+                            expanded = isOpen(group),
+                            onToggle = { opened = if (key in opened) opened - key else opened + key }
+                        )
+                    },
+                    row         = { client ->
+                        ClientPickerRow(client, selectedClient?.id == client.id, showBalance) { onClientSelected(client) }
+                    },
+                )
+            }
         }
 
     }

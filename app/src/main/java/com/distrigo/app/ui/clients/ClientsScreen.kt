@@ -63,6 +63,8 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import com.distrigo.app.ui.common.ScrollToTopBox
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.res.pluralStringResource
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -275,109 +277,113 @@ fun ClientsScreen(
 
         // The header used to be the list's first item and scrolled away with it. It is a pinned
         // bar now, so the list starts below it and carries only the list.
-        LazyColumn(modifier = Modifier.weight(1f)) {
-            if (totalDebt > 0 && !selecting) {
-                item {
-                    Column {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = DsSpacing.lg)
-                                .clip(DsShapes.large)
-                                .background(DsColors.DangerLight)
-                                .padding(DsSpacing.lg),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment     = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    pluralStringResource(R.plurals.clients_debts_n, owingCount, owingCount),
-                                    fontSize   = DsTextSize.caption,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color      = DsColors.Danger
-                                )
-                                Text(
-                                    money.da(totalDebt),
-                                    fontSize   = DsTextSize.headline,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color      = DsColors.Danger
+        val clientsListState = rememberLazyListState()
+        // A full screen without the bottom bar: just off the screen's edge, or off the « Ajouter » row.
+        ScrollToTopBox(state = clientsListState, modifier = Modifier.weight(1f)) {
+            LazyColumn(state = clientsListState, modifier = Modifier.fillMaxSize()) {
+                if (totalDebt > 0 && !selecting) {
+                    item {
+                        Column {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = DsSpacing.lg)
+                                    .clip(DsShapes.large)
+                                    .background(DsColors.DangerLight)
+                                    .padding(DsSpacing.lg),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment     = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        pluralStringResource(R.plurals.clients_debts_n, owingCount, owingCount),
+                                        fontSize   = DsTextSize.caption,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color      = DsColors.Danger
+                                    )
+                                    Text(
+                                        money.da(totalDebt),
+                                        fontSize   = DsTextSize.headline,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color      = DsColors.Danger
+                                    )
+                                }
+                                Icon(
+                                    Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint     = DsColors.Danger.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(28.dp)
                                 )
                             }
-                            Icon(
-                                Icons.Default.Warning,
-                                contentDescription = null,
-                                tint     = DsColors.Danger.copy(alpha = 0.5f),
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                        Spacer(Modifier.height(DsSpacing.md))
-                    }
-                }
-            }
-
-            stickyHeader {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(DsColors.SurfaceMuted)
-                ) {
-                    // ── Search ──
-                    DsCompactSearchField(
-                        value         = viewModel.listSearch,
-                        onValueChange = { viewModel.listSearch = it },
-                        placeholder   = stringResource(R.string.common_search_client),
-                        modifier      = Modifier.padding(horizontal = DsSpacing.lg)
-                    )
-
-                    Spacer(Modifier.height(DsSpacing.sm))
-
-                    // ── Count · Filtres ── the type and debt chips that used to sit here are in the
-                    // sheet now, with the client's place beside them; what is applied shows below.
-                    CountAndFiltersRow(
-                        label         = (shownCount ?: 0).let { pluralStringResource(R.plurals.common_clients_count, it, it) },
-                        filtersActive = filters.isActive,
-                        onOpenFilters = { showFilterSheet = true }
-                    )
-                    RemovableFilterChips(filterChips, onClearAll = { viewModel.listFilters = ClientListFilters(withoutQuartier = filters.withoutQuartier) })
-                    if (selecting) {
-                        // « Sans quartier »: the clients not placed yet, the usual ones to add
-                        val free = summary?.withoutQuartier ?: 0
-                        Box(Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)) {
-                            BrandChips(
-                                options  = listOf(false to stringResource(R.string.common_filter_all), true to stringResource(R.string.clients_without_quartier_n, free)),
-                                selected = filters.withoutQuartier,
-                                onSelect = { viewModel.listFilters = filters.copy(withoutQuartier = it) },
-                            )
+                            Spacer(Modifier.height(DsSpacing.md))
                         }
                     }
+                }
 
-                    Spacer(Modifier.height(DsSpacing.xs))
-                }
-            }
-            items(count = shown.itemCount, key = shown.itemKey { it.id }, contentType = { "client" }) { index ->
-                val client = shown[index]
-                Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)) {
-                    if (client == null) com.distrigo.app.ui.common.PartyRowPlaceholder()
-                    else if (selection != null) {
-                        SelectableClientCard(client, selected = client.id in picked.selected) { selection.toggle(client.id) }
-                    } else ClientCard(
-                        client      = client,
-                        onClick     = { onClientClick(client.id) },
-                        onLongClick = { longPressClient = client }
-                    )
-                }
-            }
-            if (shownCount == 0) {
-                // Under the search and filters, so they stay at hand; the hint only when there are no clients at all.
-                // Not while counting: the list starts empty and would flash « Aucun client ».
-                item(key = "empty", contentType = "empty") {
-                    val noClients = summary?.total == 0
-                    Box(Modifier.fillMaxWidth().fillParentMaxHeight(0.7f), contentAlignment = Alignment.Center) {
-                        com.distrigo.app.ui.common.EmptyState(
-                            illustration = R.drawable.empty_clients,
-                            title        = stringResource(if (noClients) R.string.empty_clients_title else R.string.common_no_client_matches),
-                            hint         = stringResource(R.string.empty_hint_clients).takeIf { noClients },
+                stickyHeader {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(DsColors.SurfaceMuted)
+                    ) {
+                        // ── Search ──
+                        DsCompactSearchField(
+                            value         = viewModel.listSearch,
+                            onValueChange = { viewModel.listSearch = it },
+                            placeholder   = stringResource(R.string.common_search_client),
+                            modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                         )
+
+                        Spacer(Modifier.height(DsSpacing.sm))
+
+                        // ── Count · Filtres ── the type and debt chips that used to sit here are in the
+                        // sheet now, with the client's place beside them; what is applied shows below.
+                        CountAndFiltersRow(
+                            label         = (shownCount ?: 0).let { pluralStringResource(R.plurals.common_clients_count, it, it) },
+                            filtersActive = filters.isActive,
+                            onOpenFilters = { showFilterSheet = true }
+                        )
+                        RemovableFilterChips(filterChips, onClearAll = { viewModel.listFilters = ClientListFilters(withoutQuartier = filters.withoutQuartier) })
+                        if (selecting) {
+                            // « Sans quartier »: the clients not placed yet, the usual ones to add
+                            val free = summary?.withoutQuartier ?: 0
+                            Box(Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)) {
+                                BrandChips(
+                                    options  = listOf(false to stringResource(R.string.common_filter_all), true to stringResource(R.string.clients_without_quartier_n, free)),
+                                    selected = filters.withoutQuartier,
+                                    onSelect = { viewModel.listFilters = filters.copy(withoutQuartier = it) },
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(DsSpacing.xs))
+                    }
+                }
+                items(count = shown.itemCount, key = shown.itemKey { it.id }, contentType = { "client" }) { index ->
+                    val client = shown[index]
+                    Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)) {
+                        if (client == null) com.distrigo.app.ui.common.PartyRowPlaceholder()
+                        else if (selection != null) {
+                            SelectableClientCard(client, selected = client.id in picked.selected) { selection.toggle(client.id) }
+                        } else ClientCard(
+                            client      = client,
+                            onClick     = { onClientClick(client.id) },
+                            onLongClick = { longPressClient = client }
+                        )
+                    }
+                }
+                if (shownCount == 0) {
+                    // Under the search and filters, so they stay at hand; the hint only when there are no clients at all.
+                    // Not while counting: the list starts empty and would flash « Aucun client ».
+                    item(key = "empty", contentType = "empty") {
+                        val noClients = summary?.total == 0
+                        Box(Modifier.fillMaxWidth().fillParentMaxHeight(0.7f), contentAlignment = Alignment.Center) {
+                            com.distrigo.app.ui.common.EmptyState(
+                                illustration = R.drawable.empty_clients,
+                                title        = stringResource(if (noClients) R.string.empty_clients_title else R.string.common_no_client_matches),
+                                hint         = stringResource(R.string.empty_hint_clients).takeIf { noClients },
+                            )
+                        }
                     }
                 }
             }
