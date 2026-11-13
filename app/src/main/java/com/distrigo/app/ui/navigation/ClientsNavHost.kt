@@ -107,8 +107,10 @@ fun ClientsNavHost(
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }
             val viewModel: ClientViewModel = hiltViewModel(parentEntry)
             val clientId = entry.arguments!!.getInt("clientId").takeIf { it != -1 }
-            val clients by viewModel.clients.collectAsStateWithLifecycle()
-            val client = clientId?.let { id -> clients.find { it.id == id } }
+            val record = clientId?.let { id -> com.distrigo.app.ui.common.liveRecord(id) { viewModel.observeClient(id) } }
+            val client = record?.value
+            // An edit waits for its client: opened empty, the form would be a new client's
+            if (record != null && !record.loaded) return@composable
 
             ClientFormScreen(
                 client    = client,
@@ -129,9 +131,8 @@ fun ClientsNavHost(
             val retourViewModel: RetourClientViewModel = hiltViewModel(retourParentEntry)
             val clientId = entry.arguments!!.getInt("clientId")
             val money = LocalMoneyFormatter.current
-            val clients by viewModel.clients.collectAsStateWithLifecycle()
-            val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
-            val client = clients.find { it.id == clientId }
+            val record = com.distrigo.app.ui.common.liveRecord(clientId) { viewModel.observeClient(clientId) }
+            val client = record.value
             var showDeleteConfirm by remember { mutableStateOf(false) }
             // Deleting pops this screen, and so does the entity vanishing from the list a moment later:
             // only the first may pop, or the second takes the list and the graph with it.
@@ -182,7 +183,7 @@ fun ClientsNavHost(
                         )
                     }
                 }
-                isLoading -> {
+                !record.loaded -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
                         CircularProgressIndicator(color = DsColors.Primary)
                     }
@@ -226,9 +227,8 @@ fun ClientsNavHost(
             val retourParentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }
             val retourViewModel: RetourClientViewModel = hiltViewModel(retourParentEntry)
             val clientId = entry.arguments!!.getInt("clientId")
-            val clients by viewModel.clients.collectAsStateWithLifecycle()
-            val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
-            val client = clients.find { it.id == clientId }
+            val record = com.distrigo.app.ui.common.liveRecord(clientId) { viewModel.observeClient(clientId) }
+            val client = record.value
 
             if (client != null) {
                 RetourClientListScreen(
@@ -237,7 +237,7 @@ fun ClientsNavHost(
                     onBack      = { navController.popOr(onBack) },
                     onAddRetour = license.guarded { navController.navigate(Screen.ClientsRetourFormGraph.createRoute(clientId)) }
                 )
-            } else if (!isLoading) {
+            } else if (record.loaded) {
                 // Gone — not merely not loaded yet: opened first, from a drill-down, the list is empty
                 // on the first frame, and leaving then would pop the only screen to a blank page.
                 LaunchedEffect(Unit) { if (navController.currentBackStackEntry?.id == entry.id) navController.popOr(onBack) }
@@ -307,7 +307,7 @@ fun ClientsNavHost(
             }
 
             if (showPaymentDialog) {
-                val client = clientViewModel.clients.collectAsStateWithLifecycle().value.find { it.id == clientId }
+                val client = com.distrigo.app.ui.common.liveRecord(clientId) { clientViewModel.observeClient(clientId) }.value
                 if (client != null) {
                     PaymentDialog(
                         balance   = client.balance,

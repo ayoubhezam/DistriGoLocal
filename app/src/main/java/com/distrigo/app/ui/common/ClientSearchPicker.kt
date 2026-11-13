@@ -6,7 +6,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.compose.collectAsLazyPagingItems
+import com.distrigo.app.data.local.paging.SecteurCount
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -34,32 +36,33 @@ import com.distrigo.app.ui.designsystem.DsTopBarAddButton
 import com.distrigo.app.data.model.Amount
 
 /**
- * Shared "pick a client via search" screen body: header + search field + filtered client list,
- * used by the client-picker route of VenteFormNavGraph, TourneeVenteFormNavGraph and
- * RetourClientFormNavGraph. Owns its own search text state and filtering logic.
+ * Shared "pick a client via search" screen body: header + search field + the clients by secteur, used by the
+ * client-picker route of VenteFormNavGraph and TourneeVenteFormNavGraph.
+ *
+ * Searched, counted and paged in SQL by [picker] (PERF-01): the folds come from a count per secteur, and an open
+ * fold's rows from the pages, so the picker no longer holds every client.
  */
 @Composable
 fun ClientSearchPicker(
-    clients          : List<Client>,
-    selectedClientId : Int? = null,
+    picker           : ClientPickerList,
+    selectedClient   : Client? = null,
     onClientSelected : (Client) -> Unit,
     onBack           : () -> Unit,
     onAddNewClient   : (() -> Unit)? = null,
     showBalance      : Boolean = true
 ) {
-    var clientSearch by remember { mutableStateOf("") }
-
-    // Recomputed only when the list or the search changes; see filterClients.
-    val filteredClients = remember(clients, clientSearch) { filterClients(clients, clientSearch) }
+    val groups = picker.groups.collectAsStateWithLifecycle().value.orEmpty()
+    val items  = picker.items.collectAsLazyPagingItems()
+    // The picker outlives this screen (its pages are cached in the form's ViewModel): each visit starts unsearched
+    androidx.compose.runtime.DisposableEffect(picker) { onDispose { picker.search = "" } }
 
     // One section per secteur, « Sans secteur » last, as in « Ajouter des clients ». Closed by
     // default so the list is a short index of secteurs; the selected client's secteur opens.
-    val groups = remember(filteredClients) { groupBySecteur(filteredClients) }
     var opened by remember {
-        mutableStateOf(setOfNotNull(clients.firstOrNull { it.id == selectedClientId }?.let(::secteurOf)))
+        mutableStateOf(setOfNotNull(selectedClient?.let(::secteurOf)))
     }
     // A search shows its matches at once, and a single secteur has nothing to fold.
-    fun isOpen(secteur: String) = clientSearch.isNotBlank() || groups.size == 1 || secteur in opened
+    fun isOpen(group: SecteurCount) = picker.search.isNotBlank() || groups.size == 1 || group.key() in opened
 
     Column(modifier = Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(
@@ -76,8 +79,8 @@ fun ClientSearchPicker(
         }
 
         DsCompactSearchField(
-            value         = clientSearch,
-            onValueChange = { clientSearch = it },
+            value         = picker.search,
+            onValueChange = { picker.search = it },
             placeholder   = stringResource(R.string.client_picker_search_placeholder),
             modifier      = Modifier.padding(horizontal = DsSpacing.lg)
         )
@@ -89,23 +92,24 @@ fun ClientSearchPicker(
             contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
         ) {
-            groups.forEach { (secteur, inGroup) ->
-                if (groups.size > 1) {
-                    item(key = "secteur_$secteur") {
-                        SecteurHeader(
-                            name     = secteur,
-                            count    = inGroup.size,
-                            expanded = isOpen(secteur),
-                            onToggle = { opened = if (secteur in opened) opened - secteur else opened + secteur }
-                        )
-                    }
-                }
-                if (isOpen(secteur)) {
-                    items(inGroup, key = { it.id }) { client ->
-                        ClientPickerRow(client, selectedClientId == client.id, showBalance) { onClientSelected(client) }
-                    }
-                }
-            }
+            secteurFolds(
+                groups      = groups,
+                items       = items,
+                isOpen      = ::isOpen,
+                showHeaders = groups.size > 1,
+                header      = { group ->
+                    val key = group.key()
+                    SecteurHeader(
+                        name     = key,
+                        count    = group.count,
+                        expanded = isOpen(group),
+                        onToggle = { opened = if (key in opened) opened - key else opened + key }
+                    )
+                },
+                row         = { client ->
+                    ClientPickerRow(client, selectedClient?.id == client.id, showBalance) { onClientSelected(client) }
+                },
+            )
         }
 
     }

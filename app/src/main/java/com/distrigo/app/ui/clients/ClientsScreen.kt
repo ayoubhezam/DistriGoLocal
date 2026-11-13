@@ -14,6 +14,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.runtime.produceState
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -91,14 +94,14 @@ fun ClientsScreen(
         BackHandler { if (picked.selected.isNotEmpty()) confirmDiscard = true else onBack?.invoke() }
     }
     val money = LocalMoneyFormatter.current
-    val clients   by viewModel.clients.collectAsStateWithLifecycle()
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
     val license = LocalLicense.current
-    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
-    // The list as the search and the filters narrow it, worked out off the main thread once typing
-    // pauses (see ClientViewModel.shownClients). Only the search box reads what is being typed.
-    val shown by viewModel.shownClients.collectAsStateWithLifecycle()
+    // The list as the search and the filters narrow it, searched and paged in SQL once typing pauses (PERF-01, see
+    // ClientViewModel.pagedClients). Only the search box reads what is being typed.
+    val shown = viewModel.pagedClients.collectAsLazyPagingItems()
+    val shownCount by viewModel.shownCount.collectAsStateWithLifecycle()
+    val summary by viewModel.summary.collectAsStateWithLifecycle()
     // Leaving the list clears the search, as it did when the box's text lived in this screen.
     DisposableEffect(Unit) { onDispose { viewModel.listSearch = "" } }
     var showFilterSheet  by remember { mutableStateOf(false) }
@@ -190,11 +193,11 @@ fun ClientsScreen(
         )
     }
 
-    // The sheet offers only places the clients actually have, so no choice can empty the list.
-    val wilayas  = remember(clients) { placesOf(clients.map { it.wilaya_name }) }
-    val secteurs = remember(clients) { placesOf(clients.map { it.secteur_name }) }
-    val communes = remember(clients, filters.wilaya) {
-        placesOf(clients.filter { it.wilaya_name?.trim().equals(filters.wilaya, ignoreCase = true) }.map { it.commune_name })
+    // The sheet offers only places the clients actually have, so no choice can empty the list. Read when it opens.
+    val wilayas  by produceState(emptyList<String>(), showFilterSheet) { if (showFilterSheet) value = viewModel.places("wilaya_name") }
+    val secteurs by produceState(emptyList<String>(), showFilterSheet) { if (showFilterSheet) value = viewModel.places("secteur_name") }
+    val communes by produceState(emptyList<String>(), showFilterSheet, filters.wilaya) {
+        value = if (showFilterSheet && filters.wilaya != null) viewModel.places("commune_name", filters.wilaya) else emptyList()
     }
     val typeNames = listOf("retail" to stringResource(R.string.common_client_type_retail), "wholesale" to stringResource(R.string.common_client_type_wholesale), "business" to stringResource(R.string.common_client_type_business))
     val filterChips: List<Pair<String, () -> Unit>> = buildList {
@@ -207,7 +210,7 @@ fun ClientsScreen(
 
     if (showFilterSheet) {
         PartyFilterSheet(
-            resultCount = shown.size,
+            resultCount = shownCount ?: 0,
             wilayas     = wilayas,
             wilaya      = filters.wilaya,
             // A commune belongs to one wilaya: another wilaya drops it.
@@ -238,8 +241,8 @@ fun ClientsScreen(
         )
     }
 
-    val debtClients = remember(clients) { clientsInDebt(clients) }
-    val totalDebt   = remember(debtClients) { debtClients.sumOf { it.balance } }
+    val owingCount = summary?.owingCount ?: 0
+    val totalDebt  = summary?.owingTotal ?: 0.0
 
     Column(
         modifier = modifier
@@ -288,7 +291,7 @@ fun ClientsScreen(
                         ) {
                             Column {
                                 Text(
-                                    pluralStringResource(R.plurals.clients_debts_n, debtClients.size, debtClients.size),
+                                    pluralStringResource(R.plurals.clients_debts_n, owingCount, owingCount),
                                     fontSize   = DsTextSize.caption,
                                     fontWeight = FontWeight.SemiBold,
                                     color      = DsColors.Danger
@@ -331,14 +334,14 @@ fun ClientsScreen(
                     // ── Count · Filtres ── the type and debt chips that used to sit here are in the
                     // sheet now, with the client's place beside them; what is applied shows below.
                     CountAndFiltersRow(
-                        label         = pluralStringResource(R.plurals.common_clients_count, shown.size, shown.size),
+                        label         = (shownCount ?: 0).let { pluralStringResource(R.plurals.common_clients_count, it, it) },
                         filtersActive = filters.isActive,
                         onOpenFilters = { showFilterSheet = true }
                     )
                     RemovableFilterChips(filterChips, onClearAll = { viewModel.listFilters = ClientListFilters(withoutQuartier = filters.withoutQuartier) })
                     if (selecting) {
                         // « Sans quartier »: the clients not placed yet, the usual ones to add
-                        val free = remember(clients) { clients.count { it.quartier_id == null } }
+                        val free = summary?.withoutQuartier ?: 0
                         Box(Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)) {
                             BrandChips(
                                 options  = listOf(false to stringResource(R.string.common_filter_all), true to stringResource(R.string.clients_without_quartier_n, free)),
@@ -351,9 +354,11 @@ fun ClientsScreen(
                     Spacer(Modifier.height(DsSpacing.xs))
                 }
             }
-            items(shown, key = { it.id }) { client ->
+            items(count = shown.itemCount, key = shown.itemKey { it.id }, contentType = { "client" }) { index ->
+                val client = shown[index]
                 Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)) {
-                    if (selection != null) {
+                    if (client == null) com.distrigo.app.ui.common.PartyRowPlaceholder()
+                    else if (selection != null) {
                         SelectableClientCard(client, selected = client.id in picked.selected) { selection.toggle(client.id) }
                     } else ClientCard(
                         client      = client,
@@ -362,11 +367,11 @@ fun ClientsScreen(
                     )
                 }
             }
-            if (shown.isEmpty() && !isLoading) {
+            if (shownCount == 0) {
                 // Under the search and filters, so they stay at hand; the hint only when there are no clients at all.
-                // Not while loading: the list starts empty and would flash « Aucun client ».
+                // Not while counting: the list starts empty and would flash « Aucun client ».
                 item(key = "empty", contentType = "empty") {
-                    val noClients = clients.isEmpty()
+                    val noClients = summary?.total == 0
                     Box(Modifier.fillMaxWidth().fillParentMaxHeight(0.7f), contentAlignment = Alignment.Center) {
                         com.distrigo.app.ui.common.EmptyState(
                             illustration = R.drawable.empty_clients,

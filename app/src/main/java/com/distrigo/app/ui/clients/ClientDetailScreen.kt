@@ -100,8 +100,8 @@ fun ClientDetailScreen(
     viewModel        : ClientViewModel = hiltViewModel(),
     retourViewModel  : RetourClientViewModel = hiltViewModel()
 ) {
-    val currentClient = viewModel.clients.collectAsStateWithLifecycle().value
-        .find { it.id == client.id } ?: client
+    // Live already: the page reads its client by id (PERF-01)
+    val currentClient = client
     val drill = LocalDrillDown.current
     ShowsRecord(DrillTarget.Client(client.id))
 

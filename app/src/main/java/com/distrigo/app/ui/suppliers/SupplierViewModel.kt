@@ -21,7 +21,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.distrigo.app.ui.common.SupplierListFilters
+import androidx.compose.runtime.snapshotFlow
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import com.distrigo.app.data.local.paging.PartySummary
+import com.distrigo.app.data.local.paging.SupplierListQuery
+import com.distrigo.app.ui.common.SupplierPickerList
+import com.distrigo.app.ui.common.debouncedSearch
+import com.distrigo.app.ui.common.placesOf
+import com.distrigo.app.ui.common.toQuery
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class SupplierViewModel @Inject constructor(
     private val repository: ProductRepository
@@ -33,18 +47,43 @@ class SupplierViewModel @Inject constructor(
     private val _supplierProducts = MutableStateFlow<List<SupplierProduct>>(emptyList())
     val supplierProducts: StateFlow<List<SupplierProduct>> = _supplierProducts
 
-    private val _isLoading = MutableStateFlow(true)
-    val isLoading: StateFlow<Boolean> = _isLoading
-
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    // Room-observed single source of truth: re-emits on every write to the suppliers table
-    // (ajout/modification/suppression, recalcul de solde après achat ou paiement…) — no manual refresh.
-    val suppliers: StateFlow<List<Supplier>> = repository.observeSuppliers()
-        .onEach { _isLoading.value = false; _error.value = null }
-        .catch { e -> _error.value = userMessage(e); _isLoading.value = false }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    /** The Fournisseurs list's search box, as typed. */
+    var listSearch by mutableStateOf("")
+
+    /**
+     * The Fournisseurs list as the search and the sheet ask for it, once typing pauses: searched, filtered, counted
+     * and paged in SQL (PERF-01), where every screen holding the list read the whole table again after each write.
+     */
+    private val listQuery: Flow<SupplierListQuery> =
+        combine(snapshotFlow { listFilters }, debouncedSearch { listSearch }) { filters, search -> filters.toQuery(search) }
+            .distinctUntilChanged()
+
+    val pagedSuppliers: Flow<PagingData<Supplier>> = listQuery.flatMapLatest { repository.pageSuppliers(it) }.cachedIn(viewModelScope)
+
+    /** How many suppliers the list shows; null until counted. */
+    val shownCount: StateFlow<Int?> = listQuery.flatMapLatest { repository.observeSupplierCount(it) }
+        .catch { e -> _error.value = userMessage(e) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** All of them: how many, and what is owed them. Null until counted. */
+    val summary: StateFlow<PartySummary?> = repository.observeSupplierSummary()
+        .catch { e -> _error.value = userMessage(e) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** The places the suppliers have, for the filter sheet ([column]: wilaya_name or commune_name). */
+    suspend fun places(column: String, inWilaya: String? = null): List<String> =
+        placesOf(repository.supplierPlaces(column, inWilaya))
+
+    /** One supplier, live: null once deleted. */
+    fun observeSupplier(id: Int): Flow<Supplier?> = repository.observeSupplier(id)
+
+    suspend fun getSupplier(id: Int): Supplier? = repository.getSupplier(id)
+
+    /** « Choisir un fournisseur »: the Achats form's picker. */
+    val picker: SupplierPickerList by lazy { SupplierPickerList(viewModelScope, repository) }
 
     fun loadSupplierProducts(supplierId: Int) {
         viewModelScope.launch {
@@ -56,15 +95,18 @@ class SupplierViewModel @Inject constructor(
         }
     }
 
+    /** Adds [supplier]; [onAdded] then gets it as saved, for the picker that selects it at once. */
     fun addSupplier(
         supplier  : Map<String, Any?>,
         onSuccess : () -> Unit,
-        onError   : (String) -> Unit
+        onError   : (String) -> Unit,
+        onAdded   : (Supplier) -> Unit = {},
     ) {
         viewModelScope.launch {
             try {
-                repository.addSupplier(supplier)
+                val id = (repository.addSupplier(supplier)["id"] as? Number)?.toInt()
                 onSuccess()
+                id?.let { repository.getSupplier(it) }?.let(onAdded)
             } catch (e: Exception) {
                 onError(userMessage(e))
             }

@@ -194,7 +194,6 @@ fun NavGraphBuilder.venteFormGraph(
             remember(entry) { navController.getBackStackEntry(graphRoute) }
             val session = venteFormSession(navController, graphRoute, clientPickerRoute)
             val clientViewModel = clientViewModel()
-            val clients by clientViewModel.clients.collectAsStateWithLifecycle()
             var showAddClientScreen by remember { mutableStateOf(false) }
 
             if (showAddClientScreen) {
@@ -219,8 +218,8 @@ fun NavGraphBuilder.venteFormGraph(
             val selectedClient = session.formClient.collectAsStateWithLifecycle().value
 
             com.distrigo.app.ui.common.ClientSearchPicker(
-                clients          = clients,
-                selectedClientId = selectedClient?.id,
+                picker           = clientViewModel.picker,
+                selectedClient   = selectedClient,
                 onClientSelected = { client ->
                     session.setFormClient(client)
                     navController.popBackStack()

@@ -96,8 +96,10 @@ fun SuppliersNavHost(
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
             val viewModel: SupplierViewModel = hiltViewModel(parentEntry)
             val supplierId = entry.arguments!!.getInt("supplierId").takeIf { it != -1 }
-            val suppliers by viewModel.suppliers.collectAsStateWithLifecycle()
-            val supplier = supplierId?.let { id -> suppliers.find { it.id == id } }
+            val record = supplierId?.let { id -> com.distrigo.app.ui.common.liveRecord(id) { viewModel.observeSupplier(id) } }
+            val supplier = record?.value
+            // An edit waits for its supplier: opened empty, the form would be a new supplier's
+            if (record != null && !record.loaded) return@composable
 
             SupplierFormScreen(
                 supplier  = supplier,
@@ -118,9 +120,8 @@ fun SuppliersNavHost(
             val retourViewModel: RetourFournisseurViewModel = hiltViewModel(retourParentEntry)
             val supplierId = entry.arguments!!.getInt("supplierId")
             val money = LocalMoneyFormatter.current
-            val suppliers by viewModel.suppliers.collectAsStateWithLifecycle()
-            val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
-            val supplier = suppliers.find { it.id == supplierId }
+            val record = com.distrigo.app.ui.common.liveRecord(supplierId) { viewModel.observeSupplier(supplierId) }
+            val supplier = record.value
             var showDeleteConfirm by remember { mutableStateOf(false) }
             // Deleting pops this screen, and so does the entity vanishing from the list a moment later:
             // only the first may pop, or the second takes the list and the graph with it.
@@ -172,7 +173,7 @@ fun SuppliersNavHost(
                         )
                     }
                 }
-                isLoading -> {
+                !record.loaded -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = DsColors.Primary)
                     }
@@ -216,9 +217,8 @@ fun SuppliersNavHost(
             val retourParentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
             val retourViewModel: RetourFournisseurViewModel = hiltViewModel(retourParentEntry)
             val supplierId = entry.arguments!!.getInt("supplierId")
-            val suppliers by viewModel.suppliers.collectAsStateWithLifecycle()
-            val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
-            val supplier = suppliers.find { it.id == supplierId }
+            val record = com.distrigo.app.ui.common.liveRecord(supplierId) { viewModel.observeSupplier(supplierId) }
+            val supplier = record.value
 
             if (supplier != null) {
                 RetourFournisseurListScreen(
@@ -228,7 +228,7 @@ fun SuppliersNavHost(
                     onBack       = { navController.popOr(exit) },
                     onAddRetour  = license.guarded { navController.navigate(Screen.SuppliersRetourFormGraph.createRoute(supplierId)) }
                 )
-            } else if (!isLoading) {
+            } else if (record.loaded) {
                 // Gone — not merely not loaded yet: see the client's returns, above.
                 LaunchedEffect(Unit) { if (navController.currentBackStackEntry?.id == entry.id) navController.popOr(exit) }
             }
@@ -260,7 +260,7 @@ fun SuppliersNavHost(
             val supplierViewModel: SupplierViewModel = hiltViewModel(parentEntry)
 
             if (showPaymentDialog) {
-                val supplier = supplierViewModel.suppliers.collectAsStateWithLifecycle().value.find { it.id == supplierId }
+                val supplier = com.distrigo.app.ui.common.liveRecord(supplierId) { supplierViewModel.observeSupplier(supplierId) }.value
                 if (supplier != null) {
                     PaymentDialog(
                         balance   = supplier.balance,

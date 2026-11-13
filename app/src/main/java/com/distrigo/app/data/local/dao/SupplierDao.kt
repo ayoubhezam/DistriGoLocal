@@ -4,6 +4,9 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.RawQuery
+import androidx.sqlite.db.SupportSQLiteQuery
+import com.distrigo.app.data.local.paging.PartySummary
 import androidx.room.Update
 import com.distrigo.app.data.local.entity.SupplierEntity
 import kotlinx.coroutines.flow.Flow
@@ -21,6 +24,27 @@ interface SupplierDao {
 
     @Query("SELECT * FROM suppliers WHERE id = :supplierId AND deleted_at IS NULL")
     suspend fun getSupplierById(supplierId: Int): SupplierEntity?
+
+    /** One live supplier, or null once it is deleted: the detail, form and payment screens (PERF-01). */
+    @Query("SELECT * FROM suppliers WHERE id = :supplierId AND deleted_at IS NULL")
+    fun observeSupplier(supplierId: Int): Flow<SupplierEntity?>
+
+    // ── The supplier list and picker, a page at a time (PERF-01): see SupplierListSql ──
+
+    @RawQuery
+    suspend fun pageSuppliers(query: SupportSQLiteQuery): List<SupplierEntity>
+
+    @RawQuery
+    suspend fun countSuppliers(query: SupportSQLiteQuery): Int
+
+    @RawQuery(observedEntities = [SupplierEntity::class])
+    fun observeSupplierCount(query: SupportSQLiteQuery): Flow<Int>
+
+    @RawQuery(observedEntities = [SupplierEntity::class])
+    fun observeSummary(query: SupportSQLiteQuery): Flow<PartySummary>
+
+    @RawQuery
+    suspend fun supplierPlaces(query: SupportSQLiteQuery): List<String?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSupplier(supplier: SupplierEntity): Long

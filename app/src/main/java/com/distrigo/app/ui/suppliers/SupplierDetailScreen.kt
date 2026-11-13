@@ -95,8 +95,8 @@ fun SupplierDetailScreen(
     retourViewModel   : RetourFournisseurViewModel = hiltViewModel(),
     onNavigateToOrder : (Int) -> Unit = {}
 ) {
-    val currentSupplier = viewModel.suppliers.collectAsStateWithLifecycle().value
-        .find { it.id == supplier.id } ?: supplier
+    // Live already: the page reads its supplier by id (PERF-01)
+    val currentSupplier = supplier
 
     val balanceStatus = when {
         Amount.owing(currentSupplier.balance)     -> "due"

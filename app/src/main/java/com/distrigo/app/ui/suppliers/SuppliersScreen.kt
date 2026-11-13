@@ -1,5 +1,10 @@
 package com.distrigo.app.ui.suppliers
 
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.produceState
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.core.format.westernDigits
 import androidx.compose.foundation.background
@@ -55,22 +60,22 @@ fun SuppliersScreen(
     onSupplierClick : (Int) -> Unit = {}
 ) {
     val money = LocalMoneyFormatter.current
-    val suppliers by viewModel.suppliers.collectAsStateWithLifecycle()
-    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error     by viewModel.error.collectAsStateWithLifecycle()
 
-    var search by remember { mutableStateOf("") }
     var showFilterSheet by remember { mutableStateOf(false) }
     val filters = viewModel.listFilters
 
-    // Recomputed only when the list or the search changes, not on every recomposition. The
-    // search regex used to be compiled inside the predicate: once per supplier, per keystroke.
-    val filtered  = remember(suppliers, search, filters) { filterSuppliers(suppliers, search, filters) }
+    // Searched, filtered, counted and paged in SQL once typing pauses (PERF-01, see SupplierViewModel.pagedSuppliers)
+    val shown = viewModel.pagedSuppliers.collectAsLazyPagingItems()
+    val shownCount by viewModel.shownCount.collectAsStateWithLifecycle()
+    val summary by viewModel.summary.collectAsStateWithLifecycle()
+    // Leaving the list clears the search, as it did when the box's text lived in this screen.
+    DisposableEffect(Unit) { onDispose { viewModel.listSearch = "" } }
 
-    // The sheet offers only places the suppliers actually have, so no choice can empty the list.
-    val wilayas  = remember(suppliers) { placesOf(suppliers.map { it.wilaya_name }) }
-    val communes = remember(suppliers, filters.wilaya) {
-        placesOf(suppliers.filter { it.wilaya_name?.trim().equals(filters.wilaya, ignoreCase = true) }.map { it.commune_name })
+    // The sheet offers only places the suppliers actually have, so no choice can empty the list. Read when it opens.
+    val wilayas  by produceState(emptyList<String>(), showFilterSheet) { if (showFilterSheet) value = viewModel.places("wilaya_name") }
+    val communes by produceState(emptyList<String>(), showFilterSheet, filters.wilaya) {
+        value = if (showFilterSheet && filters.wilaya != null) viewModel.places("commune_name", filters.wilaya) else emptyList()
     }
     val filterChips: List<Pair<String, () -> Unit>> = buildList {
         filters.balance?.let { b -> add(stringResource(b.label) to { viewModel.listFilters = filters.copy(balance = null) }) }
@@ -80,7 +85,7 @@ fun SuppliersScreen(
 
     if (showFilterSheet) {
         PartyFilterSheet(
-            resultCount = filtered.size,
+            resultCount = shownCount ?: 0,
             wilayas     = wilayas,
             wilaya      = filters.wilaya,
             onWilaya    = { viewModel.listFilters = filters.copy(wilaya = it, commune = null) },
@@ -94,7 +99,7 @@ fun SuppliersScreen(
         )
     }
 
-    val totalDebt = remember(suppliers) { supplierDebtTotal(suppliers) }
+    val totalDebt = summary?.owingTotal ?: 0.0
 
 
 
@@ -162,8 +167,8 @@ fun SuppliersScreen(
                 ) {
                     // ── Search ──
                     DsCompactSearchField(
-                        value         = search,
-                        onValueChange = { search = it },
+                        value         = viewModel.listSearch,
+                        onValueChange = { viewModel.listSearch = it },
                         placeholder   = stringResource(R.string.purchases_search_supplier),
                         modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                     )
@@ -172,7 +177,7 @@ fun SuppliersScreen(
 
                     // ── Count · Filtres ── where the supplier is, and its solde.
                     CountAndFiltersRow(
-                        label         = pluralStringResource(R.plurals.suppliers_count, filtered.size, filtered.size),
+                        label         = (shownCount ?: 0).let { pluralStringResource(R.plurals.suppliers_count, it, it) },
                         filtersActive = filters.isActive,
                         onOpenFilters = { showFilterSheet = true }
                     )
@@ -182,19 +187,21 @@ fun SuppliersScreen(
                 }
             }
 
-            items(filtered, key = { it.id }) { supplier ->
+            items(count = shown.itemCount, key = shown.itemKey { it.id }, contentType = { "supplier" }) { index ->
+                val supplier = shown[index]
                 Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)) {
-                    SupplierCard(
+                    if (supplier == null) com.distrigo.app.ui.common.PartyRowPlaceholder()
+                    else SupplierCard(
                         supplier = supplier,
                         onClick  = { onSupplierClick(supplier.id) }
                     )
                 }
             }
-            if (filtered.isEmpty() && !isLoading) {
+            if (shownCount == 0) {
                 // Under the search and filters, so they stay at hand; the hint only when there are no suppliers at all.
-                // Not while loading: the list starts empty and would flash « Aucun fournisseur ».
+                // Not while counting: the list starts empty and would flash « Aucun fournisseur ».
                 item(key = "empty", contentType = "empty") {
-                    val noSuppliers = suppliers.isEmpty()
+                    val noSuppliers = summary?.total == 0
                     Box(Modifier.fillMaxWidth().fillParentMaxHeight(0.7f), contentAlignment = Alignment.Center) {
                         com.distrigo.app.ui.common.EmptyState(
                             illustration = R.drawable.empty_fournisseurs,

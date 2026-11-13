@@ -10,7 +10,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
@@ -40,6 +39,12 @@ import com.distrigo.app.ui.common.DsCompactSearchField
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
 import com.distrigo.app.R
+import com.distrigo.app.data.local.paging.ClientListQuery
+import com.distrigo.app.data.local.paging.SecteurCount
+import com.distrigo.app.ui.common.key
+import com.distrigo.app.ui.common.secteurFolds
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.compose.runtime.produceState
 
 @Composable
 fun AddClientsToTourneeScreen(
@@ -53,8 +58,13 @@ fun AddClientsToTourneeScreen(
 ) {
     BackHandler { onBack() }
 
-    val clients by clientViewModel.clients.collectAsStateWithLifecycle()
-    var search    by remember { mutableStateOf("") }
+    // Searched, counted and paged in SQL (PERF-01): name, commune or wilaya, leaving out the tournée's clients
+    val picker = remember(existingClientIds) {
+        clientViewModel.picker(ClientListQuery(searchPlaces = true, excludeIds = existingClientIds.sorted()))
+    }
+    val groups = picker.groups.collectAsStateWithLifecycle().value.orEmpty()
+    val items  = picker.items.collectAsLazyPagingItems()
+    val search = picker.search
     var selected  by remember { mutableStateOf<Set<Int>>(emptySet()) }
     var isSaving  by remember { mutableStateOf(false) }
     var errorMsg  by remember { mutableStateOf("") }
@@ -76,20 +86,10 @@ fun AddClientsToTourneeScreen(
         return
     }
 
-    val available = clients.filter { it.id !in existingClientIds }
-    val filtered = available.filter { client ->
-        val tokens = search.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
-        tokens.isEmpty() || tokens.all { token ->
-            client.name.contains(token, ignoreCase = true) ||
-                    (client.commune_name?.contains(token, ignoreCase = true) == true) ||
-                    (client.wilaya_name?.contains(token, ignoreCase = true) == true)
-        }
-    }
-    val groupedClients = groupBySecteur(filtered)
     // Folded by secteur, as « Choisir un client »: a search opens every section it matches, and
     // a single secteur has nothing to fold.
     var opened by remember { mutableStateOf(emptySet<String>()) }
-    fun isOpen(secteur: String) = search.isNotBlank() || groupedClients.size == 1 || secteur in opened
+    fun isOpen(group: SecteurCount) = search.isNotBlank() || groups.size == 1 || group.key() in opened
 
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
     val license = LocalLicense.current
@@ -123,7 +123,7 @@ fun AddClientsToTourneeScreen(
 
         DsCompactSearchField(
             value         = search,
-            onValueChange = { search = it },
+            onValueChange = { picker.search = it },
             placeholder   = stringResource(R.string.tournees_search_client_zone),
             modifier      = Modifier.padding(horizontal = DsSpacing.lg)
         )
@@ -140,15 +140,21 @@ fun AddClientsToTourneeScreen(
             contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
         ) {
-            groupedClients.forEach { (secteurLabel, clientsInGroup) ->
-                item(key = "header_$secteurLabel") {
-                    val groupIds = remember(clientsInGroup) { clientsInGroup.map { it.id }.toSet() }
+            secteurFolds(
+                groups      = groups,
+                items       = items,
+                isOpen      = ::isOpen,
+                showHeaders = true,
+                header      = { group ->
+                    val secteurLabel = group.key()
+                    // The fold's clients, read when it is shown, for its « Tout sélectionner »
+                    val groupIds by produceState(emptySet<Int>(), group, search) { value = picker.idsIn(group.secteur).toSet() }
                     val allSelected = groupIds.isNotEmpty() && selected.containsAll(groupIds)
 
                     SecteurHeader(
                         name     = secteurLabel,
-                        count    = clientsInGroup.size,
-                        expanded = isOpen(secteurLabel),
+                        count    = group.count,
+                        expanded = isOpen(group),
                         onToggle = { opened = if (secteurLabel in opened) opened - secteurLabel else opened + secteurLabel }
                     ) {
                         Text(
@@ -161,8 +167,8 @@ fun AddClientsToTourneeScreen(
                             }
                         )
                     }
-                }
-                if (isOpen(secteurLabel)) items(clientsInGroup, key = { it.id }) { client ->
+                },
+                row         = { client ->
                     val isSelected = client.id in selected
                     Row(
                         modifier = Modifier
@@ -207,8 +213,8 @@ fun AddClientsToTourneeScreen(
                             }
                         }
                     }
-                }
-            }
+                },
+            )
         }
 
         Button(

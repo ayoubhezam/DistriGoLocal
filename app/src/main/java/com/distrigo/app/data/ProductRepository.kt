@@ -809,6 +809,31 @@ class ProductRepository(
     fun observeSuppliers(): Flow<List<Supplier>> =
         supplierDao.observeAllSuppliers().map { list -> list.map { it.toSupplier() } }
 
+    // ── The supplier list and picker, searched and paged in SQL (PERF-01) ──
+
+    fun pageSuppliers(query: com.distrigo.app.data.local.paging.SupplierListQuery): Flow<PagingData<Supplier>> =
+        Pager(com.distrigo.app.data.local.paging.OffsetPagingSource.config) {
+            com.distrigo.app.data.local.paging.OffsetPagingSource(
+                db, arrayOf("suppliers"),
+                count = { supplierDao.countSuppliers(com.distrigo.app.data.local.paging.SupplierListSql.count(query)) },
+                rows  = { offset, limit -> supplierDao.pageSuppliers(com.distrigo.app.data.local.paging.SupplierListSql.page(query, offset, limit)).map { it.toSupplier() } },
+            )
+        }.flow
+
+    fun observeSupplierCount(query: com.distrigo.app.data.local.paging.SupplierListQuery): Flow<Int> =
+        supplierDao.observeSupplierCount(com.distrigo.app.data.local.paging.SupplierListSql.count(query))
+
+    fun observeSupplierSummary(): Flow<com.distrigo.app.data.local.paging.PartySummary> =
+        supplierDao.observeSummary(com.distrigo.app.data.local.paging.SupplierListSql.summary())
+
+    /** The places the suppliers have, for the filter sheet: [column] is wilaya_name or commune_name. */
+    suspend fun supplierPlaces(column: String, inWilaya: String? = null): List<String?> =
+        supplierDao.supplierPlaces(com.distrigo.app.data.local.paging.SupplierListSql.places(column, inWilaya))
+
+    fun observeSupplier(id: Int): Flow<Supplier?> = supplierDao.observeSupplier(id).map { it?.toSupplier() }
+
+    suspend fun getSupplier(id: Int): Supplier? = supplierDao.getSupplierById(id)?.toSupplier()
+
     suspend fun addSupplier(supplier: Map<String, Any?>): Map<String, Any> {
         val entity = SupplierEntity(
             name = supplier["name"] as? String ?: "",
@@ -1625,12 +1650,38 @@ class ProductRepository(
 
     // Source of truth réactive : émet automatiquement à chaque écriture sur la table clients
     // (création, modification, recalcul de solde après vente/paiement…), quel que soit l'écran.
-    fun observeClients(): Flow<List<Client>> =
-        clientDao.observeAllClients().map { list -> list.map { it.toClient() } }
+    // ── The client lists and pickers, searched and paged in SQL (PERF-01) ──
+    // A sale rewrites its client's balance: these reload the page in view and recount, where the whole table was
+    // read and mapped again by every screen holding it.
 
-    /** The live clients not in quartier [quartierId]: those « Ajouter un client existant » offers it. */
-    fun observeClientsOutsideQuartier(quartierId: Int): Flow<List<Client>> =
-        clientDao.observeClientsOutsideQuartier(quartierId).map { list -> list.map { it.toClient() } }
+    fun pageClients(query: com.distrigo.app.data.local.paging.ClientListQuery): Flow<PagingData<Client>> =
+        Pager(com.distrigo.app.data.local.paging.OffsetPagingSource.config) {
+            com.distrigo.app.data.local.paging.OffsetPagingSource(
+                db, arrayOf("clients"),
+                count = { clientDao.countClients(com.distrigo.app.data.local.paging.ClientListSql.count(query)) },
+                rows  = { offset, limit -> clientDao.pageClients(com.distrigo.app.data.local.paging.ClientListSql.page(query, offset, limit)).map { it.toClient() } },
+            )
+        }.flow
+
+    fun observeClientCount(query: com.distrigo.app.data.local.paging.ClientListQuery): Flow<Int> =
+        clientDao.observeClientCount(com.distrigo.app.data.local.paging.ClientListSql.count(query))
+
+    fun observeSecteurCounts(query: com.distrigo.app.data.local.paging.ClientListQuery): Flow<List<com.distrigo.app.data.local.paging.SecteurCount>> =
+        clientDao.observeSecteurCounts(com.distrigo.app.data.local.paging.ClientListSql.secteurCounts(query))
+
+    fun observeClientSummary(query: com.distrigo.app.data.local.paging.ClientListQuery): Flow<com.distrigo.app.data.local.paging.PartySummary> =
+        clientDao.observeSummary(com.distrigo.app.data.local.paging.ClientListSql.summary(query))
+
+    /** The places the clients have, for the filter sheet: [column] is wilaya_name, commune_name or secteur_name. */
+    suspend fun clientPlaces(query: com.distrigo.app.data.local.paging.ClientListQuery, column: String, inWilaya: String? = null): List<String?> =
+        clientDao.clientPlaces(com.distrigo.app.data.local.paging.ClientListSql.places(query, column, inWilaya))
+
+    fun observeClient(id: Int): Flow<Client?> = clientDao.observeClient(id).map { it?.toClient() }
+
+    suspend fun clientIdsInSecteur(query: com.distrigo.app.data.local.paging.ClientListQuery, secteur: String?): List<Int> =
+        clientDao.clientIds(com.distrigo.app.data.local.paging.ClientListSql.idsInSecteur(query, secteur))
+
+    suspend fun getClient(id: Int): Client? = clientDao.getClientById(id)?.toClient()
 
     suspend fun addClient(client: Map<String, Any?>): Map<String, Any> = db.withTransaction {
         val secteurId = (client["secteur_id"] as? Number)?.toInt()

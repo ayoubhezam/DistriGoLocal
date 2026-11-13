@@ -145,7 +145,6 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             val viewModel = viewModel()
             val clientViewModel = clientViewModel()
             val clientIdArg = parentEntry.arguments?.getInt("clientId")?.takeIf { it != -1 }
-            val clients by clientViewModel.clients.collectAsStateWithLifecycle()
             val formClient by session.formClient.collectAsStateWithLifecycle()
 
             BackHandler { onBack() }
@@ -164,7 +163,6 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             val session = tourneeVenteFormSession(navController, graphRoute)
             val viewModel = viewModel()
             val clientViewModel = clientViewModel()
-            val clients by clientViewModel.clients.collectAsStateWithLifecycle()
             var showAddClientScreen by remember { mutableStateOf(false) }
 
             if (showAddClientScreen) {
@@ -189,8 +187,8 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             val selectedClient = session.formClient.collectAsStateWithLifecycle().value
 
             com.distrigo.app.ui.common.ClientSearchPicker(
-                clients          = clients,
-                selectedClientId = selectedClient?.id,
+                picker           = clientViewModel.picker,
+                selectedClient   = selectedClient,
                 onClientSelected = { client ->
                     session.setFormClient(client)
                     navController.popBackStack()

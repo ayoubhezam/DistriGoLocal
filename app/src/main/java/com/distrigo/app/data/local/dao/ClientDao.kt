@@ -4,6 +4,10 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.RawQuery
+import androidx.sqlite.db.SupportSQLiteQuery
+import com.distrigo.app.data.local.paging.PartySummary
+import com.distrigo.app.data.local.paging.SecteurCount
 import androidx.room.Update
 import com.distrigo.app.data.local.entity.ClientEntity
 import kotlinx.coroutines.flow.Flow
@@ -19,12 +23,35 @@ interface ClientDao {
     @Query("SELECT * FROM clients WHERE deleted_at IS NULL ORDER BY id DESC")
     fun observeAllClients(): Flow<List<ClientEntity>>
 
-    /** The live clients not in quartier [quartierId] (in none, or in another): what can be added to it. */
-    @Query("SELECT * FROM clients WHERE deleted_at IS NULL AND (quartier_id IS NULL OR quartier_id != :quartierId) ORDER BY id DESC")
-    fun observeClientsOutsideQuartier(quartierId: Int): Flow<List<ClientEntity>>
-
     @Query("SELECT * FROM clients WHERE id = :id AND deleted_at IS NULL")
     suspend fun getClientById(id: Int): ClientEntity?
+
+    /** One live client, or null once it is deleted: the detail, form and payment screens (PERF-01). */
+    @Query("SELECT * FROM clients WHERE id = :id AND deleted_at IS NULL")
+    fun observeClient(id: Int): Flow<ClientEntity?>
+
+    // ── The client lists and pickers, a page at a time (PERF-01): see ClientListSql ──
+
+    @RawQuery
+    suspend fun pageClients(query: SupportSQLiteQuery): List<ClientEntity>
+
+    @RawQuery
+    suspend fun countClients(query: SupportSQLiteQuery): Int
+
+    @RawQuery(observedEntities = [ClientEntity::class])
+    fun observeClientCount(query: SupportSQLiteQuery): Flow<Int>
+
+    @RawQuery(observedEntities = [ClientEntity::class])
+    fun observeSecteurCounts(query: SupportSQLiteQuery): Flow<List<SecteurCount>>
+
+    @RawQuery(observedEntities = [ClientEntity::class])
+    fun observeSummary(query: SupportSQLiteQuery): Flow<PartySummary>
+
+    @RawQuery
+    suspend fun clientPlaces(query: SupportSQLiteQuery): List<String?>
+
+    @RawQuery
+    suspend fun clientIds(query: SupportSQLiteQuery): List<Int>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertClient(client: ClientEntity): Long

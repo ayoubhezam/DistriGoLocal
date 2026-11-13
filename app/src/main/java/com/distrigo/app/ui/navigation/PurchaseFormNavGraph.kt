@@ -209,7 +209,6 @@ fun NavGraphBuilder.purchaseFormGraph(
             val orderIdArg = parentEntry.arguments?.getInt("orderId")?.takeIf { it != -1 }
             val isEdit = orderIdArg != null
             val selectedOrder by viewModel.selectedOrder.collectAsStateWithLifecycle()
-            val suppliers by supplierViewModel.suppliers.collectAsStateWithLifecycle()
             val formSupplier by session.formSupplier.collectAsStateWithLifecycle()
             val phase by session.phase.collectAsStateWithLifecycle()
 
@@ -239,13 +238,13 @@ fun NavGraphBuilder.purchaseFormGraph(
 
             // Edit prefill (note, supplier, cart) belongs to the session, for the same reason
             // session entry does: it must not depend on which destination happens to be composed.
-            // This effect only covers the case where the suppliers list arrives after the session
-            // has already prefilled, which would otherwise leave the header without a name.
-            LaunchedEffect(suppliers, editingOrder, phase) {
+            // This effect only covers the case where the session has prefilled without the
+            // supplier, which would otherwise leave the header without a name. Read by id (PERF-01).
+            LaunchedEffect(editingOrder, phase) {
                 if (isEdit && formSupplier == null && editingOrder != null &&
                     phase == SessionPhase.READY
                 ) {
-                    session.setFormSupplier(suppliers.find { it.id == editingOrder.supplier_id })
+                    session.setFormSupplier(supplierViewModel.getSupplier(editingOrder.supplier_id))
                 }
             }
             // The supplier carried in by "Nouvel achat" from a supplier page is applied by the
@@ -288,24 +287,15 @@ fun NavGraphBuilder.purchaseFormGraph(
             val viewModel = viewModel()
             val session = purchaseFormSession(navController, graphRoute, entry.destination.route)
             val supplierViewModel = supplierViewModel()
-            val suppliers by supplierViewModel.suppliers.collectAsStateWithLifecycle()
+            // Searched and paged in SQL (PERF-01): the picker no longer holds every supplier
+            val picker = supplierViewModel.picker
+            val pagedSuppliers = picker.items.collectAsLazyPagingItems()
+            // The picker outlives this screen (its pages are cached in the ViewModel): each visit starts unsearched
+            DisposableEffect(picker) { onDispose { picker.search = "" } }
             val formSupplier by session.formSupplier.collectAsStateWithLifecycle()
-            var supplierSearch by remember { mutableStateOf("") }
             var showAddSupplierDialog by remember { mutableStateOf(false) }
             var newSupplierName by remember { mutableStateOf("") }
             var newSupplierPhone by remember { mutableStateOf("") }
-            var pendingNewSupplierName by remember { mutableStateOf<String?>(null) }
-
-            // Same pattern as elsewhere in the app: select the freshly created supplier once the
-            // observed suppliers flow actually contains it, instead of reading the flow
-            // synchronously in the add callback (which would race the Room emission).
-            LaunchedEffect(suppliers, pendingNewSupplierName) {
-                val name = pendingNewSupplierName ?: return@LaunchedEffect
-                val newSupplier = suppliers.find { it.name == name } ?: return@LaunchedEffect
-                session.setFormSupplier(newSupplier)
-                pendingNewSupplierName = null
-                navController.popBackStack()
-            }
 
             if (showAddSupplierDialog) {
                 AlertDialog(
@@ -350,12 +340,16 @@ fun NavGraphBuilder.purchaseFormGraph(
                                         "initial_balance" to 0.0
                                     ),
                                     onSuccess = {
-                                        pendingNewSupplierName = newSupplierName.trim()
                                         showAddSupplierDialog = false
                                         newSupplierName  = ""
                                         newSupplierPhone = ""
                                     },
-                                    onError = { showAddSupplierDialog = false }
+                                    onError = { showAddSupplierDialog = false },
+                                    // The new supplier, as saved, is the one chosen
+                                    onAdded = { added ->
+                                        session.setFormSupplier(added)
+                                        navController.popBackStack()
+                                    }
                                 )
                             }
                         }) {
@@ -392,24 +386,19 @@ fun NavGraphBuilder.purchaseFormGraph(
                     )
                 }
                 DsCompactSearchField(
-                    value         = supplierSearch,
-                    onValueChange = { supplierSearch = it },
+                    value         = picker.search,
+                    onValueChange = { picker.search = it },
                     placeholder   = stringResource(R.string.purchases_search_supplier),
                     modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                 )
                 Spacer(Modifier.height(DsSpacing.sm))
-                val filteredSuppliers = suppliers.filter { supplier ->
-                    val tokens = supplierSearch.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
-                    tokens.isEmpty() || tokens.all { token ->
-                        supplier.name.contains(token, ignoreCase = true) ||
-                                (supplier.phone?.contains(token, ignoreCase = true) == true)
-                    }
-                }
                 LazyColumn(
                     contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                 ) {
-                    items(filteredSuppliers) { supplier ->
+                    items(count = pagedSuppliers.itemCount, key = pagedSuppliers.itemKey { it.id }, contentType = { "supplier" }) { index ->
+                        val supplier = pagedSuppliers[index]
+                        if (supplier == null) { com.distrigo.app.ui.common.PartyRowPlaceholder(); return@items }
                         Card(
                             modifier  = Modifier.fillMaxWidth().clickable {
                                 session.setFormSupplier(supplier)

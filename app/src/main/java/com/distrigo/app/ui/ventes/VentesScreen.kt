@@ -712,14 +712,13 @@ fun VenteDetailScreen(
     var overflowMenuExpanded by remember { mutableStateOf(false) }
 
     // The receipt header names the client's type and secteur, which the vente does not carry —
-    // it snapshots only the name. Read from the Room-observed list rather than snapshotted onto
-    // the sale, so every receipt already in the database gets the fuller header too. Null while
-    // the list loads, and for a client that has since been deleted; the header shows "-" then and
-    // still names them from the vente's own snapshot.
-    val allClients by clientViewModel.clients.collectAsStateWithLifecycle()
-    val receiptClient = remember(allClients, displayVente.client_id) {
-        allClients.find { it.id == displayVente.client_id }
-    }
+    // it snapshots only the name. Read live by id rather than snapshotted onto the sale, so every
+    // receipt already in the database gets the fuller header too. Null while it loads, and for a
+    // client that has since been deleted; the header shows "-" then and still names them from the
+    // vente's own snapshot.
+    val receiptClient = com.distrigo.app.ui.common.liveRecord(displayVente.client_id) {
+        clientViewModel.observeClient(displayVente.client_id)
+    }.value
 
     // Units per colis for the receipt's "Unité/colis" column. A vente records what was sold, never
     // how the product is packaged, so it comes from the catalogue: this sale's products only, read by

@@ -32,7 +32,18 @@ import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import com.distrigo.app.data.local.paging.ClientListQuery
+import com.distrigo.app.data.local.paging.PartySummary
+import com.distrigo.app.ui.common.ClientPickerList
+import com.distrigo.app.ui.common.placesOf
+import com.distrigo.app.ui.common.toQuery
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ClientViewModel @Inject constructor(
     private val repository: ProductRepository,
@@ -49,41 +60,49 @@ class ClientViewModel @Inject constructor(
     /** The Clients list's filter sheet. Here, not in the screen, so opening a client and coming back keeps it. */
     var listFilters by mutableStateOf(ClientListFilters())
 
-    private val _isLoading = MutableStateFlow(true)
-    val isLoading: StateFlow<Boolean> = _isLoading
-
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
     private val _secteurs = MutableStateFlow<List<Secteur>>(emptyList())
     val secteurs: StateFlow<List<Secteur>> = _secteurs
 
-    // Room-observed single source of truth: re-emits on every write to the clients table
-    // (ajout/modification/suppression, recalcul de solde après vente ou paiement…) — no manual refresh.
-    val clients: StateFlow<List<Client>> = (outsideQuartier?.let { repository.observeClientsOutsideQuartier(it) } ?: repository.observeClients())
-        .onEach { _isLoading.value = false; _error.value = null }
-        .catch { e -> _error.value = userMessage(e); _isLoading.value = false }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
     /** The Clients list's search box, as typed. */
     var listSearch by mutableStateOf("")
 
     /**
-     * The Clients list: [clients] narrowed by [listSearch] and [listFilters], worked out off the main
-     * thread once typing pauses, as Produits' search does.
-     *
-     * The screen used to filter in composition on every key. Filtering itself is quick; what cost
-     * frames was everything around it: each key recomposed the whole screen and put a new screenful
-     * of rows on it, half the frames late while typing (UI fluidity audit, Step 7). Now a key changes
-     * only the search box, and the list changes once per pause.
+     * The Clients list as the search and the sheet ask for it, once typing pauses. Searched, filtered, counted and
+     * paged in SQL (PERF-01): the list used to hold every client, mapped again after every sale.
      */
-    val shownClients: StateFlow<List<Client>> = combine(
-        clients,
-        snapshotFlow { listFilters },
-        debouncedSearch { listSearch },
-    ) { all, filters, search -> filterClients(all, search, filters) }
-        .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private val listQuery: Flow<ClientListQuery> = combine(snapshotFlow { listFilters }, debouncedSearch { listSearch }) { filters, search ->
+        filters.toQuery(search, outsideQuartier)
+    }.distinctUntilChanged()
+
+    val pagedClients: Flow<PagingData<Client>> = listQuery.flatMapLatest { repository.pageClients(it) }.cachedIn(viewModelScope)
+
+    /** How many clients the list shows; null until counted. */
+    val shownCount: StateFlow<Int?> = listQuery.flatMapLatest { repository.observeClientCount(it) }
+        .catch { e -> _error.value = userMessage(e) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** All of them, whatever is searched: how many, and how many owe how much. Null until counted. */
+    val summary: StateFlow<PartySummary?> = repository.observeClientSummary(ClientListQuery(outsideQuartier = outsideQuartier))
+        .catch { e -> _error.value = userMessage(e) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** The places the clients have, for the filter sheet ([column]: wilaya_name, commune_name or secteur_name). */
+    suspend fun places(column: String, inWilaya: String? = null): List<String> =
+        placesOf(repository.clientPlaces(ClientListQuery(outsideQuartier = outsideQuartier), column, inWilaya))
+
+    /** One client, live: null once deleted. */
+    fun observeClient(id: Int): Flow<Client?> = repository.observeClient(id)
+
+    /** « Choisir un client »: the forms' picker. */
+    val picker: ClientPickerList by lazy { ClientPickerList(viewModelScope, repository, ClientListQuery()) }
+
+    private val pickers = mutableMapOf<ClientListQuery, ClientPickerList>()
+
+    /** A picker over [base]: « Ajouter des clients » to a tournée, which leaves out those it has. */
+    fun picker(base: ClientListQuery): ClientPickerList = pickers.getOrPut(base) { ClientPickerList(viewModelScope, repository, base) }
 
     /**
      * ترجع الولاية الأكثر استعمالًا إن ظهرت في زبونين أو أكثر، وإلا null.
@@ -259,7 +278,7 @@ class ClientViewModel @Inject constructor(
     fun loadClientsAndUpdate(clientId: Int, onUpdated: (Client?) -> Unit) {
         viewModelScope.launch {
             try {
-                onUpdated(repository.getClients().find { it.id == clientId })
+                onUpdated(repository.getClient(clientId))
             } catch (e: Exception) {
                 _error.value = userMessage(e)
             }
