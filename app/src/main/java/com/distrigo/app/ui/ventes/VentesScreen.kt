@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.ventes
 
+import com.distrigo.app.ui.common.ScrollToTopBox
+import com.distrigo.app.ui.common.ScrollTopClearance
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.DsFab
 import com.distrigo.app.ui.designsystem.LocalLicense
@@ -577,6 +579,7 @@ fun VentesScreen(
                 val listState = rememberLazyListState()
 
                 // -- List --
+                ScrollToTopBox(listState, Modifier.weight(1f), ScrollTopClearance.BottomBar) {
                 LazyColumn(
                     state               = listState,
                     // Bottom pad clears the raised FAB (clearance + 56dp FAB), so the last card
@@ -588,7 +591,7 @@ fun VentesScreen(
                         bottom = DsSpacing.fabBottomClearance + 56.dp
                     ),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.xs),
-                    modifier            = Modifier.weight(1f)
+                    modifier            = Modifier.fillMaxSize()
                 ) {
                     // Keyed by sale and by day, so a page loading or a sale changing does not move
                     // what is on screen.
@@ -641,6 +644,7 @@ fun VentesScreen(
                             null -> Unit
                         }
                     }
+                }
                 }
             }
         }

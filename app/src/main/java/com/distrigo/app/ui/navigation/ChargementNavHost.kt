@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.common.ScrollToTopBox
+import com.distrigo.app.ui.common.ScrollTopClearance
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.LocalLicense
 
@@ -141,8 +144,11 @@ fun ChargementNavHost(
 
                 Spacer(Modifier.height(DsSpacing.sm))
 
+                val productListState = rememberLazyListState()
+                ScrollToTopBox(productListState, Modifier.weight(1f), ScrollTopClearance.Edge) {
                 LazyColumn(
-                    modifier            = Modifier.weight(1f),
+                    state               = productListState,
+                    modifier            = Modifier.fillMaxSize(),
                     contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.md)
                 ) {
@@ -234,6 +240,7 @@ fun ChargementNavHost(
                             }
                         }
                     }
+                }
                 }
 
                 // ── Bottom bar: cart summary pill ──

@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.common.ScrollToTopBox
+import com.distrigo.app.ui.common.ScrollTopClearance
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.platform.LocalContext
 import com.distrigo.app.ui.designsystem.LocalLicense
@@ -299,7 +302,10 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                 )
                             }
 
+                            val productListState = rememberLazyListState()
+                            ScrollToTopBox(productListState, Modifier, ScrollTopClearance.Edge) {
                             LazyColumn(
+                                state               = productListState,
                                 contentPadding      = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = 80.dp),
                                 verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                             ) {
@@ -398,6 +404,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                         }
                                     }
                                 }
+                            }
                             }
                         }
                     }

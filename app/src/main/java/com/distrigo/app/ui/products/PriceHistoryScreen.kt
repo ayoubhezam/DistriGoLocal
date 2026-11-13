@@ -46,6 +46,7 @@ import com.distrigo.app.ui.rapports.ReportFilterBar
 import com.distrigo.app.ui.common.DsCompactSearchField
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.lazy.rememberLazyListState
+import com.distrigo.app.ui.common.ScrollToTopBox
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
 import com.distrigo.app.R
@@ -215,9 +216,10 @@ fun PriceMovementsScreen(
             )
             return@Column
         }
+        ScrollToTopBox(listState, Modifier.weight(1f).fillMaxWidth()) {
         LazyColumn(
             state               = listState,
-            modifier            = Modifier.weight(1f).fillMaxWidth(),
+            modifier            = Modifier.fillMaxSize(),
             contentPadding      = PaddingValues(DsSpacing.md),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
         ) {
@@ -238,6 +240,7 @@ fun PriceMovementsScreen(
                     MovementRow(movement)
                 }
             }
+        }
         }
     }
 }

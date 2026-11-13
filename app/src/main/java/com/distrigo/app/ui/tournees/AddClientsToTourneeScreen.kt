@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.tournees
 
+import com.distrigo.app.ui.common.ScrollToTopBox
+import com.distrigo.app.ui.common.ScrollTopClearance
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.LocalLicense
 
@@ -135,8 +138,11 @@ fun AddClientsToTourneeScreen(
             Spacer(Modifier.height(DsSpacing.xs))
         }
 
+        val clientsListState = rememberLazyListState()
+        ScrollToTopBox(clientsListState, Modifier.weight(1f), ScrollTopClearance.Edge) {
         LazyColumn(
-            modifier            = Modifier.weight(1f),
+            state               = clientsListState,
+            modifier            = Modifier.fillMaxSize(),
             contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
         ) {
@@ -215,6 +221,7 @@ fun AddClientsToTourneeScreen(
                     }
                 },
             )
+        }
         }
 
         Button(

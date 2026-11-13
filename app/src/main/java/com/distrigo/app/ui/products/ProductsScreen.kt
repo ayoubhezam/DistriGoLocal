@@ -23,6 +23,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import com.distrigo.app.ui.common.ScrollTopClearance
+import com.distrigo.app.ui.common.ScrollToTopBox
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import com.distrigo.app.ui.common.ListSortChip
@@ -675,6 +677,7 @@ fun ProductsScreen(
                 val productKey = remember(pagedProducts) { pagedProducts.itemKey { it.id } }
                 if (!viewModel.isGridView) {
                     val listState = rememberLazyListState()
+                    ScrollToTopBox(listState, Modifier.fillMaxSize(), ScrollTopClearance.BottomBar) {
                     LazyColumn(
                         state          = listState,
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = DsSpacing.fabBottomClearance + 56.dp),
@@ -694,8 +697,10 @@ fun ProductsScreen(
                             )
                         }
                     }
+                    }
                 } else {
                     val gridState = rememberLazyGridState()
+                    ScrollToTopBox(gridState, Modifier.fillMaxSize(), ScrollTopClearance.BottomBar) {
                     LazyVerticalGrid(
                         state               = gridState,
                         columns             = GridCells.Fixed(2),
@@ -713,6 +718,7 @@ fun ProductsScreen(
                                 },
                                 onLongClick = { longPressProduct = product })
                         }
+                    }
                     }
                 }
             }

@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.purchases
 
+import com.distrigo.app.ui.common.ScrollToTopBox
+import com.distrigo.app.ui.common.ScrollTopClearance
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.DsFab
 import com.distrigo.app.ui.designsystem.LocalLicense
@@ -617,11 +619,12 @@ fun PurchasesScreen(
                 }
             } else {
                 // ── List ──
+                ScrollToTopBox(listState, Modifier.weight(1f), ScrollTopClearance.BottomBar) {
                 LazyColumn(
                     state               = listState,
                     contentPadding      = PaddingValues(start = DsSpacing.lg, top = DsSpacing.xs, end = DsSpacing.lg, bottom = DsSpacing.fabBottomClearance + 56.dp),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.xs),
-                    modifier            = Modifier.weight(1f)
+                    modifier            = Modifier.fillMaxSize()
                 ) {
                     // Keyed by bon and by day, so a page loading above or a bon changing below does
                     // not move what is on screen.
@@ -677,6 +680,7 @@ fun PurchasesScreen(
                             null -> Unit
                         }
                     }
+                }
                 }
             }
         }

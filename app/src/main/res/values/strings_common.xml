@@ -38,6 +38,7 @@
     <string name="common_cd_scan_barcode">Scanner un code-barres</string>
     <string name="common_cd_decrease">Diminuer</string>
     <string name="common_cd_increase">Augmenter</string>
+    <string name="common_cd_scroll_to_top">Revenir en haut de la liste</string>
     <string name="common_label_unit_price_da">Prix unitaire (DA)</string>
     <string name="common_cd_price_history">Historique des prix</string>
     <string name="common_cart_last_prices">DERNIERS PRIX</string>

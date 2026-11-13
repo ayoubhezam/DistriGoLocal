@@ -1,5 +1,7 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.ui.common.ScrollToTopBox
+import com.distrigo.app.ui.common.ScrollTopClearance
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.platform.LocalContext
 import com.distrigo.app.core.format.westernDigits
@@ -392,7 +394,10 @@ fun NavGraphBuilder.purchaseFormGraph(
                     modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                 )
                 Spacer(Modifier.height(DsSpacing.sm))
+                val supplierListState = rememberLazyListState()
+                ScrollToTopBox(supplierListState, Modifier, ScrollTopClearance.Edge) {
                 LazyColumn(
+                    state               = supplierListState,
                     contentPadding      = PaddingValues(horizontal = DsSpacing.lg, vertical = DsSpacing.xs),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                 ) {
@@ -442,6 +447,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                             }
                         }
                     }
+                }
                 }
             }
         }
@@ -597,9 +603,10 @@ fun NavGraphBuilder.purchaseFormGraph(
                         )
                     }
 
+                    ScrollToTopBox(step2ListState, Modifier.weight(1f), ScrollTopClearance.Edge) {
                     LazyColumn(
                         state               = step2ListState,
-                        modifier            = Modifier.weight(1f),
+                        modifier            = Modifier.fillMaxSize(),
                         contentPadding      = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = DsSpacing.lg),
                         verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                     ) {
@@ -716,6 +723,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                 }
                             }
                         }
+                    }
                     }
 
                     Row(

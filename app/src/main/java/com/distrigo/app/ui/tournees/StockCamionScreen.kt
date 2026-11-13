@@ -1,5 +1,9 @@
 package com.distrigo.app.ui.tournees
 
+import com.distrigo.app.ui.common.ScrollToTopBox
+import com.distrigo.app.ui.common.ScrollTopClearance
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.platform.LocalContext
 import com.distrigo.app.ui.designsystem.DsFab
@@ -376,7 +380,10 @@ fun StockCamionScreen(
                     // stock is the dépôt's threshold, not the camion's. A tap opens the same
                     // "Modifier" a long press does — the card's chevron promises something.
                     if (!productViewModel.camionGridView) {
+                        val camionListState = rememberLazyListState()
+                        ScrollToTopBox(camionListState, Modifier.fillMaxSize(), ScrollTopClearance.BottomBar) {
                         LazyColumn(
+                            state               = camionListState,
                             contentPadding      = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = bottom),
                             verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
                         ) {
@@ -391,8 +398,12 @@ fun StockCamionScreen(
                                 )
                             }
                         }
+                        }
                     } else {
+                        val camionGridState = rememberLazyGridState()
+                        ScrollToTopBox(camionGridState, Modifier.fillMaxSize(), ScrollTopClearance.BottomBar) {
                         LazyVerticalGrid(
+                            state                 = camionGridState,
                             columns               = GridCells.Fixed(2),
                             contentPadding        = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = bottom),
                             horizontalArrangement = Arrangement.spacedBy(DsSpacing.sm),
@@ -408,6 +419,7 @@ fun StockCamionScreen(
                                     lowStock    = false
                                 )
                             }
+                        }
                         }
                     }
                 }

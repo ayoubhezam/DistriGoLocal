@@ -1,5 +1,8 @@
 package com.distrigo.app.ui.tournees
 
+import com.distrigo.app.ui.common.ScrollToTopBox
+import com.distrigo.app.ui.common.ScrollTopClearance
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.core.format.percentText
 import androidx.compose.ui.text.buildAnnotatedString
@@ -180,7 +183,10 @@ fun TourneesScreen(
                 }
             }
             else -> {
+                val tourneesListState = rememberLazyListState()
+                ScrollToTopBox(tourneesListState, Modifier.fillMaxSize(), ScrollTopClearance.BottomBar) {
                 LazyColumn(
+                    state = tourneesListState,
                     // The last card clears the bottom bar and the « + » over it
                     contentPadding      = PaddingValues(start = DsSpacing.lg, end = DsSpacing.lg, top = DsSpacing.xs, bottom = DsSpacing.fabBottomClearance + DsFabSize),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)
@@ -191,6 +197,7 @@ fun TourneesScreen(
                             onClick = { onTourneeClick(tournee.id) },
                         )
                     }
+                }
                 }
             }
         }

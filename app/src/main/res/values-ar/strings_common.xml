@@ -37,6 +37,7 @@
     <string name="common_cd_scan_barcode">مسح الكودبار</string>
     <string name="common_cd_decrease">إنقاص</string>
     <string name="common_cd_increase">زيادة</string>
+    <string name="common_cd_scroll_to_top">العودة إلى أعلى القائمة</string>
     <string name="common_label_unit_price_da">سعر الوحدة (DA)</string>
     <string name="common_cd_price_history">سجل الأسعار</string>
     <string name="common_cart_last_prices">آخر الأسعار</string>
