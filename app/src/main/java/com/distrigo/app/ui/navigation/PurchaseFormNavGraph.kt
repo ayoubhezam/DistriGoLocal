@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.platform.LocalContext
 import com.distrigo.app.core.format.westernDigits
 import com.distrigo.app.ui.designsystem.LocalLicense
@@ -207,10 +208,10 @@ fun NavGraphBuilder.purchaseFormGraph(
             val supplierViewModel = supplierViewModel()
             val orderIdArg = parentEntry.arguments?.getInt("orderId")?.takeIf { it != -1 }
             val isEdit = orderIdArg != null
-            val selectedOrder by viewModel.selectedOrder.collectAsState()
-            val suppliers by supplierViewModel.suppliers.collectAsState()
-            val formSupplier by session.formSupplier.collectAsState()
-            val phase by session.phase.collectAsState()
+            val selectedOrder by viewModel.selectedOrder.collectAsStateWithLifecycle()
+            val suppliers by supplierViewModel.suppliers.collectAsStateWithLifecycle()
+            val formSupplier by session.formSupplier.collectAsStateWithLifecycle()
+            val phase by session.phase.collectAsStateWithLifecycle()
 
             // `var initialized by rememberSaveable` used to live here. It survived process death
             // while the ViewModel it described did not, so after a kill it reported "already set
@@ -287,8 +288,8 @@ fun NavGraphBuilder.purchaseFormGraph(
             val viewModel = viewModel()
             val session = purchaseFormSession(navController, graphRoute, entry.destination.route)
             val supplierViewModel = supplierViewModel()
-            val suppliers by supplierViewModel.suppliers.collectAsState()
-            val formSupplier by session.formSupplier.collectAsState()
+            val suppliers by supplierViewModel.suppliers.collectAsStateWithLifecycle()
+            val formSupplier by session.formSupplier.collectAsStateWithLifecycle()
             var supplierSearch by remember { mutableStateOf("") }
             var showAddSupplierDialog by remember { mutableStateOf(false) }
             var newSupplierName by remember { mutableStateOf("") }
@@ -468,17 +469,17 @@ fun NavGraphBuilder.purchaseFormGraph(
             // Paged from the database with the search and filters applied there, and cached on the
             // session — see PagedProductList. The list no longer holds the whole catalogue.
             val pagedProducts = session.productList.items.collectAsLazyPagingItems()
-            val productCount by session.productList.count.collectAsState()
-            val formSupplier by session.formSupplier.collectAsState()
-            val cartItems by session.formCartItems.collectAsState()
+            val productCount by session.productList.count.collectAsStateWithLifecycle()
+            val formSupplier by session.formSupplier.collectAsStateWithLifecycle()
+            val cartItems by session.formCartItems.collectAsStateWithLifecycle()
             var showScanner by remember { mutableStateOf(false) }
             var showAddProductScreen by remember { mutableStateOf(false) }
             var pendingNewProductId by remember { mutableStateOf<Int?>(null) }
             var showFilterSheet by remember { mutableStateOf(false) }
-            val categories by productViewModel.categories.collectAsState()
-            val sousCategories by productViewModel.sousCategories.collectAsState()
-            val marques by productViewModel.marques.collectAsState()
-            val suppliers by productViewModel.suppliers.collectAsState()
+            val categories by productViewModel.categories.collectAsStateWithLifecycle()
+            val sousCategories by productViewModel.sousCategories.collectAsStateWithLifecycle()
+            val marques by productViewModel.marques.collectAsStateWithLifecycle()
+            val suppliers by productViewModel.suppliers.collectAsStateWithLifecycle()
 
             // Search, filters and scroll position belong to the session, not to this destination —
             // see "Step 02 browsing state" on PurchaseFormSessionViewModel. The list reopens as it
@@ -776,12 +777,12 @@ fun NavGraphBuilder.purchaseFormGraph(
             val productViewModel = productViewModel()
             val orderIdArg = parentEntry.arguments?.getInt("orderId")?.takeIf { it != -1 }
             val isEdit = orderIdArg != null
-            val selectedOrder by viewModel.selectedOrder.collectAsState()
+            val selectedOrder by viewModel.selectedOrder.collectAsStateWithLifecycle()
             val editingOrder = if (isEdit) selectedOrder?.takeIf { it.id == orderIdArg } else null
-            val formSupplier by session.formSupplier.collectAsState()
-            val cartItems by session.formCartItems.collectAsState()
-            val note by session.formNote.collectAsState()
-            val missingProductIds by session.missingProductIds.collectAsState()
+            val formSupplier by session.formSupplier.collectAsStateWithLifecycle()
+            val cartItems by session.formCartItems.collectAsStateWithLifecycle()
+            val note by session.formNote.collectAsStateWithLifecycle()
+            val missingProductIds by session.missingProductIds.collectAsStateWithLifecycle()
             var expandedCartItemId by remember { mutableStateOf<Int?>(null) }
             val total = com.distrigo.app.data.model.Amount.documentTotal(cartItems.map { com.distrigo.app.data.model.Amount.lineTotal(it.quantity, it.unitCost) })
 
@@ -831,7 +832,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                     ) {
                         items(cartItems, key = { it.product.id }) { item ->
                             val isExpanded = expandedCartItemId == item.product.id
-                            val history by productViewModel.priceHistory.collectAsState()
+                            val history by productViewModel.priceHistory.collectAsStateWithLifecycle()
 
                             LaunchedEffect(isExpanded, item.product.id) {
                                 if (isExpanded) productViewModel.loadPriceHistory(item.product.id)
@@ -1074,11 +1075,11 @@ fun NavGraphBuilder.purchaseFormGraph(
             val session = purchaseFormSession(navController, graphRoute, entry.destination.route)
             val orderIdArg = parentEntry.arguments?.getInt("orderId")?.takeIf { it != -1 }
             val isEdit = orderIdArg != null
-            val formSupplier by session.formSupplier.collectAsState()
-            val cartItems by session.formCartItems.collectAsState()
-            val note by session.formNote.collectAsState()
-            val montantPaye by session.formMontantPaye.collectAsState()
-            val missingProductIds by session.missingProductIds.collectAsState()
+            val formSupplier by session.formSupplier.collectAsStateWithLifecycle()
+            val cartItems by session.formCartItems.collectAsStateWithLifecycle()
+            val note by session.formNote.collectAsStateWithLifecycle()
+            val montantPaye by session.formMontantPaye.collectAsStateWithLifecycle()
+            val missingProductIds by session.missingProductIds.collectAsStateWithLifecycle()
             // A pièce line whose colis make part of a piece: marked in the cart, and the bon waits for it.
             val fractionalPieces = cartItems.firstOrNull { !Quantity.fitsUnit(it.quantity, it.product.unit_type) }?.product?.name
             var isSaving by remember { mutableStateOf(false) }

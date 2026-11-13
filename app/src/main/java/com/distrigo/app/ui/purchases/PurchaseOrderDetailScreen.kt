@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.purchases
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.ui.common.formatQty
@@ -55,7 +56,7 @@ fun PurchaseOrderDetailScreen(
 ) {
     val money = LocalMoneyFormatter.current
     val context = LocalContext.current
-    val selectedOrder by viewModel.selectedOrder.collectAsState()
+    val selectedOrder by viewModel.selectedOrder.collectAsStateWithLifecycle()
     // Id-guarded: `selectedOrder` is shared across the whole Achats graph and refreshed
     // asynchronously, so between this screen composing and `loadOrderDetail` returning it still
     // holds whichever bon was opened last. Reading it unguarded computed `isReceived` from the
@@ -175,7 +176,7 @@ fun PurchaseOrderDetailScreen(
     }
 
     // The business header comes from the database; a receipt opens once it has loaded.
-    val business by businessViewModel.settings.collectAsState()
+    val business by businessViewModel.settings.collectAsStateWithLifecycle()
 
     if (showReceiptPreview) business?.let { business ->
         ReceiptPreviewSheet(

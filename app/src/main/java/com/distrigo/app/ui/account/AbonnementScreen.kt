@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.account
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.data.license.licText
 import com.distrigo.app.ui.common.layoutEnd
 import android.content.Intent
@@ -32,7 +33,6 @@ import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -84,7 +84,7 @@ import androidx.compose.material.icons.automirrored.outlined.Chat
 @Composable
 fun AbonnementScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
     BackHandler { onBack() }
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     // Debug builds can draw another state's screen (LicensePreview); a release build always shows the real one
     val context = LocalContext.current
     val preview by produceState<LicenseState?>(null, state.license) {

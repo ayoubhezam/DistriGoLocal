@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.products
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.data.model.ProductUnit
@@ -102,13 +103,13 @@ fun ProductFormScreen(
     var imageBase64   by remember { mutableStateOf<String?>(if (isEdit) product!!.image_uri else null) }
     var imageRotation by remember { mutableStateOf(0f) }
 
-    val categories            by viewModel.categories.collectAsState()
+    val categories            by viewModel.categories.collectAsStateWithLifecycle()
     var selectedCategoryId    by remember { mutableStateOf<Int?>(if (isEdit) product!!.category_id else null) }
     var categoryExpanded      by remember { mutableStateOf(false) }
     var showAddCategoryDialog by remember { mutableStateOf(false) }
     var newCategoryName       by remember { mutableStateOf("") }
 
-    val sousCategories              by viewModel.sousCategories.collectAsState()
+    val sousCategories              by viewModel.sousCategories.collectAsStateWithLifecycle()
     var selectedSousCategorieId     by remember { mutableStateOf<Int?>(if (isEdit) product?.sous_categorie_id else null) }
     var sousCategorieExpanded       by remember { mutableStateOf(false) }
     var showAddSousCategorieDialog  by remember { mutableStateOf(false) }
@@ -123,13 +124,13 @@ fun ProductFormScreen(
         }
     }
 
-    val marques             by viewModel.marques.collectAsState()
+    val marques             by viewModel.marques.collectAsStateWithLifecycle()
     var selectedMarqueId    by remember { mutableStateOf<Int?>(if (isEdit) product?.marque_id else null) }
     var marqueExpanded      by remember { mutableStateOf(false) }
     var showAddMarqueDialog by remember { mutableStateOf(false) }
     var newMarqueName       by remember { mutableStateOf("") }
 
-    val suppliers             by viewModel.suppliers.collectAsState()
+    val suppliers             by viewModel.suppliers.collectAsStateWithLifecycle()
     var selectedSupplierId by remember { mutableStateOf<Int?>(if (isEdit) product?.supplier_id else null) }
     var supplierExpanded      by remember { mutableStateOf(false) }
     var showAddSupplierDialog by remember { mutableStateOf(false) }

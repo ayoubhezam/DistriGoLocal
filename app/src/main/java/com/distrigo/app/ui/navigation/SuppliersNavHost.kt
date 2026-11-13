@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import androidx.compose.runtime.mutableIntStateOf
@@ -95,7 +96,7 @@ fun SuppliersNavHost(
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
             val viewModel: SupplierViewModel = hiltViewModel(parentEntry)
             val supplierId = entry.arguments!!.getInt("supplierId").takeIf { it != -1 }
-            val suppliers by viewModel.suppliers.collectAsState()
+            val suppliers by viewModel.suppliers.collectAsStateWithLifecycle()
             val supplier = supplierId?.let { id -> suppliers.find { it.id == id } }
 
             SupplierFormScreen(
@@ -117,8 +118,8 @@ fun SuppliersNavHost(
             val retourViewModel: RetourFournisseurViewModel = hiltViewModel(retourParentEntry)
             val supplierId = entry.arguments!!.getInt("supplierId")
             val money = LocalMoneyFormatter.current
-            val suppliers by viewModel.suppliers.collectAsState()
-            val isLoading by viewModel.isLoading.collectAsState()
+            val suppliers by viewModel.suppliers.collectAsStateWithLifecycle()
+            val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
             val supplier = suppliers.find { it.id == supplierId }
             var showDeleteConfirm by remember { mutableStateOf(false) }
             // Deleting pops this screen, and so does the entity vanishing from the list a moment later:
@@ -215,8 +216,8 @@ fun SuppliersNavHost(
             val retourParentEntry = remember(entry) { navController.getBackStackEntry(Screen.SuppliersGraph.route) }
             val retourViewModel: RetourFournisseurViewModel = hiltViewModel(retourParentEntry)
             val supplierId = entry.arguments!!.getInt("supplierId")
-            val suppliers by viewModel.suppliers.collectAsState()
-            val isLoading by viewModel.isLoading.collectAsState()
+            val suppliers by viewModel.suppliers.collectAsStateWithLifecycle()
+            val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
             val supplier = suppliers.find { it.id == supplierId }
 
             if (supplier != null) {
@@ -241,9 +242,9 @@ fun SuppliersNavHost(
             val supplierId = entry.arguments!!.getInt("supplierId")
             LaunchedEffect(Unit) { historyViewModel.bind(supplierId) }
             val controller = historyViewModel.bind(supplierId)
-            val historyQuery by controller.query.collectAsState()
-            val historyFilter by controller.filter.collectAsState()
-            val historyTotalCount by historyViewModel.totalCount.collectAsState()
+            val historyQuery by controller.query.collectAsStateWithLifecycle()
+            val historyFilter by controller.filter.collectAsStateWithLifecycle()
+            val historyTotalCount by historyViewModel.totalCount.collectAsStateWithLifecycle()
             val pagingItems = controller.items.collectAsLazyPagingItems()
 
             var longPressPayment by remember { mutableStateOf<SupplierTransaction?>(null) }
@@ -259,7 +260,7 @@ fun SuppliersNavHost(
             val supplierViewModel: SupplierViewModel = hiltViewModel(parentEntry)
 
             if (showPaymentDialog) {
-                val supplier = supplierViewModel.suppliers.collectAsState().value.find { it.id == supplierId }
+                val supplier = supplierViewModel.suppliers.collectAsStateWithLifecycle().value.find { it.id == supplierId }
                 if (supplier != null) {
                     PaymentDialog(
                         balance   = supplier.balance,

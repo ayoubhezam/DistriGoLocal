@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.diagnostics.rememberTrackedNavController
@@ -105,7 +106,7 @@ fun TourneesNavHost(
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.TourneesGraph.route) }
             val viewModel: TourneeViewModel = hiltViewModel(parentEntry)
             val tourneeIdArg = entry.arguments?.getInt("tourneeId")?.takeIf { it != -1 }
-            val selectedTournee by viewModel.selectedTournee.collectAsState()
+            val selectedTournee by viewModel.selectedTournee.collectAsStateWithLifecycle()
             val editingTournee = tourneeIdArg?.let { id -> selectedTournee?.takeIf { it.id == id } }
 
             TourneeFormScreen(
@@ -123,8 +124,8 @@ fun TourneesNavHost(
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.TourneesGraph.route) }
             val viewModel: TourneeViewModel = hiltViewModel(parentEntry)
             val tourneeId = entry.arguments!!.getInt("tourneeId")
-            val selectedTournee by viewModel.selectedTournee.collectAsState()
-            val tourneeClients by viewModel.tourneeClients.collectAsState()
+            val selectedTournee by viewModel.selectedTournee.collectAsStateWithLifecycle()
+            val tourneeClients by viewModel.tourneeClients.collectAsStateWithLifecycle()
             val current = selectedTournee
 
             if (current == null || current.id != tourneeId) {
@@ -148,7 +149,7 @@ fun TourneesNavHost(
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.TourneesGraph.route) }
             val viewModel: TourneeViewModel = hiltViewModel(parentEntry)
             val tourneeId = entry.arguments!!.getInt("tourneeId")
-            val tournee by viewModel.selectedTournee.collectAsState()
+            val tournee by viewModel.selectedTournee.collectAsStateWithLifecycle()
 
             TourneeVenteBrouillonsScreen(
                 tourneeId   = tourneeId,
@@ -210,7 +211,7 @@ fun TourneesNavHost(
             val venteViewModel: VenteViewModel = hiltViewModel()
             val tourneeId = entry.arguments!!.getInt("tourneeId")
             val venteId = entry.arguments!!.getInt("venteId")
-            val selectedTournee by viewModel.selectedTournee.collectAsState()
+            val selectedTournee by viewModel.selectedTournee.collectAsStateWithLifecycle()
             val vente = selectedTournee?.takeIf { it.id == tourneeId }?.ventes?.find { it.id == venteId }
 
             LaunchedEffect(venteId) { venteViewModel.loadVenteDetail(venteId) }

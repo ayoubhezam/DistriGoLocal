@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.account
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.data.license.licText
 import com.distrigo.app.core.format.westernDigits
 import android.content.ClipData
@@ -65,7 +66,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -144,12 +144,12 @@ fun CompteScreen(
     onOpenSubscription: () -> Unit = {},
 ) {
     BackHandler { onBack() }
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     // Signed out, Compte is Connexion, with the onboarding's own view model (the activity's): a sign-in that needs
     // more — a company, the seat moved here, a code — or succeeds continues in the onboarding, which MainActivity opens
     val onboarding: OnboardingViewModel = hiltViewModel(LocalContext.current.findActivity() as ComponentActivity)
-    val signIn by onboarding.status.collectAsState()
+    val signIn by onboarding.status.collectAsStateWithLifecycle()
     val actions = rememberOnboardingActions(onboarding)
     // A sign-in begun in this form: the form stays, its button turning, while the phone is activated — the account
     // is signed in seconds before — so the onboarding's next screen comes straight after it, with no Compte between

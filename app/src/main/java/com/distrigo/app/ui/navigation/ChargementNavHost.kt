@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.diagnostics.rememberTrackedNavController
@@ -83,7 +84,7 @@ fun ChargementNavHost(
             val productViewModel: ProductViewModel = hiltViewModel()
             // Paged from the database, cached on the session — see PagedProductList.
             val pagedProducts = session.productList.items.collectAsLazyPagingItems()
-            val cartItems by session.formCartItems.collectAsState()
+            val cartItems by session.formCartItems.collectAsStateWithLifecycle()
             val search = session.productSearch
             // The scanner, as in the sale forms: what it reads goes in the search, which matches barcodes.
             var showScanner by remember { mutableStateOf(false) }
@@ -275,8 +276,8 @@ fun ChargementNavHost(
             val viewModel: ChargementViewModel = hiltViewModel(parentEntry)
             val session: ChargementFormSessionViewModel = hiltViewModel(parentEntry)
             LaunchedEffect(Unit) { session.beginOrResumeSession(draftId) }
-            val cartItems by session.formCartItems.collectAsState()
-            val note by session.formNote.collectAsState()
+            val cartItems by session.formCartItems.collectAsStateWithLifecycle()
+            val note by session.formNote.collectAsStateWithLifecycle()
             var isSaving by remember { mutableStateOf(false) }
 
             // Exactly the condition save() uses to decide whether to write anything: a line counts
@@ -284,7 +285,7 @@ fun ChargementNavHost(
             // cartItems rather than tracked separately, so the button cannot drift out of step with
             // what the save would actually do.
             val hasChanges = cartItems.any { it.targetCamion != it.product.camion_stock }
-            val stockPolicy by session.stockPolicy.collectAsState()
+            val stockPolicy by session.stockPolicy.collectAsStateWithLifecycle()
             // Strict stock: a line whose target the dépôt can no longer cover (the stock moved
             // after it was set). Its card says what to bring it back to; the save waits for that.
             val overStock = cartItems.any { ci ->

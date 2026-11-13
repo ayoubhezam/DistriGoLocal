@@ -1,5 +1,6 @@
 package com.distrigo.app
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.diagnostics.rememberTrackedNavController
 import kotlinx.coroutines.withContext
 import com.distrigo.app.ui.common.RestoringScreen
@@ -266,7 +267,7 @@ class MainActivity : ComponentActivity() {
             }
             // A sign-in made in Compte's own form that needs a step only the onboarding shows — a company, the
             // seat moved here, a code — or that succeeded: the onboarding opens on it, as it is, without a reset
-            val onboardingStatus by onboardingViewModel.status.collectAsState()
+            val onboardingStatus by onboardingViewModel.status.collectAsStateWithLifecycle()
             LaunchedEffect(onboardingStatus.followUp) {
                 if (onboardingStatus.followUp && onboarding == null) onboarding = com.distrigo.app.ui.onboarding.OnboardingStart.SIGN_IN
             }

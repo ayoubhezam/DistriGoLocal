@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.rapports
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,7 +34,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -101,9 +101,9 @@ private fun groupName(name: String): String = when (name) {
  */
 @Composable
 fun ProduitsReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, onSansVente: () -> Unit, viewModel: ProduitsReportViewModel) {
-    val state by viewModel.state.collectAsState()
-    val ranking by viewModel.ranking.collectAsState()
-    val grouping by viewModel.grouping.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val ranking by viewModel.ranking.collectAsStateWithLifecycle()
+    val grouping by viewModel.grouping.collectAsStateWithLifecycle()
     val drill = LocalDrillDown.current
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
@@ -350,9 +350,9 @@ private fun AbcCard(report: ProductReport) {
 /** Rapports › Produits › Voir tout: every product sold, ranked, searchable; a tap opens it. */
 @Composable
 fun ProductRankingScreen(onBack: () -> Unit, viewModel: ProduitsReportViewModel) {
-    val state by viewModel.state.collectAsState()
-    val ranking by viewModel.ranking.collectAsState()
-    val query by viewModel.query.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val ranking by viewModel.ranking.collectAsStateWithLifecycle()
+    val query by viewModel.query.collectAsStateWithLifecycle()
     val drill = LocalDrillDown.current
     val report = state.report
     val ranked = remember(report, ranking) { report?.ranked(ranking).orEmpty() }
@@ -410,8 +410,8 @@ fun ProductRankingScreen(onBack: () -> Unit, viewModel: ProduitsReportViewModel)
 /** Rapports › Produits › Sans vente: the stocked products that did not sell, the costliest stock first. */
 @Composable
 fun DormantProductsScreen(onBack: () -> Unit, viewModel: ProduitsReportViewModel) {
-    val state by viewModel.state.collectAsState()
-    val query by viewModel.query.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val query by viewModel.query.collectAsStateWithLifecycle()
     val drill = LocalDrillDown.current
     val money = LocalMoneyFormatter.current
     val report = state.report

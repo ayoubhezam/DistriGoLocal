@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.products
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.common.layoutEnd
 import com.distrigo.app.core.format.percentText
 import com.distrigo.app.ui.designsystem.LocalLicense
@@ -85,18 +86,18 @@ fun ProductDetailScreen(
     LaunchedEffect(product.id) {
         viewModel.loadPriceMovements(product.id)
     }
-    val priceMovements by viewModel.priceMovements.collectAsState()
+    val priceMovements by viewModel.priceMovements.collectAsStateWithLifecycle()
 
     // Reloaded when the stock moves, so a sale made elsewhere shows here when the user comes back.
     LaunchedEffect(product.id, currentProduct.stock, currentProduct.camion_stock) {
         viewModel.loadRecentMovements(product.id)
     }
-    val recentMovements by viewModel.recentMovements.collectAsState()
+    val recentMovements by viewModel.recentMovements.collectAsStateWithLifecycle()
 
     // ── Gallery ──
     // The photos are observed from their own table rather than read off the product, so adding,
     // deleting or re-covering one lands on screen the moment the transaction commits.
-    val images by viewModel.productImages.collectAsState()
+    val images by viewModel.productImages.collectAsStateWithLifecycle()
     LaunchedEffect(product.id) { viewModel.observeGalleryFor(product.id) }
 
     var manageMode    by remember { mutableStateOf(false) }

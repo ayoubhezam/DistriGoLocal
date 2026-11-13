@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.purchases
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.core.text.UiText
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -77,7 +78,7 @@ fun BrouillonsScreen(
     onResume : (PurchaseDraft) -> Unit
 ) {
     val money = LocalMoneyFormatter.current
-    val drafts by viewModel.drafts.collectAsState()
+    val drafts by viewModel.drafts.collectAsStateWithLifecycle()
 
     var pendingDelete by remember { mutableStateOf<PurchaseDraft?>(null) }
     var showFilters   by remember { mutableStateOf(false) }

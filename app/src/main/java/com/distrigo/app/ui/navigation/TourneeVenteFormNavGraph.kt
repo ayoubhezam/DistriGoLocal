@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.platform.LocalContext
 import com.distrigo.app.ui.designsystem.LocalLicense
 
@@ -144,8 +145,8 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             val viewModel = viewModel()
             val clientViewModel = clientViewModel()
             val clientIdArg = parentEntry.arguments?.getInt("clientId")?.takeIf { it != -1 }
-            val clients by clientViewModel.clients.collectAsState()
-            val formClient by session.formClient.collectAsState()
+            val clients by clientViewModel.clients.collectAsStateWithLifecycle()
+            val formClient by session.formClient.collectAsStateWithLifecycle()
 
             BackHandler { onBack() }
 
@@ -163,7 +164,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             val session = tourneeVenteFormSession(navController, graphRoute)
             val viewModel = viewModel()
             val clientViewModel = clientViewModel()
-            val clients by clientViewModel.clients.collectAsState()
+            val clients by clientViewModel.clients.collectAsStateWithLifecycle()
             var showAddClientScreen by remember { mutableStateOf(false) }
 
             if (showAddClientScreen) {
@@ -185,7 +186,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
 
             BackHandler { navController.popBackStack() }
 
-            val selectedClient = session.formClient.collectAsState().value
+            val selectedClient = session.formClient.collectAsStateWithLifecycle().value
 
             com.distrigo.app.ui.common.ClientSearchPicker(
                 clients          = clients,
@@ -213,16 +214,16 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             val picker = viewModel.camionProducts
             remember(parentEntry.id) { picker.startSale(parentEntry.id); true }
             val pagedProducts = picker.list.items.collectAsLazyPagingItems()
-            val productCount by picker.list.count.collectAsState()
-            val formClient by session.formClient.collectAsState()
-            val cartItems by session.formCartItems.collectAsState()
+            val productCount by picker.list.count.collectAsStateWithLifecycle()
+            val formClient by session.formClient.collectAsStateWithLifecycle()
+            val cartItems by session.formCartItems.collectAsStateWithLifecycle()
             val search = picker.search
             val filters = picker.filters
             var showFilterSheet by remember { mutableStateOf(false) }
-            val categories by productViewModel.categories.collectAsState()
-            val sousCategories by productViewModel.sousCategories.collectAsState()
-            val marques by productViewModel.marques.collectAsState()
-            val filterSuppliers by productViewModel.suppliers.collectAsState()
+            val categories by productViewModel.categories.collectAsStateWithLifecycle()
+            val sousCategories by productViewModel.sousCategories.collectAsStateWithLifecycle()
+            val marques by productViewModel.marques.collectAsStateWithLifecycle()
+            val filterSuppliers by productViewModel.suppliers.collectAsStateWithLifecycle()
             var showScanner by remember { mutableStateOf(false) }
 
             // Each cart line's camion stock is kept current by the session now (resyncCart), watching
@@ -450,9 +451,9 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             val session = tourneeVenteFormSession(navController, graphRoute)
             val viewModel = viewModel()
             val productViewModel = productViewModel()
-            val cartItems by session.formCartItems.collectAsState()
-            val note by session.formNote.collectAsState()
-            val missingProductIds by session.missingProductIds.collectAsState()
+            val cartItems by session.formCartItems.collectAsStateWithLifecycle()
+            val note by session.formNote.collectAsStateWithLifecycle()
+            val missingProductIds by session.missingProductIds.collectAsStateWithLifecycle()
             var expandedCartItemId by remember { mutableStateOf<Int?>(null) }
 
             val total = com.distrigo.app.data.model.Amount.documentTotal(cartItems.map { com.distrigo.app.data.model.Amount.lineTotal(it.quantity, it.unitPrice) })
@@ -587,12 +588,12 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             val venteViewModel = venteViewModel()
             val tourneeId = parentEntry.arguments!!.getInt("tourneeId")
             val clientIdArg = parentEntry.arguments?.getInt("clientId")?.takeIf { it != -1 }
-            val formClient by session.formClient.collectAsState()
-            val cartItems by session.formCartItems.collectAsState()
-            val note by session.formNote.collectAsState()
-            val montantPaye by session.formMontantPaye.collectAsState()
-            val missingProductIds by session.missingProductIds.collectAsState()
-            val overStockProductIds by session.overStockProductIds.collectAsState()
+            val formClient by session.formClient.collectAsStateWithLifecycle()
+            val cartItems by session.formCartItems.collectAsStateWithLifecycle()
+            val note by session.formNote.collectAsStateWithLifecycle()
+            val montantPaye by session.formMontantPaye.collectAsStateWithLifecycle()
+            val missingProductIds by session.missingProductIds.collectAsStateWithLifecycle()
+            val overStockProductIds by session.overStockProductIds.collectAsStateWithLifecycle()
             var isSaving by remember { mutableStateOf(false) }
             val total = com.distrigo.app.data.model.Amount.documentTotal(cartItems.map { com.distrigo.app.data.model.Amount.lineTotal(it.quantity, it.unitPrice) })
 

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.settings.trash
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import android.widget.Toast
@@ -42,7 +43,7 @@ import com.distrigo.app.R
 /** Paramètres → Corbeille: what was deleted, to put back or, when nothing uses it, delete for good. */
 @Composable
 fun TrashScreen(onBack: () -> Unit, viewModel: TrashViewModel = hiltViewModel()) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
     val license = LocalLicense.current
     val context = LocalContext.current

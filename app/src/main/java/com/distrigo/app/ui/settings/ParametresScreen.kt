@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.settings
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -150,8 +151,8 @@ fun ParametresScreen(
  */
 @Composable
 private fun NegativeStockRow(viewModel: StockSettingsViewModel = hiltViewModel()) {
-    val allowNegative by viewModel.allowNegative.collectAsState()
-    val pendingStrict by viewModel.pendingStrict.collectAsState()
+    val allowNegative by viewModel.allowNegative.collectAsStateWithLifecycle()
+    val pendingStrict by viewModel.pendingStrict.collectAsStateWithLifecycle()
 
     SettingsRow(
         icon     = Icons.Outlined.Inventory2,
@@ -198,7 +199,7 @@ private val CostMethod.title: Int get() = when (this) {
  */
 @Composable
 private fun CostMethodRow(viewModel: CostMethodSettingsViewModel = hiltViewModel()) {
-    val current by viewModel.method.collectAsState()
+    val current by viewModel.method.collectAsStateWithLifecycle()
     val money = LocalMoneyFormatter.current
     var choosing by remember { mutableStateOf(false) }
 
@@ -279,7 +280,7 @@ private const val MONEY_FORMAT_SAMPLE = 1_236_790.5
  */
 @Composable
 private fun MoneyFormatRow(viewModel: MoneyFormatSettingsViewModel = hiltViewModel()) {
-    val current by viewModel.format.collectAsState()
+    val current by viewModel.format.collectAsStateWithLifecycle()
     var choosing by remember { mutableStateOf(false) }
 
     SettingsRow(

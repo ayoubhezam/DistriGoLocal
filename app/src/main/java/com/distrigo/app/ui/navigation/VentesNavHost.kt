@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.diagnostics.rememberTrackedNavController
@@ -153,7 +154,7 @@ fun VentesNavHost(
             val venteId = entry.arguments!!.getInt("venteId")
             // Observed on its own: the list holds only the page on screen, so the sale may not be in it.
             val lookup by remember(venteId) { viewModel.observeVente(venteId) }
-                .collectAsState(initial = VenteLookup.Loading)
+                .collectAsStateWithLifecycle(initialValue = VenteLookup.Loading)
             val fallbackVente = (lookup as? VenteLookup.Found)?.vente
 
             LaunchedEffect(venteId) { viewModel.loadVenteDetail(venteId) }

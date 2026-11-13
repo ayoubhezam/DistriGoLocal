@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.retours
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.*
 import com.distrigo.app.data.model.RetourClient
 import com.distrigo.app.data.model.RetourClientMotifs
@@ -21,7 +22,7 @@ fun RetourClientDetailScreen(
     onDeleted     : () -> Unit
 ) {
     val money = LocalMoneyFormatter.current
-    val detail by viewModel.retourDetail.collectAsState()
+    val detail by viewModel.retourDetail.collectAsStateWithLifecycle()
     val loaded = detail?.takeIf { it.id == retourSummary.id }
     val retour = loaded ?: retourSummary
     var deleting by remember { mutableStateOf(false) }

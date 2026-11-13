@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.rapports
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,7 +31,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -125,8 +125,8 @@ private fun openParty(side: DebtSide): (Int) -> Unit {
 /** Rapports › Clients et fournisseurs: who buys and who sells to you, over the shared period. */
 @Composable
 fun PartyReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, onInactive: () -> Unit, viewModel: PartyReportViewModel) {
-    val state by viewModel.state.collectAsState()
-    val ranking by viewModel.ranking.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val ranking by viewModel.ranking.collectAsStateWithLifecycle()
     val words = wordsFor(state.side)
     val open = openParty(state.side)
 
@@ -280,9 +280,9 @@ private fun ShareCard(report: PartyReport, words: PartyWords) {
 /** Rapports › Clients et fournisseurs › Voir tout: every party of the period, ranked, searchable. */
 @Composable
 fun PartiesScreen(onBack: () -> Unit, viewModel: PartyReportViewModel) {
-    val state by viewModel.state.collectAsState()
-    val ranking by viewModel.ranking.collectAsState()
-    val query by viewModel.query.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val ranking by viewModel.ranking.collectAsStateWithLifecycle()
+    val query by viewModel.query.collectAsStateWithLifecycle()
     val words = wordsFor(state.side)
     val open = openParty(state.side)
     val report = state.report
@@ -324,8 +324,8 @@ fun PartiesScreen(onBack: () -> Unit, viewModel: PartyReportViewModel) {
 /** Rapports › Clients et fournisseurs › Clients inactifs: who bought before and not since, the biggest first. */
 @Composable
 fun InactiveClientsScreen(onBack: () -> Unit, viewModel: PartyReportViewModel) {
-    val state by viewModel.state.collectAsState()
-    val query by viewModel.query.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val query by viewModel.query.collectAsStateWithLifecycle()
     val open = openParty(DebtSide.CLIENTS)
     val all = state.report?.inactive.orEmpty()
     val shown = remember(all, query) { val tokens = searchTokens(query); all.filter { matchesAllTokens(tokens, it.name) } }

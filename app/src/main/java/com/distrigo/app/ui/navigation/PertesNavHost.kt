@@ -1,12 +1,12 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.ui.pertes.PerteDetailViewModel
 import com.distrigo.app.ui.pertes.PerteDetailScreen
 import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -84,10 +84,10 @@ fun PertesNavHost(
                 val graph = remember(entry) { navController.getBackStackEntry(Screen.PertesNewGraph.route) }
                 val viewModel: NewPerteViewModel = hiltViewModel(graph)
                 val productViewModel: ProductViewModel = hiltViewModel()
-                val categories by productViewModel.categories.collectAsState()
-                val sousCategories by productViewModel.sousCategories.collectAsState()
-                val marques by productViewModel.marques.collectAsState()
-                val suppliers by productViewModel.suppliers.collectAsState()
+                val categories by productViewModel.categories.collectAsStateWithLifecycle()
+                val sousCategories by productViewModel.sousCategories.collectAsStateWithLifecycle()
+                val marques by productViewModel.marques.collectAsStateWithLifecycle()
+                val suppliers by productViewModel.suppliers.collectAsStateWithLifecycle()
                 NewPerteListScreen(
                     viewModel = viewModel, categories = categories, sousCategories = sousCategories,
                     marques = marques, suppliers = suppliers,

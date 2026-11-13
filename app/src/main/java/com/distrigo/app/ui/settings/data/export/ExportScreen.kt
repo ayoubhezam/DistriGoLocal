@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.settings.data.export
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -48,7 +49,7 @@ import androidx.compose.ui.res.pluralStringResource
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ExportScreen(onBack: () -> Unit, viewModel: ExportViewModel = hiltViewModel()) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     val saveLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(state.mimeType)) { uri ->

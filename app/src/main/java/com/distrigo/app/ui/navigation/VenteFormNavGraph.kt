@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.platform.LocalContext
 import com.distrigo.app.ui.designsystem.LocalLicense
 
@@ -170,7 +171,7 @@ fun NavGraphBuilder.venteFormGraph(
         composable(clientRoute) { entry ->
             remember(entry) { navController.getBackStackEntry(graphRoute) }
             val session = venteFormSession(navController, graphRoute, clientRoute)
-            val formClient by session.formClient.collectAsState()
+            val formClient by session.formClient.collectAsStateWithLifecycle()
 
             // The one-time init that used to live here -- resetVenteForm() behind a
             // rememberSaveable("initialized") flag, plus two effects resolving the client from the
@@ -193,7 +194,7 @@ fun NavGraphBuilder.venteFormGraph(
             remember(entry) { navController.getBackStackEntry(graphRoute) }
             val session = venteFormSession(navController, graphRoute, clientPickerRoute)
             val clientViewModel = clientViewModel()
-            val clients by clientViewModel.clients.collectAsState()
+            val clients by clientViewModel.clients.collectAsStateWithLifecycle()
             var showAddClientScreen by remember { mutableStateOf(false) }
 
             if (showAddClientScreen) {
@@ -215,7 +216,7 @@ fun NavGraphBuilder.venteFormGraph(
 
             BackHandler { navController.popBackStack() }
 
-            val selectedClient = session.formClient.collectAsState().value
+            val selectedClient = session.formClient.collectAsStateWithLifecycle().value
 
             com.distrigo.app.ui.common.ClientSearchPicker(
                 clients          = clients,
@@ -238,23 +239,23 @@ fun NavGraphBuilder.venteFormGraph(
             val productViewModel = productViewModel()
             val venteId = parentEntry.arguments?.getInt("venteId")?.takeIf { it != -1 }
             val clientNameArg = parentEntry.arguments?.getString("clientName")
-            val editSource by session.editSource.collectAsState()
+            val editSource by session.editSource.collectAsStateWithLifecycle()
             // Held by the section the form opens from, so its pages are cached from one sale to the
             // next — see ProductPicker; cleared for each new sale.
             val picker = viewModel.saleProducts
             remember(parentEntry.id) { picker.startSale(parentEntry.id); true }
             val pagedProducts = picker.list.items.collectAsLazyPagingItems()
-            val productCount by picker.list.count.collectAsState()
-            val formClient by session.formClient.collectAsState()
-            val cartItems by session.formCartItems.collectAsState()
-            val stockPolicy by session.stockPolicy.collectAsState()
+            val productCount by picker.list.count.collectAsStateWithLifecycle()
+            val formClient by session.formClient.collectAsStateWithLifecycle()
+            val cartItems by session.formCartItems.collectAsStateWithLifecycle()
+            val stockPolicy by session.stockPolicy.collectAsStateWithLifecycle()
             val search = picker.search
             val filters = picker.filters
             var showFilterSheet by remember { mutableStateOf(false) }
-            val categories by productViewModel.categories.collectAsState()
-            val sousCategories by productViewModel.sousCategories.collectAsState()
-            val marques by productViewModel.marques.collectAsState()
-            val filterSuppliers by productViewModel.suppliers.collectAsState()
+            val categories by productViewModel.categories.collectAsStateWithLifecycle()
+            val sousCategories by productViewModel.sousCategories.collectAsStateWithLifecycle()
+            val marques by productViewModel.marques.collectAsStateWithLifecycle()
+            val filterSuppliers by productViewModel.suppliers.collectAsStateWithLifecycle()
             var showScanner by remember { mutableStateOf(false) }
 
             // Two blocks used to live here and are now the session's:
@@ -504,11 +505,11 @@ fun NavGraphBuilder.venteFormGraph(
             val session = venteFormSession(navController, graphRoute, cartRoute)
             val productViewModel = productViewModel()
             val venteId = parentEntry.arguments?.getInt("venteId")?.takeIf { it != -1 }
-            val editSource by session.editSource.collectAsState()
-            val cartItems by session.formCartItems.collectAsState()
-            val note by session.formNote.collectAsState()
-            val missingProductIds by session.missingProductIds.collectAsState()
-            val stockPolicy by session.stockPolicy.collectAsState()
+            val editSource by session.editSource.collectAsStateWithLifecycle()
+            val cartItems by session.formCartItems.collectAsStateWithLifecycle()
+            val note by session.formNote.collectAsStateWithLifecycle()
+            val missingProductIds by session.missingProductIds.collectAsStateWithLifecycle()
+            val stockPolicy by session.stockPolicy.collectAsStateWithLifecycle()
             var expandedCartItemId by remember { mutableStateOf<Int?>(null) }
 
             val total = com.distrigo.app.data.model.Amount.documentTotal(cartItems.map { com.distrigo.app.data.model.Amount.lineTotal(it.quantity, it.unitPrice) })
@@ -666,13 +667,13 @@ fun NavGraphBuilder.venteFormGraph(
             val clientViewModel = clientViewModel()
             val venteId = parentEntry.arguments?.getInt("venteId")?.takeIf { it != -1 }
             val isEdit = venteId != null
-            val formClient by session.formClient.collectAsState()
-            val cartItems by session.formCartItems.collectAsState()
-            val note by session.formNote.collectAsState()
-            val montantPaye by session.formMontantPaye.collectAsState()
-            val missingProductIds by session.missingProductIds.collectAsState()
-            val stockPolicy by session.stockPolicy.collectAsState()
-            val editSource by session.editSource.collectAsState()
+            val formClient by session.formClient.collectAsStateWithLifecycle()
+            val cartItems by session.formCartItems.collectAsStateWithLifecycle()
+            val note by session.formNote.collectAsStateWithLifecycle()
+            val montantPaye by session.formMontantPaye.collectAsStateWithLifecycle()
+            val missingProductIds by session.missingProductIds.collectAsStateWithLifecycle()
+            val stockPolicy by session.stockPolicy.collectAsStateWithLifecycle()
+            val editSource by session.editSource.collectAsStateWithLifecycle()
             var isSaving by remember { mutableStateOf(false) }
             var saveError by remember { mutableStateOf("") }
             // Edit mode: the saved sale and what saving over it changes, while the user decides.

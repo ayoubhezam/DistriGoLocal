@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.retours
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import androidx.activity.compose.BackHandler
@@ -49,7 +50,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -108,8 +108,8 @@ import com.distrigo.app.ui.navigation.LocalDrillDown
 @Composable
 fun NewRetourListScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onOpenCart: () -> Unit) {
     val money = LocalMoneyFormatter.current
-    val eligible by viewModel.eligible.collectAsState()
-    val cart by viewModel.cart.collectAsState()
+    val eligible by viewModel.eligible.collectAsStateWithLifecycle()
+    val cart by viewModel.cart.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var showScanner by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<ReturnableProduct?>(null) }
@@ -359,7 +359,7 @@ fun RetourDialog(
 @Composable
 fun NewRetourCartScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onNext: () -> Unit) {
     val money = LocalMoneyFormatter.current
-    val cart by viewModel.cart.collectAsState()
+    val cart by viewModel.cart.collectAsStateWithLifecycle()
     var expandedId by remember { mutableStateOf<String?>(null) }
     var editing by remember { mutableStateOf<RetourCartLine?>(null) }
     BackHandler(onBack = onBack)
@@ -444,7 +444,7 @@ fun NewRetourCartScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onNex
 @Composable
 fun NewRetourSummaryScreen(viewModel: NewRetourViewModel, onBack: () -> Unit, onDone: () -> Unit) {
     val money = LocalMoneyFormatter.current
-    val live by viewModel.cart.collectAsState()
+    val live by viewModel.cart.collectAsStateWithLifecycle()
     var confirmed by remember { mutableStateOf<List<RetourCartLine>?>(null) }
     var saving by remember { mutableStateOf(false) }
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
@@ -560,7 +560,7 @@ private fun RetourLocationField(location: String, enabled: Boolean, onChange: (S
 @Composable
 fun NewRetourSaleScreen(viewModel: NewRetourClientViewModel, onBack: () -> Unit, onPicked: () -> Unit) {
     val money = LocalMoneyFormatter.current
-    val sales by viewModel.sales.collectAsState()
+    val sales by viewModel.sales.collectAsStateWithLifecycle()
     BackHandler(onBack = onBack)
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {

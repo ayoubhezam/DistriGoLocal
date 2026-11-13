@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.settings.incentive
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -73,8 +74,8 @@ fun CommissionPolicyScreen(
 ) {
     BackHandler { onBack() }
 
-    val activePolicy by viewModel.activePolicy.collectAsState()
-    val isSaving by viewModel.isSaving.collectAsState()
+    val activePolicy by viewModel.activePolicy.collectAsStateWithLifecycle()
+    val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
 
     var incentiveType by remember { mutableStateOf(IncentiveType.FIXED_RATE) }
     var periodType by remember { mutableStateOf(PeriodType.MONTHLY) }

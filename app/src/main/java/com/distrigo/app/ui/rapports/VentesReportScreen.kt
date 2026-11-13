@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.rapports
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
@@ -34,7 +35,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -83,7 +83,7 @@ fun VentesReportScreen(
     onBack: () -> Unit,
     viewModel: VentesReportViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val drill = LocalDrillDown.current
     // « Voir tout » of « Répartition des ventes »: the place whose every part is listed
     var allOf by remember { mutableStateOf<PlaceNode?>(null) }

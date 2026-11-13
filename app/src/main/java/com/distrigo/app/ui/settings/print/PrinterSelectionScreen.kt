@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.settings.print
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.core.format.westernDigits
 import android.bluetooth.BluetoothAdapter
 import android.content.Intent
@@ -71,7 +72,7 @@ fun PrinterSelectionScreen(
     viewModel: PrinterSelectionViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     var renaming  by remember { mutableStateOf<SavedPrinter?>(null) }
     var menuFor   by remember { mutableStateOf<SavedPrinter?>(null) }
@@ -556,7 +557,7 @@ private fun PrinterConfigSheet(
     viewModel: PrinterSelectionViewModel,
     onDismiss: () -> Unit,
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val live = state.saved.firstOrNull { it.id == printer.id } ?: printer
 
     ModalBottomSheet(

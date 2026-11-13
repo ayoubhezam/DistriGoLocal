@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.rapports
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,7 +27,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,7 +60,7 @@ private val INFO_CHARGE_TYPES: ReportInfo get() = ReportInfo(reportText(R.string
 /** Rapports › Résultat: from the chiffre d'affaires to what is left, over the shared period. */
 @Composable
 fun ProfitReportScreen(onBack: () -> Unit, viewModel: ProfitReportViewModel) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
         DsTopAppBar(title = stringResource(R.string.rapports_profit), subtitle = stringResource(R.string.rapports_profit_sub), leading = DsTopBarLeading.Back(onBack))

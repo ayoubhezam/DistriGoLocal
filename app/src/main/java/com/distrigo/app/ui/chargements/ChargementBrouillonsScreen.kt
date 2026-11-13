@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.chargements
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -55,7 +56,7 @@ fun ChargementBrouillonsScreen(
     onBack   : () -> Unit,
     onResume : (ChargementDraft) -> Unit
 ) {
-    val drafts by viewModel.drafts.collectAsState()
+    val drafts by viewModel.drafts.collectAsStateWithLifecycle()
 
     var pendingDelete by remember { mutableStateOf<ChargementDraft?>(null) }
     var confirmBulk   by remember { mutableStateOf(false) }

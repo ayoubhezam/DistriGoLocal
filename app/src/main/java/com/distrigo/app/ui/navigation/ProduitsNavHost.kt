@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.diagnostics.rememberTrackedNavController
@@ -86,7 +87,7 @@ fun ProduitsNavHost(
             // as an empty new-product form for the moment it takes to read it.
             val lookup by remember(productId) {
                 productId?.let { viewModel.observeProduct(it) } ?: flowOf(ProductLookup.Gone)
-            }.collectAsState(initial = ProductLookup.Loading)
+            }.collectAsStateWithLifecycle(initialValue = ProductLookup.Loading)
 
             when {
                 productId == null -> ProductFormScreen(
@@ -115,7 +116,7 @@ fun ProduitsNavHost(
             val productId = entry.arguments!!.getInt("productId")
             // Observed on its own: the Produits list holds only the page on screen.
             val lookup by remember(productId) { viewModel.observeProduct(productId) }
-                .collectAsState(initial = ProductLookup.Loading)
+                .collectAsStateWithLifecycle(initialValue = ProductLookup.Loading)
             val product = (lookup as? ProductLookup.Found)?.product
 
             if (product != null) {
@@ -154,15 +155,15 @@ fun ProduitsNavHost(
             val viewModel: ProductViewModel = hiltViewModel(parentEntry)
             val productId = entry.arguments!!.getInt("productId")
             val lookup by remember(productId) { viewModel.observeProduct(productId) }
-                .collectAsState(initial = ProductLookup.Loading)
+                .collectAsStateWithLifecycle(initialValue = ProductLookup.Loading)
             val product = (lookup as? ProductLookup.Found)?.product
 
             // Loaded here as well as on the detail screen: the back stack can be restored straight
             // onto this destination after process death, with the detail never composed.
             LaunchedEffect(productId) { viewModel.loadPriceMovements(productId) }
-            val movements by viewModel.priceMovements.collectAsState()
-            val isLoading by viewModel.priceHistoryLoading.collectAsState()
-            val error by viewModel.priceHistoryError.collectAsState()
+            val movements by viewModel.priceMovements.collectAsStateWithLifecycle()
+            val isLoading by viewModel.priceHistoryLoading.collectAsStateWithLifecycle()
+            val error by viewModel.priceHistoryError.collectAsStateWithLifecycle()
 
             if (product != null) {
                 PriceHistoryScreen(
@@ -190,9 +191,9 @@ fun ProduitsNavHost(
             val viewModel: ProductViewModel = hiltViewModel(parentEntry)
             val productId = entry.arguments!!.getInt("productId")
             val lookup by remember(productId) { viewModel.observeProduct(productId) }
-                .collectAsState(initial = ProductLookup.Loading)
+                .collectAsStateWithLifecycle(initialValue = ProductLookup.Loading)
             val product = (lookup as? ProductLookup.Found)?.product
-            val movements by viewModel.priceMovements.collectAsState()
+            val movements by viewModel.priceMovements.collectAsStateWithLifecycle()
 
             if (product != null) {
                 PriceMovementsScreen(
@@ -218,7 +219,7 @@ fun ProduitsNavHost(
                 val parentProductsEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
                 val productsViewModel: ProductViewModel = hiltViewModel(parentProductsEntry)
                 val lookup by remember(movementsProductId) { productsViewModel.observeProduct(movementsProductId) }
-                    .collectAsState(initial = ProductLookup.Loading)
+                    .collectAsStateWithLifecycle(initialValue = ProductLookup.Loading)
                 val product = (lookup as? ProductLookup.Found)?.product
 
                 if (product != null) {
@@ -242,14 +243,14 @@ fun ProduitsNavHost(
                 val movementId = entry.arguments!!.getInt("movementId")
                 // Its movement gone — its perte, sale, bon… deleted from the record « Voir … » opened — it leaves rather
                 // than spin on a movement that will never load
-                val goneId by movementsViewModel.goneMovementId.collectAsState()
+                val goneId by movementsViewModel.goneMovementId.collectAsStateWithLifecycle()
                 if (goneId == movementId) LeaveWhenGone(navController, entry)
                 // The product's unit, so the quantity reads « 3 cartons » rather than a fixed « Pièces »
                 val productId = parentEntry.arguments!!.getInt("productId")
                 val parentProductsEntry = remember(entry) { navController.getBackStackEntry(Screen.ProduitsGraph.route) }
                 val productsViewModel: ProductViewModel = hiltViewModel(parentProductsEntry)
                 val lookup by remember(productId) { productsViewModel.observeProduct(productId) }
-                    .collectAsState(initial = ProductLookup.Loading)
+                    .collectAsStateWithLifecycle(initialValue = ProductLookup.Loading)
                 MovementDetailView(
                     movementId = movementId,
                     viewModel  = movementsViewModel,

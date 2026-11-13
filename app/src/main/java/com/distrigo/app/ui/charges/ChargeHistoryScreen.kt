@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.charges
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.DsTopBarAddButton
 
 import com.distrigo.app.ui.designsystem.LocalLicense
@@ -44,7 +45,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -201,12 +201,12 @@ fun ChargeHistoryScreen(
     viewModel : ChargeHistoryViewModel = hiltViewModel(),
 ) {
     val money = LocalMoneyFormatter.current
-    val search by viewModel.search.collectAsState()
-    val filters by viewModel.filters.collectAsState()
-    val charges by viewModel.charges.collectAsState()
-    val types by viewModel.types.collectAsState()
-    val subTypes by viewModel.subTypes.collectAsState()
-    val justAdded by viewModel.justAdded.collectAsState()
+    val search by viewModel.search.collectAsStateWithLifecycle()
+    val filters by viewModel.filters.collectAsStateWithLifecycle()
+    val charges by viewModel.charges.collectAsStateWithLifecycle()
+    val types by viewModel.types.collectAsStateWithLifecycle()
+    val subTypes by viewModel.subTypes.collectAsStateWithLifecycle()
+    val justAdded by viewModel.justAdded.collectAsStateWithLifecycle()
     var sheet by remember { mutableStateOf(false) }
     var adding by remember { mutableStateOf(false) }
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
@@ -316,8 +316,8 @@ fun ChargeHistoryScreen(
  */
 @Composable
 fun NewChargeDialog(onDismiss: () -> Unit, viewModel: ChargeHistoryViewModel = hiltViewModel()) {
-    val types by viewModel.types.collectAsState()
-    val subTypes by viewModel.subTypes.collectAsState()
+    val types by viewModel.types.collectAsStateWithLifecycle()
+    val subTypes by viewModel.subTypes.collectAsStateWithLifecycle()
     var saving by remember { mutableStateOf(false) }
     var saveError by remember { mutableStateOf("") }
     ChargeDialog(

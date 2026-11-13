@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.suppliers
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.core.format.westernDigits
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -54,9 +55,9 @@ fun SuppliersScreen(
     onSupplierClick : (Int) -> Unit = {}
 ) {
     val money = LocalMoneyFormatter.current
-    val suppliers by viewModel.suppliers.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val error     by viewModel.error.collectAsState()
+    val suppliers by viewModel.suppliers.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val error     by viewModel.error.collectAsStateWithLifecycle()
 
     var search by remember { mutableStateOf("") }
     var showFilterSheet by remember { mutableStateOf(false) }

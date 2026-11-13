@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.secteurs
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.R
 import com.distrigo.app.ui.common.shownName
 import com.distrigo.app.ui.common.communeShownName
@@ -31,7 +32,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,7 +76,7 @@ fun SecteurFormScreen(
     onDeleted: () -> Unit,
     viewModel: SecteurFormViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val license = LocalLicense.current
     val editing = viewModel.secteurId != null
 

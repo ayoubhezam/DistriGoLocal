@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.clients
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.core.format.westernDigits
 import com.distrigo.app.ui.designsystem.LocalLicense
 
@@ -99,7 +100,7 @@ fun ClientDetailScreen(
     viewModel        : ClientViewModel = hiltViewModel(),
     retourViewModel  : RetourClientViewModel = hiltViewModel()
 ) {
-    val currentClient = viewModel.clients.collectAsState().value
+    val currentClient = viewModel.clients.collectAsStateWithLifecycle().value
         .find { it.id == client.id } ?: client
     val drill = LocalDrillDown.current
     ShowsRecord(DrillTarget.Client(client.id))
@@ -135,7 +136,7 @@ fun ClientDetailScreen(
     var editError by remember { mutableStateOf("") }
     var showMoreMenu by remember { mutableStateOf(false) }
     var showPhotoMenu by remember { mutableStateOf(false) }
-    val ledger by viewModel.ledger.collectAsState()
+    val ledger by viewModel.ledger.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
@@ -166,7 +167,7 @@ fun ClientDetailScreen(
 
     // This client's returns: count, total and the latest three. It used to load every client's
     // returns and filter them here, on every recomposition.
-    val retourPreview by retourViewModel.detailPreview.collectAsState()
+    val retourPreview by retourViewModel.detailPreview.collectAsStateWithLifecycle()
 
     // Le tableau de bord fusionné affiche toujours Factures & Retours en même
     // temps que les Infos — les deux doivent donc se charger dès l'ouverture.

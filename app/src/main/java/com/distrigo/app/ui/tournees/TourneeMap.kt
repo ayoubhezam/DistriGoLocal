@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.tournees
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.content.ActivityNotFoundException
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.BitmapDescriptor
@@ -47,7 +48,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -195,7 +195,7 @@ class TourneeMapViewModel @Inject constructor(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TourneeMapScreen(onBack: () -> Unit, viewModel: TourneeMapViewModel = hiltViewModel()) {
-    val data by viewModel.data.collectAsState()
+    val data by viewModel.data.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val drill = LocalDrillDown.current
     val density = LocalDensity.current

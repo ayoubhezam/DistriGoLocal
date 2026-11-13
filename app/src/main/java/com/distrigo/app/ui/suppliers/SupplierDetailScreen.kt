@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.suppliers
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.core.format.westernDigits
 import com.distrigo.app.ui.designsystem.LocalLicense
 
@@ -94,7 +95,7 @@ fun SupplierDetailScreen(
     retourViewModel   : RetourFournisseurViewModel = hiltViewModel(),
     onNavigateToOrder : (Int) -> Unit = {}
 ) {
-    val currentSupplier = viewModel.suppliers.collectAsState().value
+    val currentSupplier = viewModel.suppliers.collectAsStateWithLifecycle().value
         .find { it.id == supplier.id } ?: supplier
 
     val balanceStatus = when {
@@ -116,7 +117,7 @@ fun SupplierDetailScreen(
     var editError          by remember { mutableStateOf("") }
     var showMoreMenu       by remember { mutableStateOf(false) }
     var showPhotoMenu      by remember { mutableStateOf(false) }
-    val ledger by viewModel.ledger.collectAsState()
+    val ledger by viewModel.ledger.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
@@ -144,7 +145,7 @@ fun SupplierDetailScreen(
 
 
     // This supplier's returns: count, total and the latest three.
-    val retourPreview by retourViewModel.detailPreview.collectAsState()
+    val retourPreview by retourViewModel.detailPreview.collectAsStateWithLifecycle()
 
     // Only what the dashboard shows is loaded: figures and the latest entries. The full histories are
     // the paged "Voir tout l'historique" screens'.

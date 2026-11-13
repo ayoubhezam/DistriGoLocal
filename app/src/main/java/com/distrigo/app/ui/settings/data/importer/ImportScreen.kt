@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.settings.data.importer
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -51,7 +52,7 @@ import androidx.compose.ui.res.pluralStringResource
  */
 @Composable
 fun ImportScreen(sheet: ImportSheet, onBack: () -> Unit, viewModel: ImportViewModel = hiltViewModel()) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val working = state is ImportState.Working
     val context = LocalContext.current
 

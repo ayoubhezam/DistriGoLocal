@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.tournees
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.ui.common.groupBySecteur
@@ -52,7 +53,7 @@ fun AddClientsToTourneeScreen(
 ) {
     BackHandler { onBack() }
 
-    val clients by clientViewModel.clients.collectAsState()
+    val clients by clientViewModel.clients.collectAsStateWithLifecycle()
     var search    by remember { mutableStateOf("") }
     var selected  by remember { mutableStateOf<Set<Int>>(emptySet()) }
     var isSaving  by remember { mutableStateOf(false) }

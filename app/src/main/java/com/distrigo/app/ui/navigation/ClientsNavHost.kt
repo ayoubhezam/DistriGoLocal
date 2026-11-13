@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import androidx.compose.runtime.mutableIntStateOf
@@ -106,7 +107,7 @@ fun ClientsNavHost(
             val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }
             val viewModel: ClientViewModel = hiltViewModel(parentEntry)
             val clientId = entry.arguments!!.getInt("clientId").takeIf { it != -1 }
-            val clients by viewModel.clients.collectAsState()
+            val clients by viewModel.clients.collectAsStateWithLifecycle()
             val client = clientId?.let { id -> clients.find { it.id == id } }
 
             ClientFormScreen(
@@ -128,8 +129,8 @@ fun ClientsNavHost(
             val retourViewModel: RetourClientViewModel = hiltViewModel(retourParentEntry)
             val clientId = entry.arguments!!.getInt("clientId")
             val money = LocalMoneyFormatter.current
-            val clients by viewModel.clients.collectAsState()
-            val isLoading by viewModel.isLoading.collectAsState()
+            val clients by viewModel.clients.collectAsStateWithLifecycle()
+            val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
             val client = clients.find { it.id == clientId }
             var showDeleteConfirm by remember { mutableStateOf(false) }
             // Deleting pops this screen, and so does the entity vanishing from the list a moment later:
@@ -225,8 +226,8 @@ fun ClientsNavHost(
             val retourParentEntry = remember(entry) { navController.getBackStackEntry(Screen.ClientsGraph.route) }
             val retourViewModel: RetourClientViewModel = hiltViewModel(retourParentEntry)
             val clientId = entry.arguments!!.getInt("clientId")
-            val clients by viewModel.clients.collectAsState()
-            val isLoading by viewModel.isLoading.collectAsState()
+            val clients by viewModel.clients.collectAsStateWithLifecycle()
+            val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
             val client = clients.find { it.id == clientId }
 
             if (client != null) {
@@ -253,9 +254,9 @@ fun ClientsNavHost(
             val drill = LocalDrillDown.current
             LaunchedEffect(Unit) { historyViewModel.bind(clientId) }
             val controller = historyViewModel.bind(clientId)
-            val historyQuery by controller.query.collectAsState()
-            val historyFilter by controller.filter.collectAsState()
-            val historyTotalCount by historyViewModel.totalCount.collectAsState()
+            val historyQuery by controller.query.collectAsStateWithLifecycle()
+            val historyFilter by controller.filter.collectAsStateWithLifecycle()
+            val historyTotalCount by historyViewModel.totalCount.collectAsStateWithLifecycle()
             val pagingItems = controller.items.collectAsLazyPagingItems()
 
             var longPressPayment by remember { mutableStateOf<ClientTransaction?>(null) }
@@ -306,7 +307,7 @@ fun ClientsNavHost(
             }
 
             if (showPaymentDialog) {
-                val client = clientViewModel.clients.collectAsState().value.find { it.id == clientId }
+                val client = clientViewModel.clients.collectAsStateWithLifecycle().value.find { it.id == clientId }
                 if (client != null) {
                     PaymentDialog(
                         balance   = client.balance,

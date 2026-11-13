@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.secteurs
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.R
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
@@ -30,7 +31,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -86,8 +86,8 @@ fun QuartierDetailScreen(
     BackHandler { onBack() }
     LaunchedEffect(Unit) { viewModel.refresh() }
     ShowsRecord(DrillTarget.Quartier(viewModel.quartierId.toInt()))
-    val state by viewModel.state.collectAsState()
-    val query by viewModel.query.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val query by viewModel.query.collectAsStateWithLifecycle()
     val license = LocalLicense.current
     val drill = LocalDrillDown.current
     val snackbar = remember { SnackbarHostState() }

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.pertes
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.DsTopBarAddButton
 
 import kotlinx.coroutines.flow.map
@@ -38,7 +39,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -144,10 +144,10 @@ fun PerteHistoryScreen(
     viewModel  : PerteHistoryViewModel = hiltViewModel(),
 ) {
     val money = LocalMoneyFormatter.current
-    val search by viewModel.search.collectAsState()
-    val filters by viewModel.filters.collectAsState()
-    val pertes by viewModel.pertes.collectAsState()
-    val types by viewModel.types.collectAsState()
+    val search by viewModel.search.collectAsStateWithLifecycle()
+    val filters by viewModel.filters.collectAsStateWithLifecycle()
+    val pertes by viewModel.pertes.collectAsStateWithLifecycle()
+    val types by viewModel.types.collectAsStateWithLifecycle()
     var sheet by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {

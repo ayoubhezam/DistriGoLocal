@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.clients
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.common.shownName
 import com.distrigo.app.ui.designsystem.LocalLicense
 
@@ -97,8 +98,8 @@ fun ClientFormScreen(
     var showSecteurSheet by remember { mutableStateOf(false) }
     var showQuartierSheet by remember { mutableStateOf(false) }
 
-    val secteurs by viewModel.secteurs.collectAsState()
-    val quartiers by viewModel.quartiers.collectAsState()
+    val secteurs by viewModel.secteurs.collectAsStateWithLifecycle()
+    val quartiers by viewModel.quartiers.collectAsStateWithLifecycle()
     LaunchedEffect(secteurId) { viewModel.loadQuartiers(secteurId) }
     // A quartier is inside its secteur: another place empties it
     val clearQuartier = { quartierId = null; quartierName = "" }

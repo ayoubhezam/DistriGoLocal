@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.tournees
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.core.format.percentText
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -86,10 +87,10 @@ fun TourneesScreen(
     onAddTournee   : () -> Unit = {},
     onTourneeClick : (Int) -> Unit = {},
 ) {
-    val tournees     by viewModel.tournees.collectAsState()
-    val isLoading    by viewModel.isLoading.collectAsState()
-    val error        by viewModel.error.collectAsState()
-    val openTournee  by viewModel.openTournee.collectAsState()
+    val tournees     by viewModel.tournees.collectAsStateWithLifecycle()
+    val isLoading    by viewModel.isLoading.collectAsStateWithLifecycle()
+    val error        by viewModel.error.collectAsStateWithLifecycle()
+    val openTournee  by viewModel.openTournee.collectAsStateWithLifecycle()
     val context      = LocalContext.current
 
     // Each time the list is shown — back from a tournée, back on the tab, from the Dashboard — its figures afresh:
@@ -234,11 +235,11 @@ fun TourneeDetailScreen(
     /** « Carte de la tournée ». */
     onOpenMap               : () -> Unit = {}
 ) {
-    val tournee by viewModel.selectedTournee.collectAsState()
+    val tournee by viewModel.selectedTournee.collectAsStateWithLifecycle()
     val current = tournee
-    val tourneeClients by viewModel.tourneeClients.collectAsState()
+    val tourneeClients by viewModel.tourneeClients.collectAsStateWithLifecycle()
     // Only the total is needed, for the "empty truck" block — summed in SQL, not over a held catalogue.
-    val camionStockTotal by productViewModel.camionStockTotal.collectAsState()
+    val camionStockTotal by productViewModel.camionStockTotal.collectAsStateWithLifecycle()
 
     LaunchedEffect(tourneeId) {
         viewModel.prepareVenteFilters(tourneeId)
@@ -246,7 +247,7 @@ fun TourneeDetailScreen(
         viewModel.loadTourneeClients(tourneeId)
         viewModel.observeVenteDrafts(tourneeId)
     }
-    val venteDrafts by viewModel.venteDrafts.collectAsState()
+    val venteDrafts by viewModel.venteDrafts.collectAsStateWithLifecycle()
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
     val license = LocalLicense.current
 

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.mouvements
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material.icons.filled.Description
 import com.distrigo.app.ui.navigation.LocalDrillDown
@@ -65,12 +66,12 @@ fun MouvementsScreen(
     viewModel       : StockMovementViewModel = hiltViewModel()
 ) {
 
-    val filters by viewModel.filters.collectAsState()
+    val filters by viewModel.filters.collectAsStateWithLifecycle()
     // Paged, with the figures summed in SQL for the same filters - see StockMovementViewModel.
     val pagedMovements = viewModel.pagedMovements.collectAsLazyPagingItems()
-    val totals    by viewModel.totals.collectAsState()
-    val clients   by viewModel.clients.collectAsState()
-    val suppliers by viewModel.suppliers.collectAsState()
+    val totals    by viewModel.totals.collectAsStateWithLifecycle()
+    val clients   by viewModel.clients.collectAsStateWithLifecycle()
+    val suppliers by viewModel.suppliers.collectAsStateWithLifecycle()
     var filtersOpen by remember { mutableStateOf(false) }
     // Hoisted so a new filter can send the list back to the top: its pages start there again, and a
     // list left at its old index would open mid-way through the new results.
@@ -323,9 +324,9 @@ fun MovementDetailView(
 ) {
     val money = LocalMoneyFormatter.current
     LaunchedEffect(movementId) { viewModel.loadMovementDetail(movementId) }
-    val movement by viewModel.selectedMovement.collectAsState()
-    val sourceNumber by viewModel.selectedSourceNumber.collectAsState()
-    val document by viewModel.selectedDocument.collectAsState()
+    val movement by viewModel.selectedMovement.collectAsStateWithLifecycle()
+    val sourceNumber by viewModel.selectedSourceNumber.collectAsStateWithLifecycle()
+    val document by viewModel.selectedDocument.collectAsStateWithLifecycle()
     val drill = LocalDrillDown.current
     val currentMovement = movement
 

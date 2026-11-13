@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.settings.print
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.core.format.westernDigits
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -78,7 +79,7 @@ fun ReceiptAndPrintSettingsScreen(
     val context = LocalContext.current
     val scope   = rememberCoroutineScope()
 
-    val settings by businessViewModel.settings.collectAsState()
+    val settings by businessViewModel.settings.collectAsStateWithLifecycle()
     var name  by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     // The fields start from the stored settings once they have loaded, and are the user's after that.
@@ -95,8 +96,8 @@ fun ReceiptAndPrintSettingsScreen(
     val logoFile = settings?.logoPath?.let { java.io.File(it) }
     var isSaving by remember { mutableStateOf(false) }
 
-    val printSettings by printViewModel.settings.collectAsState()
-    val preview       by printViewModel.preview.collectAsState()
+    val printSettings by printViewModel.settings.collectAsStateWithLifecycle()
+    val preview       by printViewModel.preview.collectAsStateWithLifecycle()
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.clients
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import androidx.compose.foundation.layout.height
@@ -80,7 +81,7 @@ fun ClientsScreen(
 ){
     val selecting = selection != null
     val noSelection = remember { kotlinx.coroutines.flow.MutableStateFlow(ClientSelectionState()) }
-    val picked by (selection?.state ?: noSelection).collectAsState()
+    val picked by (selection?.state ?: noSelection).collectAsStateWithLifecycle()
     var confirmDiscard by remember { mutableStateOf(false) }
     if (selection != null) {
         LaunchedEffect(selection) {
@@ -90,14 +91,14 @@ fun ClientsScreen(
         BackHandler { if (picked.selected.isNotEmpty()) confirmDiscard = true else onBack?.invoke() }
     }
     val money = LocalMoneyFormatter.current
-    val clients   by viewModel.clients.collectAsState()
+    val clients   by viewModel.clients.collectAsStateWithLifecycle()
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
     val license = LocalLicense.current
-    val isLoading by viewModel.isLoading.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
     // The list as the search and the filters narrow it, worked out off the main thread once typing
     // pauses (see ClientViewModel.shownClients). Only the search box reads what is being typed.
-    val shown by viewModel.shownClients.collectAsState()
+    val shown by viewModel.shownClients.collectAsStateWithLifecycle()
     // Leaving the list clears the search, as it did when the box's text lived in this screen.
     DisposableEffect(Unit) { onDispose { viewModel.listSearch = "" } }
     var showFilterSheet  by remember { mutableStateOf(false) }

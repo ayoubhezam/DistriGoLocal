@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.ventes
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.DsFab
 import com.distrigo.app.ui.designsystem.LocalLicense
 
@@ -93,8 +94,8 @@ fun VentesScreen(
     val pagedVentes = viewModel.pagedVentes.collectAsLazyPagingItems()
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
     val license = LocalLicense.current
-    val venteCount  by viewModel.venteCount.collectAsState()
-    val drafts      by viewModel.drafts.collectAsState()
+    val venteCount  by viewModel.venteCount.collectAsStateWithLifecycle()
+    val drafts      by viewModel.drafts.collectAsStateWithLifecycle()
     var showDraftsSheet by remember { mutableStateOf(false) }
 
     var longPressVente   by remember { mutableStateOf<Vente?>(null) }
@@ -110,7 +111,7 @@ fun VentesScreen(
     val dateToState        = rememberDatePickerState()
 
     // -- Clients list: every client with a dépôt sale --
-    val clientChoices by viewModel.venteClients.collectAsState()
+    val clientChoices by viewModel.venteClients.collectAsStateWithLifecycle()
     val clients = remember(clientChoices) { clientChoices.map { it.id to it.name } }
 
     val hasActiveFilters = viewModel.filterStatus != null ||
@@ -695,7 +696,7 @@ fun VenteDetailScreen(
     val money = LocalMoneyFormatter.current
     BackHandler { onBack() }
 
-    val fullVenteState by viewModel.selectedVente.collectAsState()
+    val fullVenteState by viewModel.selectedVente.collectAsStateWithLifecycle()
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
     val license = LocalLicense.current
     val displayVente = fullVenteState?.takeIf { it.id == vente.id } ?: vente
@@ -715,7 +716,7 @@ fun VenteDetailScreen(
     // the sale, so every receipt already in the database gets the fuller header too. Null while
     // the list loads, and for a client that has since been deleted; the header shows "-" then and
     // still names them from the vente's own snapshot.
-    val allClients by clientViewModel.clients.collectAsState()
+    val allClients by clientViewModel.clients.collectAsStateWithLifecycle()
     val receiptClient = remember(allClients, displayVente.client_id) {
         allClients.find { it.id == displayVente.client_id }
     }
@@ -731,7 +732,7 @@ fun VenteDetailScreen(
 
     // The business header comes from the database; a receipt opens once it has loaded, a moment after
     // the screen does, rather than printing a placeholder name.
-    val business by businessViewModel.settings.collectAsState()
+    val business by businessViewModel.settings.collectAsStateWithLifecycle()
 
     if (showReceiptPreview) business?.let { business ->
         ReceiptPreviewSheet(

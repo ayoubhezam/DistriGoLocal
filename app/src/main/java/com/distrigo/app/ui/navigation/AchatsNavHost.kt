@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.diagnostics.rememberTrackedNavController
@@ -134,7 +135,7 @@ fun AchatsNavHost(
             val orderId = entry.arguments!!.getInt("orderId")
             // Observed on its own: the list holds only the page on screen, so the bon may not be in it.
             val lookup by remember(orderId) { viewModel.observeOrder(orderId) }
-                .collectAsState(initial = OrderLookup.Loading)
+                .collectAsStateWithLifecycle(initialValue = OrderLookup.Loading)
 
             LaunchedEffect(orderId) { viewModel.loadOrderDetail(orderId) }
 

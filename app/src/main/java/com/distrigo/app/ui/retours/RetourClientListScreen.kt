@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.retours
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.DsTopBarAddButton
 
 import com.distrigo.app.data.model.numberLabel
@@ -61,7 +62,7 @@ fun RetourClientListScreen(
     onAddRetour : () -> Unit = {}
 ) {
     val money = LocalMoneyFormatter.current
-    val retours by viewModel.retours.collectAsState()
+    val retours by viewModel.retours.collectAsStateWithLifecycle()
 
     var search   by remember { mutableStateOf("") }
     var selectedRetour by remember { mutableStateOf<RetourClient?>(null) }

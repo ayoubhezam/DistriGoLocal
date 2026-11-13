@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import com.distrigo.app.data.model.Quantity
@@ -95,14 +96,14 @@ fun InventoryNavHost(
 
                 LaunchedEffect(Unit) { viewModel.startOrResumeSession() }
 
-                val activeSession by viewModel.activeSession.collectAsState()
-                val counts by viewModel.counts.collectAsState()
+                val activeSession by viewModel.activeSession.collectAsStateWithLifecycle()
+                val counts by viewModel.counts.collectAsStateWithLifecycle()
                 val products = viewModel.productList.items.collectAsLazyPagingItems()
-                val remaining by viewModel.productList.count.collectAsState()
-                val categories by productViewModel.categories.collectAsState()
-                val sousCategories by productViewModel.sousCategories.collectAsState()
-                val marques by productViewModel.marques.collectAsState()
-                val suppliers by productViewModel.suppliers.collectAsState()
+                val remaining by viewModel.productList.count.collectAsStateWithLifecycle()
+                val categories by productViewModel.categories.collectAsStateWithLifecycle()
+                val sousCategories by productViewModel.sousCategories.collectAsStateWithLifecycle()
+                val marques by productViewModel.marques.collectAsStateWithLifecycle()
+                val suppliers by productViewModel.suppliers.collectAsStateWithLifecycle()
                 val scope = rememberCoroutineScope()
 
                 var showScanner by remember { mutableStateOf(false) }
@@ -186,7 +187,7 @@ fun InventoryNavHost(
                 val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
                 // Paged and live while listed: collected here only, so the counts themselves never reload it.
                 val items = remember { viewModel.sessionItemPages() }.collectAsLazyPagingItems()
-                val counts by viewModel.counts.collectAsState()
+                val counts by viewModel.counts.collectAsStateWithLifecycle()
                 var error by remember { mutableStateOf("") }
 
                 InventoryCartScreen(
@@ -203,8 +204,8 @@ fun InventoryNavHost(
             composable(Screen.InventaireSessionSummary.route) { entry ->
                 val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.InventaireGraph.route) }
                 val viewModel: InventoryViewModel = hiltViewModel(parentEntry)
-                val summaryPreview by viewModel.counts.collectAsState()
-                val uncounted by viewModel.uncountedCount.collectAsState()
+                val summaryPreview by viewModel.counts.collectAsStateWithLifecycle()
+                val uncounted by viewModel.uncountedCount.collectAsStateWithLifecycle()
 
                 var date         by remember { mutableStateOf(java.time.LocalDate.now()) }
                 var choice       by remember { mutableStateOf<UncountedChoice?>(null) }

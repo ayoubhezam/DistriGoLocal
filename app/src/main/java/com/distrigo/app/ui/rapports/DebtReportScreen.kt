@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.rapports
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
@@ -25,7 +26,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -142,7 +142,7 @@ private fun wordsFor(side: DebtSide) = when (side) {
  */
 @Composable
 fun DebtReportScreen(onBack: () -> Unit, onSeeAll: () -> Unit, viewModel: DebtReportViewModel = hiltViewModel()) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val words = wordsFor(state.side)
     val open = openDebtor(state.side)
 
@@ -362,11 +362,11 @@ private fun DebtorRow(line: DebtorLine, words: SideWords, onClick: () -> Unit) {
  */
 @Composable
 fun DebtorsScreen(onBack: () -> Unit, viewModel: DebtReportViewModel) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     // Searched and sorted off the main thread once typing pauses (DebtReportViewModel.debtorList); what
     // is being typed is read by the search box alone, so a key redraws the box and nothing else.
-    val list by viewModel.debtorList.collectAsState()
-    val sort by viewModel.debtorSort.collectAsState()
+    val list by viewModel.debtorList.collectAsStateWithLifecycle()
+    val sort by viewModel.debtorSort.collectAsStateWithLifecycle()
     val words = wordsFor(state.side)
     val report = state.report
     val open = openDebtor(state.side)
@@ -438,7 +438,7 @@ fun DebtorsScreen(onBack: () -> Unit, viewModel: DebtReportViewModel) {
 /** The debtors' search box: the one place that reads each key typed, so a key redraws it alone. */
 @Composable
 private fun DebtorSearchField(viewModel: DebtReportViewModel, hint: String, modifier: Modifier) {
-    val query by viewModel.debtorQuery.collectAsState()
+    val query by viewModel.debtorQuery.collectAsStateWithLifecycle()
     DsCompactSearchField(
         value         = query,
         onValueChange = viewModel::setDebtorQuery,

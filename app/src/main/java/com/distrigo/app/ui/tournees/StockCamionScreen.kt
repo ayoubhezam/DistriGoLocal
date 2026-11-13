@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.tournees
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.platform.LocalContext
 import com.distrigo.app.ui.designsystem.DsFab
 import com.distrigo.app.ui.common.formatQty
@@ -77,13 +78,13 @@ fun StockCamionScreen(
     // (ProductViewModel.camionProducts) — the Produits controls, on the camion's list.
     val money = LocalMoneyFormatter.current
     val camionProducts = productViewModel.camionProducts.items.collectAsLazyPagingItems()
-    val camionCount by productViewModel.camionProducts.count.collectAsState()
+    val camionCount by productViewModel.camionProducts.count.collectAsStateWithLifecycle()
     val search  = productViewModel.camionSearch
     val filters = productViewModel.camionFilters
-    val categories     by productViewModel.categories.collectAsState()
-    val sousCategories by productViewModel.sousCategories.collectAsState()
-    val marques        by productViewModel.marques.collectAsState()
-    val suppliers      by productViewModel.suppliers.collectAsState()
+    val categories     by productViewModel.categories.collectAsStateWithLifecycle()
+    val sousCategories by productViewModel.sousCategories.collectAsStateWithLifecycle()
+    val marques        by productViewModel.marques.collectAsStateWithLifecycle()
+    val suppliers      by productViewModel.suppliers.collectAsStateWithLifecycle()
     var showScanner     by remember { mutableStateOf(false) }
     var showSortSheet   by remember { mutableStateOf(false) }
     var showFilterSheet by remember { mutableStateOf(false) }
@@ -100,7 +101,7 @@ fun StockCamionScreen(
     var resumingDraftId   by remember { mutableStateOf<Int?>(null) }
 
     val chargementViewModel: ChargementViewModel = hiltViewModel()
-    val drafts by chargementViewModel.drafts.collectAsState()
+    val drafts by chargementViewModel.drafts.collectAsStateWithLifecycle()
 
 
     // ── New Chargement Screen (multi-produits) ──

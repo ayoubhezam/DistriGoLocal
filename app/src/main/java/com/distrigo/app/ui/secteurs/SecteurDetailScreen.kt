@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.secteurs
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.R
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -21,7 +22,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -55,7 +55,7 @@ fun SecteurDetailScreen(
     BackHandler { onBack() }
     LaunchedEffect(Unit) { viewModel.refresh() }
     ShowsRecord(DrillTarget.Secteur(viewModel.secteurId.toInt()))
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val license = LocalLicense.current
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.pertes
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.platform.LocalContext
 import com.distrigo.app.ui.designsystem.LocalLicense
 
@@ -41,7 +42,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -114,9 +114,9 @@ fun NewPerteListScreen(
 ) {
     val money = LocalMoneyFormatter.current
     val products = viewModel.productList.items.collectAsLazyPagingItems()
-    val count by viewModel.productList.count.collectAsState()
-    val cart by viewModel.cart.collectAsState()
-    val types by viewModel.types.collectAsState()
+    val count by viewModel.productList.count.collectAsStateWithLifecycle()
+    val cart by viewModel.cart.collectAsStateWithLifecycle()
+    val types by viewModel.types.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var showScanner by remember { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(false) }
@@ -236,8 +236,8 @@ fun NewPerteListScreen(
 @Composable
 fun NewPerteCartScreen(viewModel: NewPerteViewModel, onBack: () -> Unit, onNext: () -> Unit) {
     val money = LocalMoneyFormatter.current
-    val cart by viewModel.cart.collectAsState()
-    val types by viewModel.types.collectAsState()
+    val cart by viewModel.cart.collectAsStateWithLifecycle()
+    val types by viewModel.types.collectAsStateWithLifecycle()
     var expandedId by remember { mutableStateOf<Int?>(null) }
     var editing by remember { mutableStateOf<PerteCartLine?>(null) }
     BackHandler(onBack = onBack)
@@ -339,7 +339,7 @@ fun NewPerteSummaryScreen(
     doneLabel: Int = R.string.inventory_back_to_history,
 ) {
     val money = LocalMoneyFormatter.current
-    val live by viewModel.cart.collectAsState()
+    val live by viewModel.cart.collectAsStateWithLifecycle()
     // What was confirmed stays on screen after the selection is cleared.
     var confirmed by remember { mutableStateOf<List<PerteCartLine>?>(null) }
     var saving by remember { mutableStateOf(false) }

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.purchases
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.DsFab
 import com.distrigo.app.ui.designsystem.LocalLicense
 
@@ -84,8 +85,8 @@ fun PurchasesScreen(
     // Paged: only the rows near the screen are loaded, from a query that already applies the search
     // and the filters. The count and the supplier choices come from their own queries for that reason.
     val pagedOrders = viewModel.pagedOrders.collectAsLazyPagingItems()
-    val orderCount  by viewModel.orderCount.collectAsState()
-    val drafts      by viewModel.drafts.collectAsState()
+    val orderCount  by viewModel.orderCount.collectAsStateWithLifecycle()
+    val drafts      by viewModel.drafts.collectAsStateWithLifecycle()
 
     var showDraftsSheet by remember { mutableStateOf(false) }
 
@@ -104,7 +105,7 @@ fun PurchasesScreen(
     val listState          = rememberLazyListState()
 
     // ── Suppliers list: every supplier with at least one bon ──
-    val supplierChoices by viewModel.orderSuppliers.collectAsState()
+    val supplierChoices by viewModel.orderSuppliers.collectAsStateWithLifecycle()
     val suppliers = remember(supplierChoices) { supplierChoices.map { it.id to it.name } }
 
     val hasActiveFilters = viewModel.filterReceptionStatus != null ||

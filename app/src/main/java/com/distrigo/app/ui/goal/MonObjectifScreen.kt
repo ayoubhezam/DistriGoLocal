@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.goal
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.core.format.percentText
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -63,7 +64,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import com.distrigo.app.ui.settings.settingsText
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -141,7 +141,7 @@ fun MonObjectifScreen(
     viewModel: MonObjectifViewModel = hiltViewModel(),
 ) {
     BackHandler { onBack() }
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val money = LocalMoneyFormatter.current
     var info by remember { mutableStateOf<DsInfo?>(null) }
     var editing by remember { mutableStateOf(false) }

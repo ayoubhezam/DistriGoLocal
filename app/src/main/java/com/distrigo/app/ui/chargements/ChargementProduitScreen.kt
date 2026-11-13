@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.chargements
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.designsystem.LocalLicense
 
 import androidx.activity.compose.BackHandler
@@ -100,7 +101,7 @@ fun ChargementProduitScreen(
     }
 
     val delta = targetCamion - product.camion_stock
-    val stockPolicy by viewModel.stockPolicy.collectAsState()
+    val stockPolicy by viewModel.stockPolicy.collectAsStateWithLifecycle()
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
     val license = LocalLicense.current
     // Strict stock, and while the license does not record, no more than the truck holds now (D4: unload only)

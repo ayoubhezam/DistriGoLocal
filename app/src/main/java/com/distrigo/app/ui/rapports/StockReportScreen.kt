@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.rapports
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,7 +27,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -85,7 +85,7 @@ private val INFO_RESTOCK: ReportInfo get() = ReportInfo(reportText(R.string.rapp
  */
 @Composable
 fun StockReportScreen(onBack: () -> Unit, onSeeRestock: () -> Unit, viewModel: StockReportViewModel) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val drill = LocalDrillDown.current
 
     Column(Modifier.fillMaxSize().background(DsColors.SurfaceMuted)) {
@@ -246,8 +246,8 @@ private fun RestockRow(r: RestockLine, onClick: () -> Unit) {
 /** Rapports › Stock et pertes › À réapprovisionner: every product out of stock or under its minimum. */
 @Composable
 fun RestockScreen(onBack: () -> Unit, viewModel: StockReportViewModel) {
-    val state by viewModel.state.collectAsState()
-    val query by viewModel.query.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val query by viewModel.query.collectAsStateWithLifecycle()
     val drill = LocalDrillDown.current
     val report = state.report
     val all = report?.restock.orEmpty()

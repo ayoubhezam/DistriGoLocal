@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.tournees
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.common.shownName
 import com.distrigo.app.ui.designsystem.LocalLicense
 
@@ -67,7 +68,7 @@ fun TourneeFormScreen(
     var showSecteurSheet   by remember { mutableStateOf(false) }
 
     // Secteurs belong to a commune, so the picker's list follows whichever commune is chosen.
-    val communeSecteurs by viewModel.secteurs.collectAsState()
+    val communeSecteurs by viewModel.secteurs.collectAsStateWithLifecycle()
 
     LaunchedEffect(communeName) {
         if (communeName.isNotBlank()) viewModel.loadSecteurs(communeName)

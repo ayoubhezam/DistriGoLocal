@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.components
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.content.Context
 import android.os.Bundle
 import android.os.CancellationSignal
@@ -73,8 +74,8 @@ fun ReceiptPreviewSheet(
     val scope = rememberCoroutineScope()
     var generatingPdf by remember { mutableStateOf(false) }
 
-    val printSettings by printViewModel.settings.collectAsState()
-    val printStatus   by printViewModel.status.collectAsState()
+    val printSettings by printViewModel.settings.collectAsStateWithLifecycle()
+    val printStatus   by printViewModel.status.collectAsStateWithLifecycle()
 
     val isA4 = printSettings.effectivePaper == PaperSize.A4
     val busy = generatingPdf || printStatus == ReceiptPrintStatus.Printing

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.settings
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -12,7 +13,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -87,7 +87,7 @@ class StressDataViewModel @Inject constructor(private val db: AppDatabase) : Vie
  */
 @Composable
 fun StressDataCard(viewModel: StressDataViewModel = hiltViewModel()) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     var confirming by remember { mutableStateOf(false) }
     var confirmingInventories by remember { mutableStateOf(false) }
     var confirmingSectors by remember { mutableStateOf(false) }

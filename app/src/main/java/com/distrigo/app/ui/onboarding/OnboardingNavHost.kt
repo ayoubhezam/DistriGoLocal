@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.onboarding
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.data.license.licText
 import android.app.Activity
 import android.os.Build
@@ -16,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -233,7 +233,7 @@ fun Onboarding(
     onIntroSeen: () -> Unit = {},
 ) {
     BackHandler(onBack = onClose)
-    val status by viewModel.status.collectAsState()
+    val status by viewModel.status.collectAsStateWithLifecycle()
     val actions = rememberOnboardingActions(viewModel)
     // Drawn over the app, so nothing beneath it may be touched through it
     Box(Modifier.fillMaxSize().background(DsBrand.Mist).pointerInput(Unit) {}) {

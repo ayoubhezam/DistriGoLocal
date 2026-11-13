@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.tournees
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.core.text.UiText
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -85,7 +86,7 @@ fun TourneeVenteBrouillonsScreen(
 ) {
     val money = LocalMoneyFormatter.current
     LaunchedEffect(tourneeId) { viewModel.observeVenteDrafts(tourneeId) }
-    val drafts by viewModel.venteDrafts.collectAsState()
+    val drafts by viewModel.venteDrafts.collectAsStateWithLifecycle()
 
     var pendingDelete by remember { mutableStateOf<TourneeVenteDraft?>(null) }
     var showFilters   by remember { mutableStateOf(false) }

@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.settings.lists
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.common.shownName
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
@@ -46,7 +47,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -112,7 +112,7 @@ fun ListsHomeScreen(
 ) {
     BackHandler { onBack() }
     LaunchedEffect(Unit) { viewModel.refresh() }
-    val counts by viewModel.counts.collectAsState()
+    val counts by viewModel.counts.collectAsStateWithLifecycle()
     fun n(kind: ListKind) = counts?.get(kind) ?: 0
     fun of(kind: ListKind) = counts?.let { count(kind, n(kind)) }
 
@@ -170,7 +170,7 @@ fun ListEditorScreen(
 ) {
     BackHandler { onBack() }
     LaunchedEffect(Unit) { viewModel.refresh() }
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val license = LocalLicense.current
     val kind = viewModel.kind
 

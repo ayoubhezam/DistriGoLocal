@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.admin
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.core.format.subscriptionLength
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
@@ -33,7 +34,6 @@ import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -92,7 +92,7 @@ import com.distrigo.app.R
 @Composable
 fun AdminHomeScreen(viewModel: AdminViewModel, onBack: () -> Unit, onNewBatch: () -> Unit, onClients: () -> Unit) {
     BackHandler { onBack() }
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val idle = state.work == null
 
     BrandScreen(title = "Administration", onBack = onBack) {
@@ -290,7 +290,7 @@ private const val OTHER_LENGTH = 0
 @Composable
 fun NewBatchScreen(viewModel: AdminViewModel, onBack: () -> Unit, onCreated: () -> Unit) {
     BackHandler { onBack() }
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val busy = state.work == AdminWork.CREATING
     var name by rememberSaveable { mutableStateOf("") }
     var count by rememberSaveable { mutableIntStateOf(10) }
@@ -414,7 +414,7 @@ fun NewBatchScreen(viewModel: AdminViewModel, onBack: () -> Unit, onCreated: () 
 /** The codes just made, the one time they show: shared now, or lost to the phone. */
 @Composable
 fun CreatedCodesScreen(viewModel: AdminViewModel, onDone: () -> Unit) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val created = state.created
     if (created == null) {
         LaunchedEffect(Unit) { onDone() }

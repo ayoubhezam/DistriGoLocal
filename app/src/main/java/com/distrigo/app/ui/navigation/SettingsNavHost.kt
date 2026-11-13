@@ -1,12 +1,12 @@
 package com.distrigo.app.ui.navigation
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.R
 import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.runtime.Composable
 import android.widget.Toast
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import com.distrigo.app.ui.settings.data.CloudBackupScreen
@@ -172,7 +172,7 @@ fun SettingsNavHost(
         ) {
             val placementViewModel: ClientPlacementViewModel = hiltViewModel()
             val formViewModel: ClientViewModel = hiltViewModel()
-            when (val state = placementViewModel.state.collectAsState().value) {
+            when (val state = placementViewModel.state.collectAsStateWithLifecycle().value) {
                 ClientPlacementUiState.Loading -> Unit
                 is ClientPlacementUiState.Error -> {
                     // The quartier went away: nothing to fill, back where it was listed, saying why
@@ -250,7 +250,7 @@ fun SettingsNavHost(
         }
         composable(Screen.SettingsData.route) { entry ->
             // A backup downloaded from Google Drive, handed back by the cloud screen for this screen's own restore
-            val cloudRestore by entry.savedStateHandle.getStateFlow<String?>(CLOUD_RESTORE_KEY, null).collectAsState()
+            val cloudRestore by entry.savedStateHandle.getStateFlow<String?>(CLOUD_RESTORE_KEY, null).collectAsStateWithLifecycle()
             DataBackupScreen(
                 onBack = { navController.popBackStack() },
                 onCloud = { navController.navigate(Screen.SettingsCloudBackup.route) },

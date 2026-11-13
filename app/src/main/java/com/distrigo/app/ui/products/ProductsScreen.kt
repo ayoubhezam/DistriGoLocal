@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.products
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.ui.common.layoutEnd
 import com.distrigo.app.core.format.westernNumber
 import com.distrigo.app.ui.designsystem.DsFab
@@ -105,20 +106,20 @@ fun ProductsScreen(
 ) {
     // Paged: a screenful at a time, from a query that applies the search, the sheet and the sort.
     val pagedProducts = viewModel.pagedProducts.collectAsLazyPagingItems()
-    val productCount  by viewModel.productCount.collectAsState()
+    val productCount  by viewModel.productCount.collectAsStateWithLifecycle()
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
     val license = LocalLicense.current
-    val categories    by viewModel.categories.collectAsState()
-    val sousCategories by viewModel.sousCategories.collectAsState()
-    val marques        by viewModel.marques.collectAsState()
-    val suppliers       by viewModel.suppliers.collectAsState()
+    val categories    by viewModel.categories.collectAsStateWithLifecycle()
+    val sousCategories by viewModel.sousCategories.collectAsStateWithLifecycle()
+    val marques        by viewModel.marques.collectAsStateWithLifecycle()
+    val suppliers       by viewModel.suppliers.collectAsStateWithLifecycle()
     var longPressProduct by remember { mutableStateOf<Product?>(null) }
 
     // Tapping a row's photo opens the viewer on that product's gallery rather than the product.
     // The gallery lives in its own table, so it has to be fetched for whichever product was
     // tapped; until it arrives the cover the row was already showing stands in for it.
     var viewerProduct by remember { mutableStateOf<Product?>(null) }
-    val galleryImages by viewModel.productImages.collectAsState()
+    val galleryImages by viewModel.productImages.collectAsStateWithLifecycle()
     LaunchedEffect(viewerProduct?.id) {
         viewerProduct?.let { viewModel.observeGalleryFor(it.id) }
     }
