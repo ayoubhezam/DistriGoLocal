@@ -86,10 +86,20 @@ class CloudBackupRulesTest {
     }
 
     @Test
-    fun olderThanFourWeeksGoesUnlessNewest() {
+    fun olderThanThreeWeeksGoesUnlessNewest() {
+        // 2026-11-03 is a Tuesday: its week starts Sunday 1 November; three weeks back to Sunday 18 October.
         val today = entry("today", at("2026-11-03T03:30"))
-        val fiveWeeks = entry("five-weeks", at("2026-09-28T03:30"))
-        assertEquals(listOf("five-weeks"), CloudRetention.toDelete(listOf(today, fiveWeeks), at("2026-11-03T04:00"), zone).map { it.id })
+        val twoWeeks = entry("two-weeks", at("2026-10-18T03:30"))
+        val threeWeeks = entry("three-weeks", at("2026-10-17T03:30"))
+        assertEquals(listOf("three-weeks"), CloudRetention.toDelete(listOf(today, twoWeeks, threeWeeks), at("2026-11-03T04:00"), zone).map { it.id })
+    }
+
+    @Test
+    fun theFourthDayBackIsOnlyKeptAsItsWeeksNewest() {
+        // Wednesday 4 November: the 2nd, 3rd and 4th are the three dailies. The 1st is out of them, and its week (from
+        // Sunday the 1st) already keeps the 4th as its newest, so it goes.
+        val days = listOf("2026-11-01", "2026-11-02", "2026-11-03", "2026-11-04").map { entry(it, at("${it}T03:30")) }
+        assertEquals(listOf("2026-11-01"), CloudRetention.toDelete(days, at("2026-11-04T04:00"), zone).map { it.id })
     }
 
     @Test
@@ -112,11 +122,46 @@ class CloudBackupRulesTest {
                 linkedAt = Instant.parse("2026-11-03T10:00:00Z"), enabled = false, allowMobileData = true, includePhotos = false,
                 lastFingerprint = "fp0", lastAt = Instant.parse("2026-11-02T02:30:00Z"), lastEntryId = "f1", lastSize = 4_000_000_000,
                 lastAttemptAt = Instant.parse("2026-11-03T02:30:00Z"), lastScheduledRunAt = Instant.parse("2026-11-03T02:30:00Z"),
+                lastScheduledOutcome = "stopped:7", lastSuccessAt = Instant.parse("2026-11-02T02:31:00Z"),
                 problemStreak = 3, lastProblem = CloudBackupProblem.QUOTA_EXCEEDED, pending = pending,
             )
         }
         assertEquals(written, CloudBackupStore(File(folder.root, "state")).read())
         assertEquals(null, store.update { it.copy(pending = null) }.pending)
+    }
+
+    // ---- the 48-hour warning ----
+
+    private val linkedOn = CloudBackupState(linked = true, enabled = true, linkedAt = Instant.parse("2026-11-01T10:00:00Z"))
+
+    @Test
+    fun overdueAfter48HoursWithoutAGoodRun() {
+        val good = linkedOn.copy(lastSuccessAt = Instant.parse("2026-11-04T05:00:00Z"))
+        assertFalse(good.isOverdue(Instant.parse("2026-11-06T04:59:59Z")))
+        assertTrue(good.isOverdue(Instant.parse("2026-11-06T05:00:00Z")))
+    }
+
+    @Test
+    fun anUnchangedNightCountsAsGoodThoughNoNewBackupWasMade() {
+        // The last backup is old, but last night found nothing to send and it was still in the cloud.
+        val state = linkedOn.copy(lastAt = Instant.parse("2026-10-20T03:30:00Z"), lastSuccessAt = Instant.parse("2026-11-05T02:52:00Z"))
+        assertFalse(state.isOverdue(Instant.parse("2026-11-06T09:00:00Z")))
+    }
+
+    @Test
+    fun beforeAnyGoodRunTheLastBackupThenTheLinkCount() {
+        // A state written before lastSuccessAt existed: the last backup's time.
+        assertFalse(linkedOn.copy(lastAt = Instant.parse("2026-11-05T05:08:17Z")).isOverdue(Instant.parse("2026-11-06T06:40:00Z")))
+        // Linked, never backed up: two days after the link.
+        assertFalse(linkedOn.isOverdue(Instant.parse("2026-11-03T09:59:00Z")))
+        assertTrue(linkedOn.isOverdue(Instant.parse("2026-11-03T10:00:00Z")))
+    }
+
+    @Test
+    fun noWarningWhenAutomaticBackupIsOffOrNotLinked() {
+        val now = Instant.parse("2026-12-01T00:00:00Z")
+        assertFalse(linkedOn.copy(enabled = false).isOverdue(now))
+        assertFalse(linkedOn.copy(linked = false).isOverdue(now))
     }
 
     @Test

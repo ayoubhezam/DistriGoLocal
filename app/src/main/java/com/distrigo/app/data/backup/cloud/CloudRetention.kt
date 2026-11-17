@@ -8,8 +8,9 @@ import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 
 /**
- * Which cloud backups to keep (plan §3.4, owner's decision §9.2): the newest of each of the last [DAYS] days and the
- * newest of each of the last [WEEKS] calendar weeks, in the phone's time.
+ * Which cloud backups to keep (plan §3.4, owner's decision §9.2, revised 2026-11-06 from 7 + 4): the newest of each of
+ * the last [DAYS] days and the newest of each of the last [WEEKS] calendar weeks (this one included), in the phone's
+ * time.
  *
  * Weeks are fixed calendar weeks starting on Sunday (the Algerian working week), not blocks counted back from today:
  * with moving blocks, the backup kept as the newest of its block falls into the next block a day later and is
@@ -24,8 +25,8 @@ import java.time.temporal.TemporalAdjusters
  * its still-empty data, and « the newest of the day » alone would delete the lost phone's real backup.
  */
 object CloudRetention {
-    const val DAYS = 7
-    const val WEEKS = 4
+    const val DAYS = 3
+    const val WEEKS = 3
     val WEEK_START: DayOfWeek = DayOfWeek.SUNDAY
 
     fun toDelete(entries: List<CloudBackupEntry>, now: Instant, zone: ZoneId, justSent: String? = null): List<CloudBackupEntry> {

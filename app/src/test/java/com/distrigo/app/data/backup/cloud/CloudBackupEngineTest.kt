@@ -269,7 +269,7 @@ class CloudBackupEngineTest {
     }
 
     @Test
-    fun keepsSevenDailiesAndFourWeekliesDayAfterDay() = runBlocking {
+    fun keepsThreeDailiesAndThreeWeekliesDayAfterDay() = runBlocking {
         // 2026-11-03 is a Tuesday. Forty nightly runs, each with changes, retention applied after each.
         repeat(40) {
             run()
@@ -277,14 +277,16 @@ class CloudBackupEngineTest {
         }
         val today = now.atZone(zone).toLocalDate()
         val kept = cloud.listBackups("biz-1").map { Instant.ofEpochMilli(it.meta.createdAtMillis).atZone(zone).toLocalDate() }
-        // The last 7 days, all of them.
-        assertEquals((0L..6L).map { today.minusDays(it) }, kept.take(7))
-        // Then the newest of each earlier calendar week, back to 4 weeks: the Saturdays that close them.
+        // The last 3 days, all of them.
+        assertEquals((0L..2L).map { today.minusDays(it) }, kept.take(3))
+        // Then the newest of each earlier calendar week, this one included back to 3 weeks: the Saturdays that close
+        // the earlier ones (this week's newest is today).
         val thisWeek = CloudRetention.weekOf(today)
-        val expectedWeeklies = (1L..3L).map { thisWeek.minusWeeks(it).plusDays(6) }.filter { it < today.minusDays(6) }
-        assertEquals(expectedWeeklies, kept.drop(7))
-        // Nothing older than four weeks.
-        assertTrue(kept.all { CloudRetention.weekOf(it) >= thisWeek.minusWeeks(3) })
+        val expectedWeeklies = (1L..2L).map { thisWeek.minusWeeks(it).plusDays(6) }.filter { it < today.minusDays(2) }
+        assertEquals(expectedWeeklies, kept.drop(3))
+        // Nothing older than three weeks.
+        assertTrue(kept.all { CloudRetention.weekOf(it) >= thisWeek.minusWeeks(2) })
+        assertTrue("at most 3 + 3", kept.size <= 6)
     }
 
     @Test
@@ -302,6 +304,16 @@ class CloudBackupEngineTest {
         assertEquals("unchanged", good.lastScheduledOutcome)
         assertEquals("unchanged", engine.record(CloudBackupOutcome.NotLinked, scheduled = false).lastScheduledOutcome)
         assertEquals("kept on disk", "unchanged", store.read().lastScheduledOutcome)
+    }
+
+    @Test
+    fun onlyAGoodRunMovesTheLastSuccess() {
+        assertNull(engine.record(CloudBackupOutcome.Failed(CloudBackupProblem.NO_CONNECTION, true, "x"), scheduled = true).lastSuccessAt)
+        val good = now
+        assertEquals(good, engine.record(CloudBackupOutcome.Unchanged, scheduled = true).lastSuccessAt)
+        now = now.plus(Duration.ofDays(1))
+        assertEquals("a failed run keeps it", good, engine.record(CloudBackupOutcome.Failed(CloudBackupProblem.NO_CONNECTION, true, "x"), scheduled = false).lastSuccessAt)
+        assertEquals("a manual run counts too", now, engine.record(CloudBackupOutcome.Unchanged, scheduled = false).lastSuccessAt)
     }
 
     // ---- photos (Phase 4) ----

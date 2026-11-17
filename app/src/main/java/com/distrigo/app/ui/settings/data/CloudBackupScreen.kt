@@ -36,6 +36,11 @@ import androidx.compose.material.icons.outlined.Photo
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.BatteryAlert
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material3.Checkbox
@@ -51,6 +56,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.res.pluralStringResource
+import java.time.Duration
+import java.time.Instant
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -121,7 +129,13 @@ fun CloudBackupScreen(
             ) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
-    LaunchedEffect(Unit) { viewModel.refresh() }
+    // Each time the screen shows: back from the battery settings, the button goes once DistriGo is unrestricted
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_RESUME) viewModel.refresh() }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
 
     BackHandler(enabled = step is CloudStep.Restoring) { }
 
@@ -151,6 +165,7 @@ fun CloudBackupScreen(
             changeAccount = viewModel::changeAccount,
             restoreBackup = viewModel::restoreBackup,
             dismissStep = viewModel::dismissStep,
+            openBatterySettings = { openBatterySettings(context) },
         ),
     )
 }
@@ -158,6 +173,7 @@ fun CloudBackupScreen(
 /** What the screen can ask for; the screen itself only draws. */
 class CloudActions(
     val onBack: () -> Unit = {},
+    val openBatterySettings: () -> Unit = {},
     val startLink: () -> Unit = {},
     val startRestore: () -> Unit = {},
     val reconnect: () -> Unit = {},
@@ -196,7 +212,7 @@ fun CloudBackupContent(
         when {
             !status.loaded -> Unit
             !status.available -> UnavailableCard()
-            status.state.linked -> LinkedCards(status.state, job, busy, actions)
+            status.state.linked -> LinkedCards(status.state, status.batteryRestricted, job, busy, actions)
             else -> NotLinkedCard(busy, actions)
         }
     }
@@ -256,7 +272,7 @@ private fun NotLinkedCard(busy: Boolean, actions: CloudActions) {
 }
 
 @Composable
-private fun LinkedCards(state: CloudBackupState, job: CloudJob?, busy: Boolean, actions: CloudActions) {
+private fun LinkedCards(state: CloudBackupState, batteryRestricted: Boolean, job: CloudJob?, busy: Boolean, actions: CloudActions) {
     BrandCard {
         BrandCardHeader(Icons.Outlined.CloudDone, stringResource(R.string.cloud_title))
         BrandInfoRow(Icons.Outlined.AccountCircle, stringResource(R.string.cloud_account), state.account?.let(::ltrIsolate))
@@ -267,6 +283,15 @@ private fun LinkedCards(state: CloudBackupState, job: CloudJob?, busy: Boolean, 
         } ?: stringResource(R.string.cloud_none_yet)
         BrandInfoRow(Icons.Outlined.History, stringResource(R.string.cloud_last), last)
         BrandCardBody {
+            val now = remember(state) { Instant.now() }
+            if (state.isOverdue(now)) {
+                BrandNotice(stringResource(R.string.cloud_overdue_notice, cloudOverdueFor(state, now)), DsColors.Warning, DsColors.WarningLight)
+                // Only when Android may still put DistriGo to sleep: once « Sans restriction », nothing to change there
+                if (batteryRestricted) {
+                    Text(stringResource(R.string.cloud_battery_hint), fontFamily = DsBrand.Font, fontSize = BrandSize.Small, lineHeight = BrandSize.SmallLine, color = DsBrand.Slate)
+                    BrandWideButton(stringResource(R.string.cloud_battery_button), Icons.Outlined.BatteryAlert, filled = false, enabled = true, onClick = actions.openBatterySettings)
+                }
+            }
             state.lastProblem?.let { problem -> ProblemNotice(problem, busy, actions) }
             if (job != null) {
                 JobRow(job)
@@ -295,6 +320,26 @@ private fun LinkedCards(state: CloudBackupState, job: CloudJob?, busy: Boolean, 
         BrandRowDivider()
         BrandActionRow(Icons.Outlined.LinkOff, stringResource(R.string.cloud_unlink), enabled = !busy && job == null, onClick = actions.askUnlink)
     }
+}
+
+/**
+ * DistriGo's page in Android's settings, where « Batterie › Sans restriction » is (Samsung and stock Android alike).
+ * Not the direct « ignore battery optimisations » request: Google Play restricts that permission to a few kinds of
+ * app, and a backup app isn't one.
+ */
+private fun openBatterySettings(context: android.content.Context) {
+    val details = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))
+    val list = Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+    val intent = listOf(details, list).firstOrNull { it.resolveActivity(context.packageManager) != null } ?: return
+    context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+}
+
+/** How long the cloud has had no good backup: « 3 jours » ([CloudBackupState.isOverdue]). */
+@Composable
+internal fun cloudOverdueFor(state: CloudBackupState, now: Instant): String {
+    val since = state.lastGoodAt ?: state.linkedAt ?: now
+    val days = Duration.between(since, now).toDays().toInt().coerceAtLeast(2)
+    return pluralStringResource(R.plurals.common_duration_days, days, days)
 }
 
 /** The last run's problem, with the one thing that fixes it when there is one. */

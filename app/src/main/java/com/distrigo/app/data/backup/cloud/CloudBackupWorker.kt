@@ -1,6 +1,7 @@
 package com.distrigo.app.data.backup.cloud
 
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
@@ -26,6 +27,7 @@ class CloudBackupWorker @AssistedInject constructor(
     private val engine: CloudBackupEngine,
     private val store: CloudBackupStore,
     private val alerts: CloudBackupAlerts,
+    private val scheduler: CloudBackupScheduler,
 ) : CoroutineWorker(context, params) {
 
     private val manual get() = inputData.getBoolean(KEY_MANUAL, false)
@@ -33,21 +35,34 @@ class CloudBackupWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         val state = store.read()
         if (!state.linked || (!manual && !state.enabled)) return Result.success()
+        CloudJobHealth.running.incrementAndGet()
+        // A night's run says it started: if the phone kills it without a word, the field shows it never finished.
+        if (!manual) store.update { it.copy(lastScheduledOutcome = OUTCOME_STARTED) }
         val outcome = try {
             engine.run(force = manual) { progress -> setProgressAsync(progressData(progress)) }
         } catch (e: CancellationException) {
+            if (!manual) store.update { it.copy(lastScheduledOutcome = stoppedOutcome()) }
+            Log.i(TAG, "cloud backup stopped by Android (attempt ${runAttemptCount + 1})")
             throw e
         } catch (e: Exception) {
             Log.e(TAG, "cloud backup crashed", e)
             CloudBackupOutcome.Failed(CloudBackupProblem.UNEXPECTED, false, e.javaClass.simpleName)
+        } finally {
+            CloudJobHealth.running.decrementAndGet()
         }
         Log.i(TAG, "cloud backup: $outcome (attempt ${runAttemptCount + 1})")
         if (outcome is CloudBackupOutcome.Failed && outcome.retryable && runAttemptCount + 1 < MAX_ATTEMPTS) {
             return Result.retry()
         }
         alerts.update(engine.record(outcome, scheduled = !manual))
+        // The night is over (or a catch-up stood in for it): the next one at 3:30 again, not 24 hours from now.
+        if (!manual) scheduler.reanchor()
         return Result.success(workDataOf(KEY_OUTCOME to outcomeName(outcome)))
     }
+
+    /** « stopped:<reason> »: Android's stop reason (JobParameters.STOP_REASON_*), known from Android 12. */
+    private fun stoppedOutcome(): String =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) "$OUTCOME_STOPPED:$stopReason" else OUTCOME_STOPPED
 
     /** Android 11 and older run an expedited job as a foreground service, which shows this. */
     override suspend fun getForegroundInfo(): ForegroundInfo =
@@ -78,6 +93,12 @@ class CloudBackupWorker @AssistedInject constructor(
 
         /** The first run and four retries (30 min, 1 h, 2 h, 4 h): a whole night's worth. */
         const val MAX_ATTEMPTS = 5
+
+        /** [CloudBackupState.lastScheduledOutcome] while a night's run is going. */
+        const val OUTCOME_STARTED = "started"
+
+        /** … once Android stopped it (time limit, network lost); the next run resumes the upload. */
+        const val OUTCOME_STOPPED = "stopped"
 
         fun outcomeName(outcome: CloudBackupOutcome): String = outcome.logName
     }

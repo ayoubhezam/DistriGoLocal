@@ -56,6 +56,8 @@ data class CloudStatus(
     /** The data's business (`app_meta.business_id`); null before any license. */
     val businessId: String? = null,
     val state: CloudBackupState = CloudBackupState(),
+    /** Android may put DistriGo to sleep in the background (not « Sans restriction »): the 48-hour notice offers the setting. */
+    val batteryRestricted: Boolean = false,
 )
 
 /** A backup in the restore list. */
@@ -161,7 +163,11 @@ class CloudBackupViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             val status = withContext(Dispatchers.IO) {
-                CloudStatus(loaded = true, available = authorizer.isAvailable(), businessId = business.read(), state = store.read())
+                CloudStatus(
+                    loaded = true, available = authorizer.isAvailable(), businessId = business.read(), state = store.read(),
+                    batteryRestricted = context.getSystemService(android.os.PowerManager::class.java)
+                        ?.isIgnoringBatteryOptimizations(context.packageName) == false,
+                )
             }
             _status.value = status
         }

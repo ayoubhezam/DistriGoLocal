@@ -7,6 +7,7 @@ import com.distrigo.app.data.backup.BackupCreator
 import com.distrigo.app.data.backup.cloud.AppCloudBackupSource
 import com.distrigo.app.data.backup.cloud.BackupKeyStore
 import com.distrigo.app.data.backup.cloud.CloudBackupAlerts
+import com.distrigo.app.data.backup.cloud.CloudJobHealth
 import com.distrigo.app.data.backup.cloud.CloudBackupEngine
 import com.distrigo.app.data.backup.cloud.CloudBackupLink
 import com.distrigo.app.data.backup.cloud.CloudBackupNotifications
@@ -118,7 +119,11 @@ object CloudBackupModule {
     @Provides
     @Singleton
     fun provideCloudBackupScheduler(@ApplicationContext context: Context, store: CloudBackupStore): CloudBackupScheduler =
-        CloudBackupScheduler({ WorkManager.getInstance(context) }, store)
+        CloudBackupScheduler(
+            { WorkManager.getInstance(context) },
+            store,
+            probe = CloudJobHealth.AndroidProbe(context.applicationContext) { WorkManager.getInstance(context) },
+        )
 
     @Provides
     @Singleton

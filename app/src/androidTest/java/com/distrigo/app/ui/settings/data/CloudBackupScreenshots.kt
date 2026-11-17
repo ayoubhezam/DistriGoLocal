@@ -91,6 +91,13 @@ class CloudBackupScreenshots {
             ),
         ),
         "12-restoring" to Scene(CloudStatus(loaded = true, businessId = "biz-1", state = linked), step = CloudStep.Restoring(text.getString(R.string.cloud_downloading, 42))),
+        // No good backup for 3 days, DistriGo not « Sans restriction »: the notice and the battery button
+        "13-overdue-battery" to Scene(
+            CloudStatus(
+                loaded = true, businessId = "biz-1", batteryRestricted = true,
+                state = linked.copy(lastAt = java.time.Instant.now().minus(java.time.Duration.ofDays(3)), lastSuccessAt = null),
+            ),
+        ),
     )
 
     private data class Scene(

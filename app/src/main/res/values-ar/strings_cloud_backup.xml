@@ -104,4 +104,10 @@
     <string name="cloud_error_newer">أُنشئت هذه النسخة بإصدار أحدث من ⁨DistriGo⁩. حدّث التطبيق ثم أعد المحاولة.</string>
     <string name="cloud_error_damaged">هذه النسخة تالفة. أعد المحاولة أو اختر نسخة أخرى.</string>
     <string name="cloud_error_other_key">أُنشئت هذه النسخة بمفتاح قديم ولا يمكن فتحها.</string>
+    <string name="cloud_overdue_since">لا توجد نسخة احتياطية منذ %1$s</string>
+    <string name="cloud_overdue_notice">لا توجد نسخة احتياطية على الإنترنت منذ %1$s. ربما أوقف الهاتف نسخة الليل: اضغط على «النسخ الاحتياطي الآن».</string>
+    <string name="cloud_alert">النسخ الاحتياطي على الإنترنت</string>
+    <string name="cloud_alert_sub">متأخر</string>
+    <string name="cloud_battery_hint">في «البطارية»، اختر «غير مقيد» حتى لا يوقف الهاتف نسخة الليل بعد الآن.</string>
+    <string name="cloud_battery_button">إعدادات البطارية</string>
 </resources>

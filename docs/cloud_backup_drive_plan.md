@@ -108,11 +108,11 @@ interface CloudBackupProvider {
 - The DEK itself is cached locally wrapped by a Keystore key, so daily backups need no typing.
 - DistriGo never sees the DEK, the password or the recovery code.
 
-### 3.4 Retention, enforced by the app (7 daily + 4 weekly)
+### 3.4 Retention, enforced by the app (3 daily + 3 weekly)
 
 - Runs **only after** a new backup has uploaded and passed the MD5 check.
-- Lists the business's backups (by `appProperties`), keeps the newest of each of the last **7 days** and the newest of
-  each of the last **4 weeks**, deletes the rest.
+- Lists the business's backups (by `appProperties`), keeps the newest of each of the last **3 days** and the newest of
+  each of the last **3 calendar weeks** (this one included, weeks start on Sunday), deletes the rest.
 - **Never** deletes the newest verified backup; **never** deletes anything before the new one is confirmed. A failed
   delete is retried at the next run.
 
@@ -289,7 +289,7 @@ Paramètres › Sauvegarde › **« Sauvegarde Google Drive »**
 ## 9. Owner's decisions (2026-11-03)
 
 1. **Key model**: password + recovery code, as in §3.3. Password at least **8 characters**.
-2. **Retention**: **7 daily + 4 weekly**. When Drive is full: **alert only**, the app never deletes backups to make
+2. **Retention**: **3 daily + 3 weekly** (owner, 2026-11-06; was 7 daily + 4 weekly). When Drive is full: **alert only**, the app never deletes backups to make
    room.
 3. **Photos**: included **by content** (§3.5), « Inclure les photos » **on** by default.
 4. **Mobile data**: **Wi-Fi only** by default, with « Autoriser les données mobiles » (plan default, not contested).

@@ -142,6 +142,7 @@ class CloudBackupEngine(
             lastProblem = problem,
             lastScheduledRunAt = if (scheduled) clock() else it.lastScheduledRunAt,
             lastScheduledOutcome = if (scheduled) outcome.logName else it.lastScheduledOutcome,
+            lastSuccessAt = if (outcome is CloudBackupOutcome.Saved || outcome is CloudBackupOutcome.Unchanged) clock() else it.lastSuccessAt,
         )
     }
 

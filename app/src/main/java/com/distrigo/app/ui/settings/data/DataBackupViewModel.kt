@@ -109,6 +109,10 @@ class DataBackupViewModel @Inject constructor(
     /** The Google account the cloud backup is linked to, for its card; null when not linked. */
     val cloudAccount: StateFlow<String?> = _cloudAccount.asStateFlow()
 
+    private val _cloudOverdue = MutableStateFlow<com.distrigo.app.data.backup.cloud.CloudBackupState?>(null)
+    /** The cloud state when it has had no good backup for 48 hours (CloudBackupState.isOverdue): the card warns. */
+    val cloudOverdue: StateFlow<com.distrigo.app.data.backup.cloud.CloudBackupState?> = _cloudOverdue.asStateFlow()
+
     val lastBackup: StateFlow<LastBackup?> =
         db.appMetaDao().observe(listOf(BackupCreator.KEY_LAST_AT, BackupCreator.KEY_LAST_SIZE, BackupCreator.KEY_LAST_NAME))
             .map { rows ->
@@ -182,7 +186,9 @@ class DataBackupViewModel @Inject constructor(
                 }
                 _lastRestore.value = installer.lastResult()
                 _autoStatus.value = readAutoStatus()
-                _cloudAccount.value = cloudStore.read().takeIf { it.linked }?.account
+                val cloud = cloudStore.read()
+                _cloudAccount.value = cloud.takeIf { it.linked }?.account
+                _cloudOverdue.value = cloud.takeIf { it.isOverdue(java.time.Instant.now()) }
             }
         }
     }

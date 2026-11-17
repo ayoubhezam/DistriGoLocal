@@ -95,6 +95,7 @@ fun DataBackupScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val cloudAccount by viewModel.cloudAccount.collectAsState()
+    val cloudOverdue by viewModel.cloudOverdue.collectAsState()
     LaunchedEffect(cloudRestore) {
         cloudRestore?.let {
             onCloudRestoreTaken()
@@ -218,7 +219,12 @@ fun DataBackupScreen(
                     },
                 )
 
-                CloudCard(account = cloudAccount, enabled = running == null, onOpen = onCloud)
+                CloudCard(
+                    account = cloudAccount,
+                    overdue = cloudOverdue?.let { stringResource(R.string.cloud_overdue_since, cloudOverdueFor(it, java.time.Instant.now())) },
+                    enabled = running == null,
+                    onOpen = onCloud,
+                )
 
                 // No restore while a backup is being written
                 RestoreCard(enabled = running == null, onInfo = { info = it }, onPick = { openLauncher.launch(arrayOf("*/*")) })
@@ -506,7 +512,7 @@ private fun AutoBackupCard(
 
 /** « Sauvegarde Google Drive »: whether it is linked, and the way in. Its own screen holds the rest. */
 @Composable
-private fun CloudCard(account: String?, enabled: Boolean, onOpen: () -> Unit) {
+private fun CloudCard(account: String?, overdue: String?, enabled: Boolean, onOpen: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -528,6 +534,8 @@ private fun CloudCard(account: String?, enabled: Boolean, onOpen: () -> Unit) {
                 fontSize = DsTextSize.bodySmall,
                 color = if (account != null) DsColors.Success else DsColors.TextSecondary
             )
+            // No good backup for 48 hours: said here too, where the backups are looked at
+            overdue?.let { Text(it, fontSize = DsTextSize.bodySmall, fontWeight = FontWeight.SemiBold, color = DsColors.Warning) }
         }
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DsColors.TextTertiary)
     }

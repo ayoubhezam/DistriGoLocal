@@ -198,7 +198,7 @@ class CloudBackupDeviceTest {
             .setRunAttemptCount(attempt)
             .setWorkerFactory(object : WorkerFactory() {
                 override fun createWorker(appContext: Context, workerClassName: String, workerParameters: WorkerParameters) =
-                    CloudBackupWorker(appContext, workerParameters, engine, store, alerts)
+                    CloudBackupWorker(appContext, workerParameters, engine, store, alerts, workerScheduler)
             })
             .build()
 
@@ -318,6 +318,105 @@ class CloudBackupDeviceTest {
         // At app start, an unlinked phone schedules nothing.
         scheduler.ensureScheduled()
         assertTrue(workManager.getWorkInfosForUniqueWork(CloudBackupScheduler.WORK_NAME).get().all { it.state == WorkInfo.State.CANCELLED })
+    }
+
+    /** WorkManager's own entries, but Android's list as [planned] says and WorkManager's state as [state] says. */
+    /**
+     * The workers' scheduler: on a test WorkManager, never the app's, so a test run doesn't move the phone's real
+     * nightly job.
+     */
+    private val workerScheduler by lazy {
+        val configuration = Configuration.Builder().setExecutor(SynchronousExecutor()).build()
+        WorkManagerTestInitHelper.initializeTestWorkManager(context, configuration)
+        val workManager = WorkManager.getInstance(context)
+        CloudBackupScheduler({ workManager }, store)
+    }
+
+    @Test
+    fun aNightsRunSetsTheNextOneBackTo330() {
+        val configuration = Configuration.Builder().setExecutor(SynchronousExecutor()).build()
+        WorkManagerTestInitHelper.initializeTestWorkManager(context, configuration)
+        val workManager = WorkManager.getInstance(context)
+        // The catch-up of 6 November finished at 7:25: the next run must be 3:30, not 7:25 the next day.
+        val now = Instant.parse("2026-11-06T06:25:28Z")
+        val zone = java.time.ZoneId.of("Africa/Algiers")
+        val scheduler = CloudBackupScheduler({ workManager }, store, clock = { now }, zone = { zone })
+        scheduler.apply()
+        val before = workManager.getWorkInfosForUniqueWork(CloudBackupScheduler.WORK_NAME).get().single()
+        scheduler.reanchor()
+        val after = workManager.getWorkInfosForUniqueWork(CloudBackupScheduler.WORK_NAME).get().single()
+        assertEquals("the same job, updated", before.id, after.id)
+        assertEquals(Instant.parse("2026-11-07T02:30:00Z").toEpochMilli(), after.nextScheduleTimeMillis)
+    }
+
+    private class FakeProbe(val workManager: WorkManager, var state: WorkInfo.State?, var planned: Set<String>) : CloudJobHealth.Probe {
+        override fun works(name: String) = workManager.getWorkInfosForUniqueWork(name).get()
+            .map { CloudJobHealth.Work(it.id, if (!it.state.isFinished) state ?: it.state else it.state) }
+        override fun plannedIds() = planned
+        override fun runningHere() = false
+    }
+
+    @Test
+    fun aRunAndroidLostIsReplacedAndRunAgain() {
+        val configuration = Configuration.Builder().setMinimumLoggingLevel(Log.DEBUG).setExecutor(SynchronousExecutor()).build()
+        WorkManagerTestInitHelper.initializeTestWorkManager(context, configuration)
+        val workManager = WorkManager.getInstance(context)
+        val probe = FakeProbe(workManager, state = null, planned = emptySet())
+        val warnings = mutableListOf<String>()
+        val scheduler = CloudBackupScheduler(
+            { workManager }, store, clock = { Instant.parse("2026-11-06T05:40:00Z") }, probe = probe, pause = {}, warn = { warnings += it },
+        )
+        store.update { it.copy(lastScheduledOutcome = CloudBackupWorker.OUTCOME_STARTED) }
+
+        // Nothing planned yet: planned, as before.
+        assertEquals(CloudJobHealth.Verdict.Missing, scheduler.ensureScheduled())
+        val daily = workManager.getWorkInfosForUniqueWork(CloudBackupScheduler.WORK_NAME).get().single()
+
+        // Android holds it: left alone.
+        probe.planned = setOf(daily.id.toString())
+        assertEquals(CloudJobHealth.Verdict.Healthy, scheduler.ensureScheduled())
+        assertEquals(daily.id, workManager.getWorkInfosForUniqueWork(CloudBackupScheduler.WORK_NAME).get().single { !it.state.isFinished }.id)
+
+        // The night of 6 November: RUNNING for WorkManager, gone from Android.
+        probe.planned = emptySet()
+        probe.state = WorkInfo.State.RUNNING
+        assertEquals(CloudJobHealth.Verdict.Lost(wasRunning = true), scheduler.ensureScheduled())
+        val works = workManager.getWorkInfosForUniqueWork(CloudBackupScheduler.WORK_NAME).get()
+        // CANCEL_AND_REENQUEUE cancels the lost job and deletes its record: it is gone from the name, not left cancelled
+        assertTrue("the lost job is gone", works.none { it.id == daily.id })
+        val replaced = works.single { it.id != daily.id }
+        assertEquals(WorkInfo.State.ENQUEUED, replaced.state)
+        assertEquals(NetworkType.UNMETERED, replaced.constraints.requiredNetworkType)
+        assertEquals(24 * 3_600_000L, replaced.periodicityInfo!!.repeatIntervalMillis)
+        val catchUp = workManager.getWorkInfosForUniqueWork(CloudBackupScheduler.CATCH_UP_NAME).get().single()
+        assertEquals(WorkInfo.State.ENQUEUED, catchUp.state)
+        assertEquals(NetworkType.UNMETERED, catchUp.constraints.requiredNetworkType)
+        assertEquals(CloudBackupScheduler.OUTCOME_INTERRUPTED, store.read().lastScheduledOutcome)
+        assertEquals(1, warnings.size)
+
+        // An enqueued job Android lost: replaced, but no run was cut, so no catch-up and the outcome stays.
+        store.update { it.copy(lastScheduledOutcome = "unchanged") }
+        workManager.cancelUniqueWork(CloudBackupScheduler.CATCH_UP_NAME)
+        probe.state = WorkInfo.State.ENQUEUED
+        assertEquals(CloudJobHealth.Verdict.Lost(wasRunning = false), scheduler.ensureScheduled())
+        assertTrue(workManager.getWorkInfosForUniqueWork(CloudBackupScheduler.CATCH_UP_NAME).get().all { it.state.isFinished })
+        assertEquals("unchanged", store.read().lastScheduledOutcome)
+
+        // Unlinked: nothing is checked or planned, and a catch-up is cancelled.
+        store.update { it.copy(linked = false) }
+        scheduler.apply()
+        assertEquals(CloudJobHealth.Verdict.Healthy, scheduler.ensureScheduled())
+        assertTrue(workManager.getWorkInfosForUniqueWork(CloudBackupScheduler.WORK_NAME).get().all { it.state.isFinished })
+    }
+
+    @Test
+    fun theProbeReadsWorkIdsFromAndroidsJobList() {
+        // The real JobScheduler: WorkManager's jobs for this app carry the work id under the key the probe reads.
+        val scheduler = context.getSystemService(android.app.job.JobScheduler::class.java)
+        val jobs = scheduler.allPendingJobs.filter { it.service.className.endsWith("SystemJobService") }
+        val ids = CloudJobHealth.AndroidProbe(context) { WorkManager.getInstance(context) }.plannedIds()
+        Log.i(TAG, "WorkManager jobs in Android's list: ${jobs.size}, ids read: ${ids.size}")
+        assertEquals(jobs.size, ids.size)
     }
 
     private companion object {

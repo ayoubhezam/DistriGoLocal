@@ -6,6 +6,7 @@ import com.google.gson.JsonParser
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.time.Duration
 import java.time.Instant
 
 /** A backup sealed and waiting to go up, kept so a cut upload resumes instead of starting over (plan §3.6). */
@@ -51,11 +52,31 @@ data class CloudBackupState(
     val lastScheduledRunAt: Instant? = null,
     /** What that daily run did (« unchanged », « saved », « failed:… »): kept apart so « Sauvegarder maintenant » doesn't hide it. */
     val lastScheduledOutcome: String? = null,
+    /** The last run, manual or daily, that left an up-to-date backup in the cloud (« saved » or « unchanged »). */
+    val lastSuccessAt: Instant? = null,
     /** Runs in a row that ended with a problem; 0 after a good run. */
     val problemStreak: Int = 0,
     val lastProblem: CloudBackupProblem? = null,
     val pending: PendingUpload? = null,
-)
+) {
+    /**
+     * No up-to-date backup in the cloud for [OVERDUE_AFTER], though automatic backup is on: the app warns (the
+     * nightly job can be stopped by the phone without a word). Counted from the last good run, else the last backup,
+     * else the link.
+     */
+    fun isOverdue(now: Instant): Boolean {
+        if (!linked || !enabled) return false
+        val since = listOfNotNull(lastSuccessAt, lastAt, linkedAt).maxOrNull() ?: return false
+        return Duration.between(since, now) >= OVERDUE_AFTER
+    }
+
+    /** Since when [isOverdue] counts. */
+    val lastGoodAt: Instant? get() = listOfNotNull(lastSuccessAt, lastAt).maxOrNull()
+
+    companion object {
+        val OVERDUE_AFTER: Duration = Duration.ofHours(48)
+    }
+}
 
 /**
  * Cloud backup settings and state, in `no_backup/cloud_backup/state.json`. Not in the database, for the reasons of
@@ -85,6 +106,7 @@ class CloudBackupStore(private val dir: File) {
                 lastAttemptAt = json.instant("last_attempt_at"),
                 lastScheduledRunAt = json.instant("last_scheduled_run_at"),
                 lastScheduledOutcome = json.text("last_scheduled_outcome"),
+                lastSuccessAt = json.instant("last_success_at"),
                 problemStreak = json.text("problem_streak")?.toIntOrNull() ?: 0,
                 lastProblem = json.text("last_problem")?.let { runCatching { CloudBackupProblem.valueOf(it) }.getOrNull() },
                 pending = (json.get("pending") as? JsonObject)?.let(::pendingFrom),
@@ -113,6 +135,7 @@ class CloudBackupStore(private val dir: File) {
             addProperty("last_attempt_at", next.lastAttemptAt?.toString())
             addProperty("last_scheduled_run_at", next.lastScheduledRunAt?.toString())
             addProperty("last_scheduled_outcome", next.lastScheduledOutcome)
+            addProperty("last_success_at", next.lastSuccessAt?.toString())
             addProperty("problem_streak", next.problemStreak.toString())
             addProperty("last_problem", next.lastProblem?.name)
             add("pending", next.pending?.let(::pendingJson))
