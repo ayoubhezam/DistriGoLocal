@@ -1,5 +1,9 @@
 package com.distrigo.app.ui.dashboard
 
+import com.distrigo.app.data.backup.cloud.CloudBackupState
+import com.distrigo.app.ui.settings.data.cloudOverdueFor
+import androidx.compose.material.icons.filled.CloudOff
+import java.time.Instant
 import kotlin.math.roundToInt
 import com.distrigo.app.core.format.percentText
 import com.distrigo.app.ui.designsystem.skeleton
@@ -159,9 +163,13 @@ fun DashboardScreen(
     onTourneeClientSale  : (tourneeId: Int, clientId: Int, clientName: String) -> Unit = { _, _, _ -> },
     /** « Objectif du mois » on the card: « Mon objectif » (D20). */
     onOpenGoal           : () -> Unit = {},
+    /** The cloud backup's alert line: its screen. */
+    onOpenCloudBackup    : () -> Unit = {},
     viewModel            : DashboardViewModel = hiltViewModel(),
 ) {
     val ui by viewModel.state.collectAsState()
+    val cloudOverdue by viewModel.cloudOverdue.collectAsState()
+    LaunchedEffect(Unit) { viewModel.checkCloudBackup() }
     val content = (ui as? DashboardUiState.Ready)?.content
     val license = LocalLicense.current
     val drill = LocalDrillDown.current
@@ -267,8 +275,9 @@ fun DashboardScreen(
             }
 
             // D12: only when there is something to see to
-            c.alerts?.takeIf { it.any }?.let { alerts ->
-                item(key = "alerts") { AlertsCard(alerts) { open(it) } }
+            val alerts = c.alerts?.takeIf { it.any }
+            if (alerts != null || cloudOverdue != null) {
+                item(key = "alerts") { AlertsCard(alerts, cloudOverdue, onOpenCloudBackup) { open(it) } }
             }
 
             item(key = "activity_title") {
@@ -711,18 +720,27 @@ internal fun QuickAction(
 
 /** What needs seeing to, each line opening its list. Shown only when there is one (D12). */
 @Composable
-private fun AlertsCard(alerts: DashboardAlerts, onOpen: (DashboardLink) -> Unit) {
+private fun AlertsCard(alerts: DashboardAlerts?, cloudOverdue: CloudBackupState?, onOpenCloud: () -> Unit, onOpen: (DashboardLink) -> Unit) {
     val money = LocalMoneyFormatter.current
     CardColumn {
         val res = androidx.compose.ui.platform.LocalContext.current.resources
         CardTitle(stringResource(R.string.dashboard_alerts), infoAlerts())
         Spacer(Modifier.height(DsSpacing.sm))
-        if (alerts.outOfStock > 0) AlertLine(Icons.Default.RemoveShoppingCart, DsColors.Danger, stringResource(R.string.dashboard_alert_out), stringResource(R.string.dashboard_alert_out_sub),
-            productCount(res, alerts.outOfStock)) { onOpen(DashboardLink.RESTOCK) }
-        if (alerts.lowStock > 0) AlertLine(Icons.Default.Inventory2, DsColors.Warning, stringResource(R.string.dashboard_alert_low), stringResource(R.string.dashboard_alert_low_sub),
-            productCount(res, alerts.lowStock)) { onOpen(DashboardLink.RESTOCK) }
-        if (alerts.oldClientDebt > 0.005) AlertLine(Icons.Default.HourglassBottom, DsColors.Danger, stringResource(R.string.dashboard_alert_debts), stringResource(R.string.dashboard_alert_debts_sub),
-            money.figure(alerts.oldClientDebt)) { onOpen(DashboardLink.CLIENT_DEBTS) }
+        if (alerts != null) {
+            if (alerts.outOfStock > 0) AlertLine(Icons.Default.RemoveShoppingCart, DsColors.Danger, stringResource(R.string.dashboard_alert_out), stringResource(R.string.dashboard_alert_out_sub),
+                productCount(res, alerts.outOfStock)) { onOpen(DashboardLink.RESTOCK) }
+            if (alerts.lowStock > 0) AlertLine(Icons.Default.Inventory2, DsColors.Warning, stringResource(R.string.dashboard_alert_low), stringResource(R.string.dashboard_alert_low_sub),
+                productCount(res, alerts.lowStock)) { onOpen(DashboardLink.RESTOCK) }
+            if (alerts.oldClientDebt > 0.005) AlertLine(Icons.Default.HourglassBottom, DsColors.Danger, stringResource(R.string.dashboard_alert_debts), stringResource(R.string.dashboard_alert_debts_sub),
+                money.figure(alerts.oldClientDebt)) { onOpen(DashboardLink.CLIENT_DEBTS) }
+        }
+        // No good cloud backup for 48 hours (CloudBackupState.isOverdue)
+        if (cloudOverdue != null) {
+            val since = stringResource(R.string.cloud_overdue_since, cloudOverdueFor(cloudOverdue, remember(cloudOverdue) { Instant.now() }))
+            AlertLine(Icons.Default.CloudOff, DsColors.Warning, stringResource(R.string.cloud_alert), stringResource(R.string.cloud_alert_sub), onClick = onOpenCloud) {
+                Text(since, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = DsColors.Warning, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+        }
     }
 }
 
@@ -732,7 +750,11 @@ private fun productCount(res: android.content.res.Resources, count: Int) =
 
 /** An alert: its icon, a short [label] and what it means under it — short, so a large amount beside it never cuts it. */
 @Composable
-private fun AlertLine(icon: ImageVector, color: Color, label: String, detail: String, value: Figure, onClick: () -> Unit) {
+private fun AlertLine(icon: ImageVector, color: Color, label: String, detail: String, value: Figure, onClick: () -> Unit) =
+    AlertLine(icon, color, label, detail, onClick) { AnimatedFigure(value, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = color) }
+
+@Composable
+private fun AlertLine(icon: ImageVector, color: Color, label: String, detail: String, onClick: () -> Unit, value: @Composable () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clip(DsShapes.small).clickable(role = Role.Button, onClick = onClick).padding(vertical = DsSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -749,7 +771,7 @@ private fun AlertLine(icon: ImageVector, color: Color, label: String, detail: St
                 },
                 fontSize = DsTextSize.body, color = DsColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
-            AnimatedFigure(value, fontSize = DsTextSize.body, fontWeight = FontWeight.Bold, color = color)
+            value()
         }
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DsColors.TextTertiary)
     }

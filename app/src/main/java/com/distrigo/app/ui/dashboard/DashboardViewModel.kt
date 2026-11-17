@@ -1,5 +1,9 @@
 package com.distrigo.app.ui.dashboard
 
+import com.distrigo.app.data.backup.cloud.CloudBackupState
+import com.distrigo.app.data.backup.cloud.CloudBackupStore
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Dispatchers
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.distrigo.app.data.auth.AccountState
@@ -122,7 +126,19 @@ class DashboardViewModel @Inject constructor(
     private val filterStore: ReportFilterStore,
     auth: AuthRepository,
     @ApplicationContext context: Context,
+    private val cloudStore: CloudBackupStore,
 ) : ViewModel() {
+
+    private val _cloudOverdue = MutableStateFlow<CloudBackupState?>(null)
+    /** The cloud backup's state when it has had no good backup for 48 hours: an alert line (CloudBackupState.isOverdue). */
+    val cloudOverdue: StateFlow<CloudBackupState?> = _cloudOverdue.asStateFlow()
+
+    /** Each time the Dashboard shows: a night the phone cut short is seen without opening Paramètres. */
+    fun checkCloudBackup() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _cloudOverdue.value = cloudStore.read().takeIf { it.isOverdue(java.time.Instant.now()) }
+        }
+    }
 
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 

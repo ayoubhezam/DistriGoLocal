@@ -3,6 +3,9 @@ package com.distrigo.app.ui.navigation
 import com.distrigo.app.diagnostics.rememberTrackedNavController
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import com.distrigo.app.ui.settings.data.CloudBackupScreen
+import com.distrigo.app.ui.settings.data.DataBackupScreen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,6 +22,7 @@ import com.distrigo.app.ui.tournees.AddClientsToTourneeScreen
 
 private const val DASHBOARD_ADD_CLIENTS = "dashboard_tournee_add_clients"
 private const val DASHBOARD_MON_OBJECTIF = "dashboard_mon_objectif"
+private const val DASHBOARD_CLOUD_RESTORE = "dashboard_cloud_restore_file"
 
 /**
  * The Dashboard and what its quick actions open, in place (docs/design/dashboard_objectif_plan.md, Part 1): the
@@ -72,6 +76,7 @@ fun DashboardNavHost(
                 },
                 onSetObjective       = { navController.navigate(Screen.SettingsCommission.route) { launchSingleTop = true } },
                 onOpenGoal           = { navController.navigate(DASHBOARD_MON_OBJECTIF) { launchSingleTop = true } },
+                onOpenCloudBackup    = { navController.navigate(Screen.SettingsCloudBackup.route) { launchSingleTop = true } },
                 onTourneeClientSale  = { tourneeId, clientId, clientName ->
                     navController.navigate(Screen.TourneeVenteFormGraphDirect.createRoute(tourneeId, clientId, clientName))
                 },
@@ -140,6 +145,27 @@ fun DashboardNavHost(
                     onSaved           = { navController.popBackStack() },
                 )
             }
+        }
+
+        // The cloud backup's alert line: its screen, and « Sauvegarde et restauration » for a backup it downloads
+        composable(Screen.SettingsCloudBackup.route) {
+            CloudBackupScreen(
+                onBack = { navController.popBackStack() },
+                onRestoreFile = { uri ->
+                    navController.popBackStack()
+                    navController.navigate(Screen.SettingsData.route)
+                    navController.currentBackStackEntry?.savedStateHandle?.set(DASHBOARD_CLOUD_RESTORE, uri.toString())
+                },
+            )
+        }
+        composable(Screen.SettingsData.route) { entry ->
+            val cloudRestore by entry.savedStateHandle.getStateFlow<String?>(DASHBOARD_CLOUD_RESTORE, null).collectAsState()
+            DataBackupScreen(
+                onBack = { navController.popBackStack() },
+                onCloud = { navController.navigate(Screen.SettingsCloudBackup.route) { launchSingleTop = true } },
+                cloudRestore = cloudRestore,
+                onCloudRestoreTaken = { entry.savedStateHandle[DASHBOARD_CLOUD_RESTORE] = null },
+            )
         }
 
         composable(DASHBOARD_MON_OBJECTIF) {
