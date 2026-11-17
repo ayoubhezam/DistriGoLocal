@@ -3,13 +3,25 @@
 #
 #   supabase/tests/local/run.sh [work-dir]
 #
-# PG_BIN is PostgreSQL's bin folder (default: PostgreSQL 17 on Windows), work-dir where the cluster lives
+# PG_BIN is PostgreSQL's bin folder (default: the newest one in /c/Program Files/PostgreSQL), work-dir where the cluster lives
 # while it runs (default: a new temporary folder). The cluster is stopped and deleted at the end.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
 supabase="$(cd "$here/../.." && pwd)"
-PG_BIN="${PG_BIN:-/c/Program Files/PostgreSQL/17/bin}"
+if [[ -z "${PG_BIN:-}" ]]; then
+    # The newest PostgreSQL installed in its default Windows folder (17 on the old laptop, 18 on this one)
+    for version in 19 18 17 16; do
+        if [[ -x "/c/Program Files/PostgreSQL/$version/bin/initdb.exe" || -x "/c/Program Files/PostgreSQL/$version/bin/initdb" ]]; then
+            PG_BIN="/c/Program Files/PostgreSQL/$version/bin"
+            break
+        fi
+    done
+fi
+if [[ -z "${PG_BIN:-}" ]]; then
+    echo "No PostgreSQL found under /c/Program Files/PostgreSQL: set PG_BIN to its bin folder." >&2
+    exit 1
+fi
 work="${1:-$(mktemp -d)}"
 port="${PGPORT_TEST:-54329}"
 data="$work/pgdata"
