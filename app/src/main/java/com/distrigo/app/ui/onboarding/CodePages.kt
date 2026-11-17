@@ -230,7 +230,7 @@ private fun CodeStep(code: String, onCodeChange: (String) -> Unit, status: Onboa
     FormTitle(licText(R.string.onb_activate_with_code), licText(R.string.onb_enter_code_text))
     if (status.codeRequired) {
         Spacer(Modifier.height(DsSpacing.md))
-        Notice(licText(R.string.onb_trial_used))
+        Notice(licText(if (status.trialNotChecked) R.string.onb_trial_device else R.string.onb_trial_used))
     }
     Spacer(Modifier.height(DsSpacing.xl))
     CodeField(

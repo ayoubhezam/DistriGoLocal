@@ -4,7 +4,8 @@
 // Secrets (supabase secrets set …):
 //   LICENSE_SIGNING_KEY          the license key, PKCS#8 PEM (never in the repository)
 //   LICENSE_SIGNING_KID          the id the app pins its public half under: lic-2026-a
-//   LICENSE_APP_SIGNING_DIGESTS  SHA-256 of the app's signing certificates, hex, comma-separated
+//   LICENSE_APP_SIGNING_DIGESTS  SHA-256 of the app's release signing certificates, hex, comma-separated
+//   LICENSE_TEST_SIGNING_DIGESTS optional: the debug certificates, trusted only for private.test_accounts (LIC-03)
 // Provided by Supabase: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_DB_URL.
 
 import postgres from "npm:postgres@3.4.5";
@@ -19,6 +20,8 @@ function env(name: string): string {
     return value;
 }
 
+const digests = (list: string) => list.split(",").map((d) => d.trim()).filter((d) => d !== "");
+
 let config: Promise<Config> | null = null;
 
 function loadConfig(): Promise<Config> {
@@ -28,7 +31,8 @@ function loadConfig(): Promise<Config> {
         signingKey: await importSigningKey(env("LICENSE_SIGNING_KEY")),
         keyId: env("LICENSE_SIGNING_KID"),
         packageName: Deno.env.get("LICENSE_PACKAGE_NAME") ?? "com.distrigo.app",
-        signingDigests: env("LICENSE_APP_SIGNING_DIGESTS").split(",").map((d) => d.trim()).filter((d) => d !== ""),
+        signingDigests: digests(env("LICENSE_APP_SIGNING_DIGESTS")),
+        testSigningDigests: digests(Deno.env.get("LICENSE_TEST_SIGNING_DIGESTS") ?? ""),
         revocation: revocationList(),
     }))();
     return config;

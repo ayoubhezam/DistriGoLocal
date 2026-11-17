@@ -71,6 +71,8 @@ data class OnboardingStatus(
     val seatTaken: List<String>? = null,
     /** An e-mail sign-up on a phone that already had its trial: only a code can pay for it now. */
     val codeRequired: Boolean = false,
+    /** With [codeRequired]: no trial because the phone failed the device check (LIC-04), not because it had one. */
+    val trialNotChecked: Boolean = false,
     /** The phone is activated: the success screen. */
     val activation: ActivationSummary? = null,
 ) {

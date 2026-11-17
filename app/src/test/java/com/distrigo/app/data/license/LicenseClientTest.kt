@@ -66,6 +66,17 @@ class LicenseClientTest {
         jsonResponse(200, """{"status":"activated","license":"$token","device_id":"d-1","business_id":"b","trial":true,"tier":"normal","reasons":[]}""")
 
     @Test
+    fun `a trial refused for the device check says so, apart from one already used`() = runBlocking {
+        server.enqueue(nonceReply())
+        server.enqueue(jsonResponse(200, """{"status":"no_business"}"""))
+        val asked = client.startActivation() as ActivationStep.NeedsBusinessName
+        server.enqueue(jsonResponse(200, """{"status":"activated","license":"${Golden.token("valid")}","device_id":"d-1",
+            "business_id":"b","trial":false,"trial_refused":"device_check","tier":"reduced","reasons":["unknown_root"]}"""))
+        val done = client.continueActivation(asked.request, businessName = "Distribution Réduite")
+        assertEquals(ActivationStep.Activated(trial = false, reduced = true, trialRefused = "device_check"), done)
+    }
+
+    @Test
     fun `activation makes a key attested with the server's nonce, asks the business's name, then installs the license`() = runBlocking {
         server.enqueue(nonceReply())
         server.enqueue(jsonResponse(200, """{"status":"no_business"}"""))

@@ -29,8 +29,10 @@ export interface Expected {
     /** The nonce the server gave for this activation. */
     challenge: Uint8Array;
     packageName: string;
-    /** SHA-256 of the app's signing certificates, lowercase hex: release, and debug while developing. */
+    /** SHA-256 of the app's release signing certificates, lowercase hex: trusted for everyone. */
     signingDigests: string[];
+    /** The development (debug) certificates: trusted only for test accounts, which the caller decides (LIC-03). */
+    testSigningDigests?: string[];
     roots?: Uint8Array[];
     /** Serial (lowercase hex) → status, for certificates Google lists as revoked or suspended. */
     revoked?: Map<string, string>;
@@ -59,6 +61,8 @@ export interface Attestation {
     /** null when the attestation names no application. */
     packageMatches: boolean | null;
     signerMatches: boolean | null;
+    /** Signed with a development certificate rather than a release one; null when the attestation names no signer. */
+    testSigner: boolean | null;
     revoked: { serial: string; status: string }[];
     expired: string[];
     problems: string[];
@@ -77,7 +81,7 @@ export async function inspect(chainDer: Uint8Array[], expected: Expected): Promi
         keySpki: null, keyHash: null, googleChain: false, brokenGoogleChain: false, attested: false,
         attestationVersion: null, securityLevel: null, challengeMatches: false, verifiedBootState: null,
         deviceLocked: null, osPatchLevel: null, packages: [], signatureDigests: [], packageMatches: null,
-        signerMatches: null, revoked: [], expired: [], problems: [],
+        signerMatches: null, testSigner: null, revoked: [], expired: [], problems: [],
     };
     let chain: Certificate[];
     try {
@@ -166,6 +170,8 @@ function readKeyDescription(bytes: Uint8Array, expected: Expected, result: Attes
         // Any of them: after a signing-key rotation the lineage lists the old certificate too, which only the
         // holder of our key could have produced.
         result.signerMatches = result.signatureDigests.some((d) => allowed.includes(d));
+        const test = (expected.testSigningDigests ?? []).map((d) => d.toLowerCase().replace(/[^0-9a-f]/g, ""));
+        result.testSigner = !result.signerMatches && result.signatureDigests.some((d) => test.includes(d));
     }
 }
 

@@ -174,7 +174,9 @@ declare
     r    jsonb;
     old  uuid := pg_temp.device('e0000000-0000-4000-8000-000000000002');
 begin
-    -- The Redmi reinstalls DistriGo: a new installation id, the same ANDROID_ID and model.
+    -- The Redmi reinstalls DistriGo: a new installation id, the same ANDROID_ID and model. The old installation has
+    -- been silent for 48 hours, without which the seat is not given back for free (LIC-01, license_checks_test.sql).
+    update public.devices set last_seen_at = now() - interval '49 hours' where id = old;
     r := pg_temp.activate('aaaaaaaa-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000003', 'key-3', 'phone-x', 'Redmi Note');
     assert r ->> 'status' = 'activated', r::text;
     assert (select status from public.devices where id = old) = 'released';

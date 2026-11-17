@@ -138,7 +138,7 @@ class OnboardingViewModel @Inject constructor(
             is ActivationStep.Activated -> {
                 pending = null
                 keepKey(step.code)
-                activated(step.code)
+                activated(step.code, step.trialRefused)
             }
             is ActivationStep.NeedsBusinessName -> {
                 pending = step.request
@@ -163,10 +163,12 @@ class OnboardingViewModel @Inject constructor(
      * The license just installed, for the success screen. An e-mail sign-up on a phone that already had its trial
      * gets one that has already ended: a code pays for it, so the code screen comes next.
      */
-    private fun activated(code: String?): OnboardingStatus {
+    private fun activated(code: String?, trialRefused: String? = null): OnboardingStatus {
         val held = license.state.value.heldLicense
             ?: return OnboardingStatus(error = licText(R.string.onb_license_unreadable))
-        if (code == null && held.validTo < System.currentTimeMillis()) return OnboardingStatus(codeRequired = true)
+        if (code == null && held.validTo < System.currentTimeMillis()) {
+            return OnboardingStatus(codeRequired = true, trialNotChecked = trialRefused == "device_check")
+        }
         return OnboardingStatus(
             activation = ActivationSummary(
                 origin = if (code == "joined") ActivationOrigin.SIGN_IN else origin,

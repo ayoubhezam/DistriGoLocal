@@ -19,8 +19,10 @@ export interface Config {
     signingKey: CryptoKey;
     keyId: string;
     packageName: string;
-    /** SHA-256 of the app's signing certificates, hex. */
+    /** SHA-256 of the app's release signing certificates, hex: trusted for every account. */
     signingDigests: string[];
+    /** The debug certificates: a build signed with one activates only for an account in private.test_accounts (LIC-03). */
+    testSigningDigests?: string[];
     /** Google's root keys; the tests may pass others. */
     roots?: Uint8Array[];
     revocation: () => Promise<RevocationList>;
@@ -117,10 +119,12 @@ export async function activate(config: Config, userId: string, body: Body, clien
     }
 
     const revocation = await config.revocation();
+    const [{ tester }] = await config.sql`select private.is_test_account(${userId}::uuid) as tester`;
     const attestation = await inspect(certificates, {
         challenge: nonce,
         packageName: config.packageName,
         signingDigests: config.signingDigests,
+        testSigningDigests: config.testSigningDigests,
         roots: config.roots,
         revoked: revocation.entries,
         now: config.now?.(),
@@ -130,8 +134,12 @@ export async function activate(config: Config, userId: string, body: Body, clien
     if (!(await verifyDeviceSignature(attestation.keySpki, signedMessage("activate", nonce, installationId), signature))) {
         return reply({ status: "bad_signature" });
     }
+    // A development build is the release app for the owner's test accounts, and a repackaged one for anybody else
+    if (tester && attestation.testSigner) attestation.signerMatches = true;
     const verdict = judge(attestation);
     if (!verdict.accept) return reply({ status: "refused", reason: verdict.reason });
+    // A trial needs a phone Google vouches for and its ANDROID_ID; test accounts are exempt (LIC-04)
+    const trialAllowed = tester || (verdict.tier === "normal" && androidId !== null);
 
     const summary = {
         google_chain: attestation.googleChain,
@@ -146,6 +154,7 @@ export async function activate(config: Config, userId: string, body: Body, clien
         revocation_checked: revocation.fresh,
         reasons: verdict.reasons,
         problems: attestation.problems,
+        test_build: attestation.testSigner === true,
     };
     const keySpki = attestation.keySpki;
     const keyHash = attestation.keyHash;
@@ -155,6 +164,7 @@ export async function activate(config: Config, userId: string, body: Body, clien
         if (!ok) throw new Rollback(reply({ status: "bad_nonce" }));
         let business = businessId;
         let trial: boolean | null = null;
+        let trialRefused: string | null = null;
         let codeUse: string | null = null;
         if (activationCode !== null) {
             const [{ redeemed }] = await tx`
@@ -166,8 +176,11 @@ export async function activate(config: Config, userId: string, body: Body, clien
         } else if (businessName !== null && businessId === null) {
             const [{ created }] = await tx`
                 select private.create_business(${userId}::uuid, ${businessName}, ${androidId}, ${contactPhone}, ${activity},
-                                               ${salesReps}) as created`;
-            if (created.status === "created") trial = created.trial;
+                                               ${salesReps}, ${trialAllowed}) as created`;
+            if (created.status === "created") {
+                trial = created.trial;
+                trialRefused = created.trial_refused ?? null;
+            }
         }
         const [{ result }] = await tx`
             select private.activate_device(
@@ -182,6 +195,7 @@ export async function activate(config: Config, userId: string, body: Body, clien
             device_id: result.device_id,
             business_id: claims.org,
             trial,
+            ...(trialRefused !== null ? { trial_refused: trialRefused } : {}),
             tier: verdict.tier,
             reasons: verdict.reasons,
             ...(codeUse !== null ? { code: codeUse } : {}),

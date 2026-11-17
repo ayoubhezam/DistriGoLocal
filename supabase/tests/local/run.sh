@@ -42,7 +42,7 @@ done
 
 # The tests print "ok: …" for each check; the first failure stops them.
 checks=0
-for test in license_test.sql codes_test.sql business_profile_test.sql codes_admin_test.sql clients_admin_test.sql batch_admin_test.sql refused_trial_test.sql trial_length_test.sql; do
+for test in license_test.sql codes_test.sql business_profile_test.sql codes_admin_test.sql clients_admin_test.sql batch_admin_test.sql refused_trial_test.sql trial_length_test.sql license_checks_test.sql; do
     output="$(sql -f "$here/$test" 2>&1)" || { echo "$output"; exit 1; }
     echo "$output" | grep -o 'ok: .*'
     checks=$((checks + $(echo "$output" | grep -c 'ok: ')))

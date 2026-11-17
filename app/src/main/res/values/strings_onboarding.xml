@@ -4,6 +4,7 @@
     <string name="onb_create_account">Créer un compte</string>
     <string name="onb_activate_with_code">Activer avec un code</string>
     <string name="onb_enter_code_text">Saisissez votre code d\'activation.</string>
+    <string name="onb_trial_device">L\'essai gratuit est réservé aux téléphones dont Google confirme l\'authenticité. Ce téléphone ne le permet pas (sans services Google, modifié ou rooté) : activez DISTRONIQ avec un code d\'activation.</string>
     <string name="onb_trial_used">L\'essai gratuit a déjà été utilisé sur ce téléphone : activez DISTRONIQ avec un code.</string>
     <string name="onb_code_keep">Le code active DISTRONIQ sur ce téléphone. Gardez-le : il sert aussi à réactiver l\'application sur un nouveau téléphone.</string>
     <string name="onb_paste">Coller</string>

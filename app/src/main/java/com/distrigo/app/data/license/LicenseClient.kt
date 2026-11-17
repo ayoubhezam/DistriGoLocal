@@ -46,7 +46,11 @@ data class ActivationDetails(
 /** Where an activation stands: done, or what the user must answer next. */
 sealed interface ActivationStep {
     /** [code]: what an activation code did — created, joined or renewed — or null without one. */
-    data class Activated(val trial: Boolean?, val reduced: Boolean, val code: String? = null) : ActivationStep
+    /**
+     * [trialRefused]: why a new business got no trial — "device_check" (the phone is not one Google vouches for, LIC-04)
+     * or "already_used" (this phone had its trial); null when it got one, or made no business.
+     */
+    data class Activated(val trial: Boolean?, val reduced: Boolean, val code: String? = null, val trialRefused: String? = null) : ActivationStep
 
     /** The account has no business yet: its name, then [ActivationRequest] again. */
     data class NeedsBusinessName(val request: ActivationRequest) : ActivationStep
@@ -266,6 +270,7 @@ class LicenseClient(
                             trial = reply.get("trial")?.takeIf { it.isJsonPrimitive }?.asBoolean,
                             reduced = reply.text("tier") == "reduced",
                             code = reply.text("code"),
+                            trialRefused = reply.text("trial_refused"),
                         )
                     }
                     is LicenseCheck.Rejected -> ActivationStep.Failed(licText(R.string.lic_not_verified, check.why))

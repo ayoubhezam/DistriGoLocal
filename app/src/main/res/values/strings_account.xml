@@ -108,13 +108,13 @@
     <string name="acc_sub_info">Informations sur l\'abonnement</string>
     <string name="acc_status">Statut</string>
     <string name="acc_plan">Formule</string>
-    <string name="acc_trial_used">Essai déjà utilisé</string>
+    <string name="acc_trial_used">Essai non disponible</string>
     <string name="acc_trial">Essai gratuit</string>
     <string name="acc_start_date">Date de début</string>
     <string name="acc_ended_on">Terminé le</string>
     <string name="acc_expiry_date">Date d\'expiration</string>
     <string name="acc_grace_end">Fin de la grâce</string>
-    <string name="acc_trial_used_text">L\'essai gratuit a déjà été utilisé sur ce téléphone : saisissez un code pour activer DISTRONIQ.</string>
+    <string name="acc_trial_used_text">L\'essai gratuit n\'est pas disponible sur ce téléphone : saisissez un code d\'activation pour activer DISTRONIQ.</string>
     <string name="acc_sub_and_help">Abonnement</string>
     <string name="acc_activate_device">Activer cet appareil</string>
     <string name="acc_business_info">Informations de l\'entreprise</string>

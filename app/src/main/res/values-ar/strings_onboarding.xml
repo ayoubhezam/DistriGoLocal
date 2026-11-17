@@ -4,6 +4,7 @@
     <string name="onb_create_account">إنشاء حساب</string>
     <string name="onb_activate_with_code">التفعيل برمز</string>
     <string name="onb_enter_code_text">أدخل رمز التفعيل الخاص بك.</string>
+    <string name="onb_trial_device">التجربة المجانية متاحة فقط على الهواتف التي يؤكّد Google أصالتها. هذا الهاتف لا يسمح بذلك (بدون خدمات Google، أو معدَّل، أو مُروَّت): فعّل DISTRONIQ برمز التفعيل.</string>
     <string name="onb_trial_used">استُعملت التجربة المجانية من قبل على هذا الهاتف: فعّل DISTRONIQ برمز.</string>
     <string name="onb_code_keep">يفعّل الرمز DISTRONIQ على هذا الهاتف. احتفظ به: يُستعمل أيضًا لإعادة تفعيل التطبيق على هاتف جديد.</string>
     <string name="onb_paste">لصق</string>

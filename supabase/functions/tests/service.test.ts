@@ -495,3 +495,47 @@ test("« Comptes clients »: found, suspended, reactivated and deleted by the ow
     });
 });
 
+
+test("license security: debug builds for test accounts only, and the trial's device check", { skip: !url && "no DISTRIGO_TEST_DB_URL" }, async (t) => {
+    const sql = postgres(url!, { max: 4, onnotice: () => {} });
+    t.after(() => sql.end());
+    const base = await configFor(sql);
+    // As the live server will be: the fixture phone's app is signed with the debug certificate, which is no longer a
+    // release one but a test one
+    const live: Config = { ...base, signingDigests: ["11".repeat(32)], testSigningDigests: [DEBUG_SIGNING_DIGEST] };
+    const customer = crypto.randomUUID();
+    const tester = crypto.randomUUID();
+    const plain = crypto.randomUUID();
+    await sql`insert into auth.users (id, email) values (${customer}, 'customer@example.com'), (${tester}, 'tester@example.com'),
+                                                       (${plain}, 'plain@example.com')`;
+    await sql`insert into private.test_accounts (user_id, note) values (${tester}::uuid, 'the owner''s phone')`;
+
+    await t.test("a debug-signed build is refused for an ordinary account, and nothing is written", async () => {
+        await handOutActivation(sql, customer);
+        const answer = await activate(live, customer, activationBody(customer, { business_name: "Client Debug" }));
+        assert.deepEqual(answer.body, { status: "refused", reason: "repackaged" });
+        const [{ count }] = await sql`select count(*)::int as count from public.memberships where user_id = ${customer}::uuid`;
+        assert.equal(count, 0);
+    });
+
+    await t.test("the same build activates for a test account, which gets its trial even without an ANDROID_ID", async () => {
+        await handOutActivation(sql, tester);
+        const answer = await activate(live, tester, activationBody(tester, { business_name: "Testeur", android_id: undefined }));
+        assert.equal(answer.body.status, "activated", JSON.stringify(answer.body));
+        assert.equal(answer.body.trial, true);
+        assert.equal(answer.body.trial_refused, undefined);
+        const [device] = await sql`select attestation from public.devices where id = ${answer.body.device_id as string}::uuid`;
+        assert.equal(device.attestation.test_build, true);
+    });
+
+    await t.test("without an ANDROID_ID an ordinary account gets no trial, and is told why", async () => {
+        await handOutActivation(sql, plain);
+        const answer = await activate(base, plain, activationBody(plain, { business_name: "Sans Identifiant", android_id: undefined }));
+        assert.equal(answer.body.status, "activated", JSON.stringify(answer.body));
+        assert.equal(answer.body.trial, false);
+        assert.equal(answer.body.trial_refused, "device_check");
+        const [sub] = await sql`select s.valid_to < s.valid_from as ended, s.grace_days from public.subscriptions s
+                                join public.memberships m using (business_id) where m.user_id = ${plain}::uuid`;
+        assert.deepEqual({ ...sub }, { ended: true, grace_days: 0 });
+    });
+});

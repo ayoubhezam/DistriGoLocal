@@ -107,13 +107,13 @@
     <string name="acc_sub_info">معلومات الاشتراك</string>
     <string name="acc_status">الحالة</string>
     <string name="acc_plan">الصيغة</string>
-    <string name="acc_trial_used">التجربة مستعملة من قبل</string>
+    <string name="acc_trial_used">التجربة غير متاحة</string>
     <string name="acc_trial">تجربة مجانية</string>
     <string name="acc_start_date">تاريخ البداية</string>
     <string name="acc_ended_on">انتهى في</string>
     <string name="acc_expiry_date">تاريخ الانتهاء</string>
     <string name="acc_grace_end">نهاية فترة السماح</string>
-    <string name="acc_trial_used_text">استُعملت التجربة المجانية من قبل على هذا الهاتف: أدخل رمزًا لتفعيل DISTRONIQ.</string>
+    <string name="acc_trial_used_text">التجربة المجانية غير متاحة على هذا الهاتف: أدخل رمز التفعيل لتفعيل DISTRONIQ.</string>
     <string name="acc_sub_and_help">الاشتراك</string>
     <string name="acc_activate_device">تفعيل هذا الجهاز</string>
     <string name="acc_business_info">معلومات المؤسسة</string>
