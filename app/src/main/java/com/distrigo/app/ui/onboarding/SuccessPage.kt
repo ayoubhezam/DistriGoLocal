@@ -63,7 +63,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import kotlin.math.roundToInt
 
 /** How this phone got its license: what the success screen's subtitle says. */
 enum class ActivationOrigin { NEW_ACCOUNT, SIGN_IN, CODE }
@@ -81,7 +80,6 @@ class ActivationSummary(
 
 // As on the Compte screen: « 9 nov. 2026 »
 private val DAY: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.formatter("d MMM yyyy")
-private const val DAY_MILLIS = 24 * 60 * 60 * 1000.0
 
 // A paler band behind the benefits, under the card
 private val BenefitsBackground = DsColors.PrimaryLight
@@ -152,7 +150,7 @@ internal fun SuccessPage(summary: ActivationSummary, onContinue: () -> Unit) {
 private fun OfferCard(summary: ActivationSummary) {
     val start = DAY.format(Instant.ofEpochMilli(summary.validFromMillis).atZone(ZoneId.systemDefault()))
     val end = DAY.format(Instant.ofEpochMilli(summary.validToMillis).atZone(ZoneId.systemDefault()))
-    val days = ((summary.validToMillis - summary.validFromMillis) / DAY_MILLIS).roundToInt()
+    val days = calendarDays(summary.validFromMillis, summary.validToMillis)
     Column(
         Modifier
             .fillMaxWidth()
@@ -181,10 +179,20 @@ private fun OfferCard(summary: ActivationSummary) {
     }
 }
 
-/** What is left until [validToMillis]: « Il reste 25 jours », « Il reste 6 mois », « Dernier jour ». */
-internal fun timeLeft(validToMillis: Long, now: Long): String {
-    val days = ((validToMillis - now) / DAY_MILLIS).toInt()
-    return if (days < 1) licText(R.string.onb_last_day) else licText(R.string.onb_time_left, com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.core.format.approximateLengthText(days)))
+/**
+ * The days from [fromMillis]'s day through [toMillis]'s, both counted, in the phone's zone: a 30-day trial is 30 on its
+ * first day, and 1 on its last (the license ends at 23:59:59 on its last day).
+ */
+internal fun calendarDays(fromMillis: Long, toMillis: Long, zone: ZoneId = ZoneId.systemDefault()): Int =
+    (java.time.temporal.ChronoUnit.DAYS.between(
+        Instant.ofEpochMilli(fromMillis).atZone(zone).toLocalDate(),
+        Instant.ofEpochMilli(toMillis).atZone(zone).toLocalDate(),
+    ) + 1).toInt()
+
+/** What is left until [validToMillis], today included: « Il reste 30 jours », « Il reste 6 mois », « Dernier jour ». */
+internal fun timeLeft(validToMillis: Long, now: Long, zone: ZoneId = ZoneId.systemDefault()): String {
+    val days = calendarDays(now, validToMillis, zone)
+    return if (days <= 1) licText(R.string.onb_last_day) else licText(R.string.onb_time_left, com.distrigo.app.core.text.AppStrings.write(com.distrigo.app.core.format.approximateLengthText(days)))
 }
 
 

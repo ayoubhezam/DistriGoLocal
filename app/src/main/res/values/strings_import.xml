@@ -129,7 +129,7 @@
     <string name="import_template_saved">Modèle enregistré : remplissez-le sur l\'ordinateur, puis importez-le ici.</string>
     <string name="import_template_failed">Impossible d\'enregistrer le modèle à cet endroit. Choisissez un autre dossier.</string>
     <string name="import_file">fichier</string>
-    <string name="import_not_xlsx">Ce fichier n\'est pas un classeur Excel (.xlsx). Exportez les produits ou les clients depuis DistriGo pour obtenir le modèle.</string>
+    <string name="import_not_xlsx">Ce fichier n\'est pas un classeur Excel (.xlsx). Exportez les produits ou les clients depuis DISTRONIQ pour obtenir le modèle.</string>
     <string name="import_old_or_locked">Ce fichier est un ancien format Excel (.xls) ou est protégé par un mot de passe. Enregistrez-le en .xlsx, sans mot de passe.</string>
     <string name="import_too_large">Ce fichier est trop volumineux pour être importé sur le téléphone.</string>
     <string name="import_damaged">Ce fichier est endommagé ou incomplet. Enregistrez-le à nouveau depuis Excel, puis réessayez.</string>

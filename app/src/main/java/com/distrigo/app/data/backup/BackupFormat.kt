@@ -68,9 +68,9 @@ object BackupFormat {
     /** The entry an `img:<hash>` photo is stored under. */
     fun imageEntry(hash: String): String = "$IMAGES_DIR$hash.jpg"
 
-    /** `DistriGo-2026-09-17-1430.distrigo`, in local time: the name the file picker suggests. */
+    /** `DISTRONIQ-2026-09-17-1430.distrigo`, in local time: the name the file picker suggests. */
     fun fileName(createdAt: Instant, zone: ZoneId = ZoneId.systemDefault()): String =
-        "DistriGo-" + FILE_STAMP.format(createdAt.atZone(zone)) + ".$EXTENSION"
+        "DISTRONIQ-" + FILE_STAMP.format(createdAt.atZone(zone)) + ".$EXTENSION"
 
     private val FILE_STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmm")
 

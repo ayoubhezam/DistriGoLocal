@@ -18,8 +18,8 @@ class BackupFormatTest {
     @Test
     fun `the file is named for its local date and time`() {
         // 23:30 UTC on the 16th is 00:30 on the 17th in Algeria.
-        assertEquals("DistriGo-2026-09-17-0030.distrigo", BackupFormat.fileName(Instant.parse("2026-09-16T23:30:59Z"), algiers))
-        assertEquals("DistriGo-2026-09-17-1430.distrigo", BackupFormat.fileName(Instant.parse("2026-09-17T13:30:00Z"), algiers))
+        assertEquals("DISTRONIQ-2026-09-17-0030.distrigo", BackupFormat.fileName(Instant.parse("2026-09-16T23:30:59Z"), algiers))
+        assertEquals("DISTRONIQ-2026-09-17-1430.distrigo", BackupFormat.fileName(Instant.parse("2026-09-17T13:30:00Z"), algiers))
     }
 
     @Test

@@ -400,7 +400,7 @@ fun NewBatchScreen(viewModel: AdminViewModel, onBack: () -> Unit, onCreated: () 
             label + if (days == OTHER_LENGTH && "jour" !in label) " ($d jours)" else ""
         } ?: "durée à choisir"
         Small(
-            "DistriGo Solo · $length par code · " + when (val e = expiry) {
+            "DISTRONIQ Solo · $length par code · " + when (val e = expiry) {
                 // The server counts the 12 months from its own day (UTC): no date here that could differ by one
                 CodeExpiry.Default -> "à activer dans les 12 mois"
                 CodeExpiry.Never -> "sans date limite"
@@ -600,7 +600,7 @@ private fun statusLook(status: String): Triple<String, Color, Color> = when (sta
     else -> Triple("Code inconnu", DsColors.TextSecondary, DsColors.SurfaceSunken)
 }
 
-private fun plan(id: String): String = if (id == "solo") "DistriGo Solo" else id
+private fun plan(id: String): String = if (id == "solo") "DISTRONIQ Solo" else id
 
 private val SHORT = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.FRENCH)
 

@@ -214,7 +214,7 @@ private fun share(context: Context, report: DiagnosticReport) {
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", report.file)
     val send = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
-        putExtra(Intent.EXTRA_SUBJECT, "DistriGo — ${kindLabel(report.kind)} — ${report.title}")
+        putExtra(Intent.EXTRA_SUBJECT, "DISTRONIQ — ${kindLabel(report.kind)} — ${report.title}")
         putExtra(Intent.EXTRA_STREAM, uri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }

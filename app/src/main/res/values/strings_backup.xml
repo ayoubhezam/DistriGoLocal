@@ -1,10 +1,10 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
-    <string name="backup_update_app">Cette sauvegarde a été créée par une version plus récente de DistriGo. Mettez l\'application à jour, puis réessayez.</string>
+    <string name="backup_update_app">Cette sauvegarde a été créée par une version plus récente de DISTRONIQ. Mettez l\'application à jour, puis réessayez.</string>
     <string name="backup_cannot_open">Impossible d\'ouvrir ce fichier. Vérifiez qu\'il est toujours disponible, puis choisissez-le à nouveau.</string>
     <string name="backup_no_space_mb">Espace insuffisant sur le téléphone pour restaurer cette sauvegarde. Libérez au moins %1$d Mo, puis réessayez.</string>
     <string name="backup_no_space">Espace insuffisant sur le téléphone pour restaurer cette sauvegarde. Libérez de l\'espace, puis réessayez.</string>
-    <string name="backup_not_a_backup">Ce fichier n\'est pas une sauvegarde DistriGo. Choisissez un fichier .distrigo.</string>
-    <string name="backup_too_old">Cette sauvegarde provient d\'une version trop ancienne de DistriGo et ne peut pas être restaurée.</string>
+    <string name="backup_not_a_backup">Ce fichier n\'est pas une sauvegarde DISTRONIQ. Choisissez un fichier .distrigo.</string>
+    <string name="backup_too_old">Cette sauvegarde provient d\'une version trop ancienne de DISTRONIQ et ne peut pas être restaurée.</string>
     <string name="backup_damaged">Cette sauvegarde est endommagée ou incomplète et ne peut pas être restaurée. Essayez une autre copie.</string>
     <string name="backup_safety_damaged">La restauration n\'a pas été lancée : vos données actuelles n\'ont pas passé la vérification, et aucune copie de sécurité n\'a pu en être faite.</string>
     <string name="backup_safety_failed">La restauration n\'a pas été lancée : impossible d\'enregistrer d\'abord une copie de sécurité de vos données actuelles. Vérifiez l\'espace disponible, puis réessayez.</string>
@@ -29,8 +29,8 @@
         <item quantity="many">%d produits sont déjà en stock négatif au dépôt dans cette sauvegarde. Ils ne pourront plus être vendus, chargés ni sortis du dépôt avant d\'être réapprovisionnés.</item>
     </plurals>
     <string name="backup_rule_change_later">Vous pourrez changer cette règle ensuite dans Paramètres.</string>
-    <string name="backup_other_business_named">Cette sauvegarde appartient à une autre entreprise (« %1$s ») que celle du compte connecté. Après la restauration, DistriGo vous demandera de garder ces données pour votre entreprise, ou de vous déconnecter.</string>
-    <string name="backup_other_business">Cette sauvegarde appartient à une autre entreprise que celle du compte connecté. Après la restauration, DistriGo vous demandera de garder ces données pour votre entreprise, ou de vous déconnecter.</string>
+    <string name="backup_other_business_named">Cette sauvegarde appartient à une autre entreprise (« %1$s ») que celle du compte connecté. Après la restauration, DISTRONIQ vous demandera de garder ces données pour votre entreprise, ou de vous déconnecter.</string>
+    <string name="backup_other_business">Cette sauvegarde appartient à une autre entreprise que celle du compte connecté. Après la restauration, DISTRONIQ vous demandera de garder ces données pour votre entreprise, ou de vous déconnecter.</string>
     <string name="backup_step_to_folder">Sauvegarde dans le dossier…</string>
     <string name="backup_step_copying">Copie des données…</string>
     <string name="backup_step_running">Sauvegarde en cours…</string>
@@ -41,7 +41,7 @@
     <string name="backup_stopped">La sauvegarde s\'est arrêtée avant la fin. Recommencez.</string>
     <string name="backup_private_folder">Stockage de l\'application</string>
     <string name="backup_folder_chosen">Dossier choisi</string>
-    <string name="backup_alert_open">%1$s Ouvrez DistriGo, Paramètres, Sauvegarde et restauration.</string>
+    <string name="backup_alert_open">%1$s Ouvrez DISTRONIQ, Paramètres, Sauvegarde et restauration.</string>
     <string name="backup_alert_title">Sauvegardes automatiques en échec</string>
     <string name="backup_channel_name">Sauvegardes</string>
     <string name="backup_channel_description">L\'avancement et le résultat des sauvegardes, et quand les sauvegardes automatiques échouent</string>
@@ -88,8 +88,8 @@
     <string name="backup_last_value">Dernière : %1$s</string>
     <string name="backup_checked_value">Vérifiée : %1$s</string>
     <string name="backup_next_value">Prochaine : vers le %1$s</string>
-    <string name="backup_overdue">La sauvegarde de nuit n\'a pas eu lieu depuis plus d\'une journée. Android la retarde peut-être pour économiser la batterie : dans les paramètres de DistriGo, réglez la batterie sur « Non restreinte ».</string>
-    <string name="backup_open_app_settings">Ouvrir les paramètres de DistriGo</string>
+    <string name="backup_overdue">La sauvegarde de nuit n\'a pas eu lieu depuis plus d\'une journée. Android la retarde peut-être pour économiser la batterie : dans les paramètres de DISTRONIQ, réglez la batterie sur « Non restreinte ».</string>
+    <string name="backup_open_app_settings">Ouvrir les paramètres de DISTRONIQ</string>
     <string name="backup_notifications_off">Notifications désactivées : un échec ne sera signalé qu\'ici.</string>
     <string name="backup_now">Sauvegarder maintenant</string>
     <string name="backup_restore_sub">Récupérez vos données depuis une sauvegarde.</string>
@@ -108,8 +108,8 @@
     <string name="backup_photos">Photos</string>
     <string name="backup_photos_not_included">Non incluses : les photos actuelles sont conservées</string>
     <string name="backup_version">Version</string>
-    <string name="backup_other_install">Cette sauvegarde ne provient pas des données actuelles de ce téléphone : elle contient les données d\'une autre installation de DistriGo.</string>
-    <string name="backup_needs_upgrade">Créée par une version antérieure de DistriGo : elle sera mise à jour pendant la restauration.</string>
+    <string name="backup_other_install">Cette sauvegarde ne provient pas des données actuelles de ce téléphone : elle contient les données d\'une autre installation de DISTRONIQ.</string>
+    <string name="backup_needs_upgrade">Créée par une version antérieure de DISTRONIQ : elle sera mise à jour pendant la restauration.</string>
     <string name="backup_replace_warning">Toutes les données actuelles de ce téléphone seront remplacées. Une copie de sécurité en sera enregistrée d\'abord, puis l\'application redémarrera.</string>
     <string name="backup_column_backup">Sauvegarde</string>
     <string name="backup_column_now">Actuellement</string>
@@ -139,7 +139,7 @@
     <string name="backup_other_business_title">Sauvegarde d\'une autre entreprise</string>
     <string name="backup_rule_title">Règle de stock de la sauvegarde</string>
     <string name="backup_impossible">Opération impossible</string>
-    <string name="backup_restarting">Redémarrage de DistriGo…</string>
+    <string name="backup_restarting">Redémarrage de DISTRONIQ…</string>
     <string name="backup_restarting_body">La sauvegarde sera installée au démarrage. Si l\'application ne se rouvre pas d\'elle-même, ouvrez-la.</string>
     <string name="backup_saving_folder">Enregistrement du dossier…</string>
     <string name="backup_checking_file">Vérification du fichier…</string>

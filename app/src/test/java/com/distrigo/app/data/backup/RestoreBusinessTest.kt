@@ -25,7 +25,7 @@ class RestoreBusinessTest {
     fun `the warning names the backup's business when it has a name`() {
         assertEquals(
             "Cette sauvegarde appartient à une autre entreprise (« Épicerie Benali ») que celle du compte connecté. " +
-                "Après la restauration, DistriGo vous demandera de garder ces données pour votre entreprise, ou de vous déconnecter.",
+                "Après la restauration, DISTRONIQ vous demandera de garder ces données pour votre entreprise, ou de vous déconnecter.",
             RestoreBusiness("b-2", "Épicerie Benali").line(),
         )
         assertTrue(RestoreBusiness("b-2", null).line().startsWith("Cette sauvegarde appartient à une autre entreprise que celle du compte connecté."))

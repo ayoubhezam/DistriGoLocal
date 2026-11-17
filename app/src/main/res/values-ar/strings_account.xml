@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="acc_sub_sub_valid">اشتراكك في DistriGo، والمساعدة عند الحاجة</string>
+    <string name="acc_sub_sub_valid">اشتراكك في DISTRONIQ</string>
     <string name="acc_sub_sub_invalid">استعد الوصول إلى كل الميزات</string>
     <string name="acc_activation_code">رمز التفعيل</string>
     <string name="acc_activate_sub">تفعيل اشتراكي</string>
@@ -11,15 +11,15 @@
     <string name="acc_grace_text">يمكنك مواصلة التسجيل حتى نهاية فترة السماح. أدخل رمزًا لتمديد اشتراكك.</string>
     <string name="acc_extend_now">أدخل رمزًا لتمديده دون انقطاع.</string>
     <string name="acc_suspended_title">الاشتراك معلّق</string>
-    <string name="acc_suspended_text">تواصل مع DistriGo لإعادة تفعيله: تبقى بياناتك قابلة للعرض في الأثناء.</string>
+    <string name="acc_suspended_text">تواصل مع DISTRONIQ لإعادة تفعيله: تبقى بياناتك قابلة للعرض في الأثناء.</string>
     <string name="acc_active_title">اشتراكك نشط</string>
     <string name="acc_reading_state">جارٍ قراءة حالة الاشتراك.</string>
-    <string name="acc_need_help">هل تحتاج إلى مساعدة؟</string>
+    <string name="acc_help">المساعدة</string>
     <string name="acc_support_hours">أوقات الدعم</string>
     <string name="acc_support_hours_value">كل يوم، 8 صباحًا - 10 مساءً</string>
     <string name="acc_email_short">البريد الإلكتروني</string>
     <string name="acc_phone">الهاتف</string>
-    <string name="acc_sub_ended_on">انتهى اشتراكك في DistriGo Solo في %1$s. أدخل رمزًا لتجديده.</string>
+    <string name="acc_sub_ended_on">انتهى اشتراكك في DISTRONIQ Solo في %1$s. أدخل رمزًا لتجديده.</string>
     <string name="acc_sub_grace_title">انتهى في %1$s — فترة سماح حتى %2$s</string>
     <string name="acc_sub_expires_title">ينتهي اشتراكك في %1$s</string>
     <string name="acc_sub_valid_until">صالح حتى %1$s. الرمز يضيف وقتًا إلى اشتراكك.</string>
@@ -51,10 +51,10 @@
     <string name="acc_transfer_here">النقل إلى هنا</string>
     <string name="acc_transfer_limit">بُلغ حد عمليات النقل</string>
     <string name="acc_understood">فهمت</string>
-    <string name="acc_activated">تم تفعيل DistriGo</string>
+    <string name="acc_activated">تم تفعيل DISTRONIQ</string>
     <string name="acc_continue">متابعة</string>
     <string name="acc_enter_code">إدخال رمز</string>
-    <string name="acc_enter_code_text">الرمز المستلم من DistriGo أو من بائعك يمدّد اشتراكك.</string>
+    <string name="acc_enter_code_text">أدخل رمز التفعيل الخاص بك.</string>
     <string name="acc_validate">تأكيد</string>
     <string name="acc_extended_title">تم تمديد الاشتراك</string>
     <string name="acc_add_email">إضافة بريد إلكتروني</string>
@@ -66,7 +66,7 @@
     <string name="acc_sign_out_code">هذا الحساب ليس له بريد إلكتروني: للعودة إليه ستحتاج إلى رمز التفعيل هذا. دوّنه قبل المتابعة.</string>
     <string name="acc_delete_q">حذف الحساب؟</string>
     <string name="acc_delete">حذف</string>
-    <string name="acc_phone_text">الرقم الذي يمكن لفريق DistriGo الاتصال بك عليه. اتركه فارغًا لحذفه.</string>
+    <string name="acc_phone_text">الرقم الذي يمكن لفريق DISTRONIQ الاتصال بك عليه. اتركه فارغًا لحذفه.</string>
     <string name="acc_save">حفظ</string>
     <string name="acc_phone_example">مثال: ⁦0550 12 34 56⁩</string>
     <string name="acc_how_many_reps">كم مندوبًا تجاريًا يبيع لصالحك؟</string>
@@ -113,7 +113,7 @@
     <string name="acc_ended_on">انتهى في</string>
     <string name="acc_expiry_date">تاريخ الانتهاء</string>
     <string name="acc_grace_end">نهاية فترة السماح</string>
-    <string name="acc_trial_used_text">استُعملت التجربة المجانية من قبل على هذا الهاتف: أدخل رمزًا لتفعيل DistriGo.</string>
+    <string name="acc_trial_used_text">استُعملت التجربة المجانية من قبل على هذا الهاتف: أدخل رمزًا لتفعيل DISTRONIQ.</string>
     <string name="acc_sub_and_help">الاشتراك والمساعدة</string>
     <string name="acc_activate_device">تفعيل هذا الجهاز</string>
     <string name="acc_business_info">معلومات المؤسسة</string>
@@ -152,7 +152,7 @@
     <string name="acc_google_unexpected">ردّ Google بشكل غير متوقع. أعد المحاولة.</string>
     <string name="acc_google_none">لا يوجد حساب Google متاح على هذا الهاتف.</string>
     <string name="acc_google_failed">فشل تسجيل الدخول عبر Google. أعد المحاولة.</string>
-    <string name="acc_battery_blocked">يبدو أن التحقق التلقائي محظور بسبب توفير البطارية. في إعدادات DistriGo، اضبط البطارية على « غير مقيّد ».</string>
+    <string name="acc_battery_blocked">يبدو أن التحقق التلقائي محظور بسبب توفير البطارية. في إعدادات DISTRONIQ، اضبط البطارية على « غير مقيّد ».</string>
     <!-- The account's profile picture (Compte), kept on this phone only -->
     <string name="acc_photo_title">صورة الملف الشخصي</string>
     <string name="acc_photo_add">إضافة صورة للملف الشخصي</string>

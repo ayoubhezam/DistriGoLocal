@@ -147,7 +147,7 @@
     <string name="import_template_saved">حُفظ النموذج: املأه على الحاسوب، ثم استورده هنا.</string>
     <string name="import_template_failed">تعذّر حفظ النموذج في هذا المكان. اختر مجلدًا آخر.</string>
     <string name="import_file">ملف</string>
-    <string name="import_not_xlsx">هذا الملف ليس ملف Excel (‎.xlsx‎). صدّر المنتجات أو الزبائن من DistriGo للحصول على النموذج.</string>
+    <string name="import_not_xlsx">هذا الملف ليس ملف Excel (‎.xlsx‎). صدّر المنتجات أو الزبائن من DISTRONIQ للحصول على النموذج.</string>
     <string name="import_old_or_locked">هذا الملف بصيغة Excel قديمة (‎.xls‎) أو محمي بكلمة مرور. احفظه بصيغة ‎.xlsx‎ دون كلمة مرور.</string>
     <string name="import_too_large">هذا الملف كبير جدًا لاستيراده على الهاتف.</string>
     <string name="import_damaged">هذا الملف تالف أو غير مكتمل. احفظه من جديد من Excel، ثم أعد المحاولة.</string>

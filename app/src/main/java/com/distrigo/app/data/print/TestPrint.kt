@@ -27,7 +27,7 @@ object TestPrint {
 
     fun lines(paper: PaperProfile, language: PrintLanguage, codePage: PrinterCodePage): List<TestLine> = buildList {
         add(TestLine("TEST D'IMPRESSION", bold = true, centered = true))
-        add(TestLine("DistriGo", centered = true))
+        add(TestLine("DISTRONIQ", centered = true))
         add(TestLine(rule(paper.charsPerLine)))
 
         add(TestLine("Papier   : ${paper.size.label} (${paper.charsPerLine} car.)"))
@@ -84,7 +84,7 @@ object TestPrint {
      */
     fun drawnRows(paper: PaperProfile, language: PrintLanguage): List<ReceiptRow> = buildList {
         add(ReceiptRow.Line("TEST D'IMPRESSION", RowAlign.Center, RowWeight.Bold))
-        add(ReceiptRow.Line("DistriGo", RowAlign.Center))
+        add(ReceiptRow.Line("DISTRONIQ", RowAlign.Center))
         add(ReceiptRow.Rule())
         add(ReceiptRow.Line("Papier : ${paper.size.label} (${paper.printableMm} mm imprimables)"))
         add(ReceiptRow.Line("Langage : ${language.label}"))

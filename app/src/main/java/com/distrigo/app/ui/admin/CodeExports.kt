@@ -39,16 +39,16 @@ internal fun customDays(amount: String, unit: LengthUnit): Int? {
 
 /** The batch as one WhatsApp message: what the codes give, until when, the codes, and how to use one. */
 internal fun whatsAppText(batch: CreatedBatch): String = buildString {
-    appendLine("*DistriGo — codes d'activation*")
+    appendLine("*DISTRONIQ — codes d'activation*")
     appendLine("Lot : ${batch.order.batch}")
-    appendLine("DistriGo Solo · ${subscriptionLength(batch.order.days)} par code")
+    appendLine("DISTRONIQ Solo · ${subscriptionLength(batch.order.days)} par code")
     batch.codes.firstOrNull()?.expiresOn?.let { appendLine("À activer avant le ${day(it)}") }
     batch.order.businessName?.trim()?.takeIf { it.isNotEmpty() }?.let { appendLine("Entreprise : $it") }
     appendLine()
     batch.codes.forEachIndexed { i, code -> appendLine("${i + 1}. ${code.code}") }
     appendLine()
     // Copied whole, the message carries its code into DistriGo: its code field finds it
-    append("Pour activer : copiez ce message, ouvrez DistriGo, touchez « J'ai un code d'activation », puis « Coller ».")
+    append("Pour activer : copiez ce message, ouvrez DISTRONIQ, touchez « J'ai un code d'activation », puis « Coller ».")
 }
 
 /** WhatsApp, or WhatsApp Business; without either, Android's share sheet. */

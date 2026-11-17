@@ -1,10 +1,10 @@
 <resources>
-    <string name="backup_update_app">أُنشئت هذه النسخة الاحتياطية بإصدار أحدث من DistriGo. حدّث التطبيق، ثم أعد المحاولة.</string>
+    <string name="backup_update_app">أُنشئت هذه النسخة الاحتياطية بإصدار أحدث من DISTRONIQ. حدّث التطبيق، ثم أعد المحاولة.</string>
     <string name="backup_cannot_open">تعذّر فتح هذا الملف. تحقّق من أنه ما زال متاحًا، ثم اختره من جديد.</string>
     <string name="backup_no_space_mb">المساحة غير كافية في الهاتف لاستعادة هذه النسخة. حرّر \u2068%1$d\u2069 ميغابايت على الأقل، ثم أعد المحاولة.</string>
     <string name="backup_no_space">المساحة غير كافية في الهاتف لاستعادة هذه النسخة. حرّر بعض المساحة، ثم أعد المحاولة.</string>
-    <string name="backup_not_a_backup">هذا الملف ليس نسخة احتياطية من DistriGo. اختر ملفًا بامتداد ‎.distrigo‎.</string>
-    <string name="backup_too_old">هذه النسخة من إصدار قديم جدًا من DistriGo ولا يمكن استعادتها.</string>
+    <string name="backup_not_a_backup">هذا الملف ليس نسخة احتياطية من DISTRONIQ. اختر ملفًا بامتداد ‎.distrigo‎.</string>
+    <string name="backup_too_old">هذه النسخة من إصدار قديم جدًا من DISTRONIQ ولا يمكن استعادتها.</string>
     <string name="backup_damaged">هذه النسخة تالفة أو غير مكتملة ولا يمكن استعادتها. جرّب نسخة أخرى.</string>
     <string name="backup_safety_damaged">لم تبدأ الاستعادة: بياناتك الحالية لم تجتز الفحص، ولم يمكن إنشاء نسخة أمان منها.</string>
     <string name="backup_safety_failed">لم تبدأ الاستعادة: تعذّر حفظ نسخة أمان من بياناتك الحالية أولًا. تحقّق من المساحة المتاحة، ثم أعد المحاولة.</string>
@@ -32,8 +32,8 @@
         <item quantity="other">%d منتج في المخزون السالب بالمستودع في هذه النسخة. لن يمكن بيعها أو تحميلها أو إخراجها قبل تموينها.</item>
     </plurals>
     <string name="backup_rule_change_later">يمكنك تغيير هذه القاعدة لاحقًا من الإعدادات.</string>
-    <string name="backup_other_business_named">تنتمي هذه النسخة إلى مؤسسة أخرى (« \u2068%1$s\u2069 ») غير مؤسسة الحساب المتصل. بعد الاستعادة، سيطلب منك DistriGo الاحتفاظ بهذه البيانات لمؤسستك، أو تسجيل الخروج.</string>
-    <string name="backup_other_business">تنتمي هذه النسخة إلى مؤسسة أخرى غير مؤسسة الحساب المتصل. بعد الاستعادة، سيطلب منك DistriGo الاحتفاظ بهذه البيانات لمؤسستك، أو تسجيل الخروج.</string>
+    <string name="backup_other_business_named">تنتمي هذه النسخة إلى مؤسسة أخرى (« \u2068%1$s\u2069 ») غير مؤسسة الحساب المتصل. بعد الاستعادة، سيطلب منك DISTRONIQ الاحتفاظ بهذه البيانات لمؤسستك، أو تسجيل الخروج.</string>
+    <string name="backup_other_business">تنتمي هذه النسخة إلى مؤسسة أخرى غير مؤسسة الحساب المتصل. بعد الاستعادة، سيطلب منك DISTRONIQ الاحتفاظ بهذه البيانات لمؤسستك، أو تسجيل الخروج.</string>
     <string name="backup_step_to_folder">جارٍ الحفظ في المجلد…</string>
     <string name="backup_step_copying">جارٍ نسخ البيانات…</string>
     <string name="backup_step_running">جارٍ النسخ الاحتياطي…</string>
@@ -44,7 +44,7 @@
     <string name="backup_stopped">توقفت النسخة الاحتياطية قبل اكتمالها. أعد المحاولة.</string>
     <string name="backup_private_folder">تخزين التطبيق</string>
     <string name="backup_folder_chosen">المجلد المختار</string>
-    <string name="backup_alert_open">\u2068%1$s\u2069 افتح DistriGo، ثم الإعدادات، ثم النسخ الاحتياطي والاستعادة.</string>
+    <string name="backup_alert_open">\u2068%1$s\u2069 افتح DISTRONIQ، ثم الإعدادات، ثم النسخ الاحتياطي والاستعادة.</string>
     <string name="backup_alert_title">فشل النسخ الاحتياطي التلقائي</string>
     <string name="backup_channel_name">النسخ الاحتياطية</string>
     <string name="backup_channel_description">تقدّم النسخ الاحتياطي ونتيجته، وعند فشل النسخ التلقائي</string>
@@ -91,8 +91,8 @@
     <string name="backup_last_value">الأخيرة: \u2068%1$s\u2069</string>
     <string name="backup_checked_value">تحقّق: \u2068%1$s\u2069</string>
     <string name="backup_next_value">القادمة: نحو \u2068%1$s\u2069</string>
-    <string name="backup_overdue">لم يُجرَ النسخ الليلي منذ أكثر من يوم. ربما يؤخره Android لتوفير البطارية: في إعدادات DistriGo، اضبط البطارية على « غير مقيّد ».</string>
-    <string name="backup_open_app_settings">فتح إعدادات DistriGo</string>
+    <string name="backup_overdue">لم يُجرَ النسخ الليلي منذ أكثر من يوم. ربما يؤخره Android لتوفير البطارية: في إعدادات DISTRONIQ، اضبط البطارية على « غير مقيّد ».</string>
+    <string name="backup_open_app_settings">فتح إعدادات DISTRONIQ</string>
     <string name="backup_notifications_off">الإشعارات معطّلة: لن يُبلَّغ عن أي فشل إلا هنا.</string>
     <string name="backup_now">نسخ احتياطي الآن</string>
     <string name="backup_restore_sub">استرجع بياناتك من نسخة احتياطية.</string>
@@ -111,8 +111,8 @@
     <string name="backup_photos">الصور</string>
     <string name="backup_photos_not_included">غير مُضمّنة: تُحفظ الصور الحالية</string>
     <string name="backup_version">الإصدار</string>
-    <string name="backup_other_install">هذه النسخة ليست من بيانات هذا الهاتف الحالية: إنها تحتوي على بيانات تثبيت آخر لـ DistriGo.</string>
-    <string name="backup_needs_upgrade">أُنشئت بإصدار سابق من DistriGo: ستُحدَّث أثناء الاستعادة.</string>
+    <string name="backup_other_install">هذه النسخة ليست من بيانات هذا الهاتف الحالية: إنها تحتوي على بيانات تثبيت آخر لـ DISTRONIQ.</string>
+    <string name="backup_needs_upgrade">أُنشئت بإصدار سابق من DISTRONIQ: ستُحدَّث أثناء الاستعادة.</string>
     <string name="backup_replace_warning">ستُستبدل كل البيانات الحالية لهذا الهاتف. ستُحفظ منها نسخة أمان أولًا، ثم يُعاد تشغيل التطبيق.</string>
     <string name="backup_column_backup">النسخة</string>
     <string name="backup_column_now">حاليًا</string>
@@ -151,7 +151,7 @@
     <string name="backup_other_business_title">نسخة احتياطية لمؤسسة أخرى</string>
     <string name="backup_rule_title">قاعدة المخزون في النسخة الاحتياطية</string>
     <string name="backup_impossible">العملية غير ممكنة</string>
-    <string name="backup_restarting">جارٍ إعادة تشغيل DistriGo…</string>
+    <string name="backup_restarting">جارٍ إعادة تشغيل DISTRONIQ…</string>
     <string name="backup_restarting_body">ستُثبَّت النسخة الاحتياطية عند التشغيل. إذا لم يُفتح التطبيق من تلقاء نفسه، افتحه.</string>
     <string name="backup_saving_folder">جارٍ حفظ المجلد…</string>
     <string name="backup_checking_file">جارٍ التحقق من الملف…</string>

@@ -104,7 +104,7 @@ class LicenseCheckInTest {
         server.enqueue(nonceReply())
         server.enqueue(answer("bad_signature"))
         assertEquals(
-            CheckIn.Failed("Ce téléphone n'a pas pu prouver son identité. Contactez DistriGo."),
+            CheckIn.Failed("Ce téléphone n'a pas pu prouver son identité. Contactez DISTRONIQ."),
             checkIns.run(CheckInSource.BACKGROUND),
         )
 

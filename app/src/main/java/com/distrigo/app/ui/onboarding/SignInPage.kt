@@ -68,7 +68,7 @@ internal fun SignInPage(
                 FormTopBar(onBack)
                 Column(Modifier.padding(horizontal = FormGutter)) {
                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Image(painterResource(R.drawable.brand_logo_on_light), contentDescription = "DistriGo", modifier = Modifier.width(100.dp))
+                        Image(painterResource(R.drawable.brand_logo_on_light), contentDescription = "DISTRONIQ", modifier = Modifier.width(100.dp))
                         Spacer(Modifier.height(DsSpacing.xs))
                         Text(
                             BRAND_TAGLINE,

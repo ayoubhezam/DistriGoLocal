@@ -101,7 +101,7 @@
     <string name="cloud_reason_network">لا يوجد اتصال، أو ⁨Google⁩ لا تستجيب. أعد المحاولة.</string>
     <string name="cloud_reason_drive">رفض ⁨Google Drive⁩ الطلب (⁨%1$s⁩).</string>
     <string name="cloud_reason_full">مساحة ⁨Google Drive⁩ الخاصة بك ممتلئة.</string>
-    <string name="cloud_error_newer">أُنشئت هذه النسخة بإصدار أحدث من ⁨DistriGo⁩. حدّث التطبيق ثم أعد المحاولة.</string>
+    <string name="cloud_error_newer">أُنشئت هذه النسخة بإصدار أحدث من ⁨DISTRONIQ⁩. حدّث التطبيق ثم أعد المحاولة.</string>
     <string name="cloud_error_damaged">هذه النسخة تالفة. أعد المحاولة أو اختر نسخة أخرى.</string>
     <string name="cloud_error_other_key">أُنشئت هذه النسخة بمفتاح قديم ولا يمكن فتحها.</string>
     <string name="cloud_overdue_since">لا توجد نسخة احتياطية منذ %1$s</string>

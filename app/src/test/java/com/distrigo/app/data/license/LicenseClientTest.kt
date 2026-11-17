@@ -113,7 +113,7 @@ class LicenseClientTest {
     fun `the server's other answers each say what to do`() = runBlocking {
         val cases = listOf(
             """{"status":"transfer_limit","next_at":"2026-11-09T08:00:00+00:00"}""" to ActivationStep.TransferLimit(Instant.parse("2026-11-09T08:00:00Z")),
-            """{"status":"refused","reason":"repackaged"}""" to ActivationStep.Failed("Cette copie de DistriGo n'est pas l'application officielle."),
+            """{"status":"refused","reason":"repackaged"}""" to ActivationStep.Failed("Cette copie de DISTRONIQ n'est pas l'application officielle."),
             """{"status":"bad_nonce"}""" to ActivationStep.Failed("Le délai est dépassé. Recommencez l'activation."),
         )
         for ((answer, expected) in cases) {
@@ -170,7 +170,7 @@ class LicenseClientTest {
         server.enqueue(nonceReply())
         server.enqueue(jsonResponse(200, """{"status":"subscription_inactive"}"""))
         assertEquals(
-            Renewal.Failed("Le code a bien été ajouté, mais l'abonnement est suspendu. Contactez DistriGo."),
+            Renewal.Failed("Le code a bien été ajouté, mais l'abonnement est suspendu. Contactez DISTRONIQ."),
             client.renewWithCode("7KQ4-M2XP-9HTD"),
         )
 
@@ -259,7 +259,7 @@ class LicenseClientTest {
         val at = DateTimeFormatter.ofPattern("HH:mm").format(Instant.parse("2026-10-14T21:38:00Z").atZone(ZoneId.systemDefault()))
         val cases = listOf(
             """{"status":"bad_code"}""" to ActivationStep.Failed("Ce code n'existe pas ou n'est plus valable."),
-            """{"status":"code_expired"}""" to ActivationStep.Failed("Ce code a expiré. Demandez-en un nouveau à votre revendeur."),
+            """{"status":"code_expired"}""" to ActivationStep.Failed("Ce code a expiré."),
             """{"status":"code_used"}""" to ActivationStep.Failed("Ce code a déjà servi à un renouvellement."),
             """{"status":"too_many_attempts","retry_at":"$retry"}""" to ActivationStep.Failed("Trop d'essais. Réessayez après $at."),
         )

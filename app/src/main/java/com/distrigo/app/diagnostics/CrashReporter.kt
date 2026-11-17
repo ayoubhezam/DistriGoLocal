@@ -51,7 +51,7 @@ object CrashReporter {
 
     /** The app and the phone, the same in every report. */
     fun header(): String = buildString {
-        appendLine("App : DistriGo ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) ${BuildConfig.BUILD_TYPE}")
+        appendLine("App : DISTRONIQ ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) ${BuildConfig.BUILD_TYPE}")
         appendLine("Téléphone : ${Build.MANUFACTURER} ${Build.MODEL} — Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
     }
 

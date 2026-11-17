@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
     <!-- French is the default language (docs/i18n_rtl_plan.md); each strings_<package>.xml has its Arabic twin in values-ar -->
-    <string name="app_name" translatable="false">DistriGo</string>
+    <string name="app_name" translatable="false">DISTRONIQ</string>
     <string name="nav_dashboard">Dashboard</string>
     <string name="nav_depot_vente">Dépôt vente</string>
     <string name="nav_tournees">Tournées</string>
@@ -13,6 +13,6 @@
     <string name="shell_other_business_body">Les données de ce téléphone ont été enregistrées pour une autre entreprise que celle du compte connecté. Dans Compte, gardez-les pour votre entreprise, ou déconnectez-vous.</string>
     <string name="shell_open_account">Ouvrir Compte</string>
     <string name="shell_later">Plus tard</string>
-    <string name="shell_exit_question">Voulez-vous quitter l\'application DistriGo ?</string>
+    <string name="shell_exit_question">Voulez-vous quitter l\'application DISTRONIQ ?</string>
     <string name="shell_checking_subscription">Vérification de l\'abonnement…</string>
 </resources>

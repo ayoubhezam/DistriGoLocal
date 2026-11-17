@@ -50,7 +50,7 @@
     <string name="settings_add_logo">Ajouter un logo</string>
     <string name="settings_logo_removed">Logo supprimé</string>
     <string name="settings_shop_name">Nom du commerce</string>
-    <string name="settings_shop_name_example">Ex: DISTRIGO</string>
+    <string name="settings_shop_name_example">Ex: DISTRONIQ</string>
     <string name="settings_phone">Téléphone</string>
     <string name="settings_phone_example">Ex: 0555 12 34 56</string>
     <string name="settings_printer">Imprimante</string>
@@ -167,7 +167,7 @@
     <string name="print_fail_no_bluetooth_title">Bluetooth indisponible</string>
     <string name="print_fail_no_bluetooth_detail">Ce téléphone n\'a pas de Bluetooth. Utilisez le partage en PDF.</string>
     <string name="print_fail_permission_denied_title">Autorisation refusée</string>
-    <string name="print_fail_permission_denied_detail">DistriGo a besoin d\'accéder au Bluetooth pour parler à l\'imprimante.</string>
+    <string name="print_fail_permission_denied_detail">DISTRONIQ a besoin d\'accéder au Bluetooth pour parler à l\'imprimante.</string>
     <string name="print_fail_permission_denied_action">Autoriser</string>
     <string name="print_fail_adapter_off_title">Bluetooth désactivé</string>
     <string name="print_fail_adapter_off_detail">Activez le Bluetooth pour utiliser l\'imprimante.</string>

@@ -96,7 +96,7 @@ internal object CodeCardsPdf {
         canvas.drawText("CODE D'ACTIVATION", x + CARD_W - pad, brandBase - 1f, p.label)
 
         canvas.drawText(code.code, center, y + 64f, p.code)
-        centered(canvas, "DistriGo Solo · ${subscriptionLength(batch.order.days)}", center, y + 84f, p.offer)
+        centered(canvas, "DISTRONIQ Solo · ${subscriptionLength(batch.order.days)}", center, y + 84f, p.offer)
         centered(canvas, code.expiresOn?.let { "À activer avant le ${day(it)}" } ?: "Sans date limite", center, y + 97f, p.small)
         batch.order.businessName?.trim()?.takeIf { it.isNotEmpty() }?.let {
             centered(canvas, "Pour : $it", center, y + 109f, p.smallInk)
@@ -105,7 +105,7 @@ internal object CodeCardsPdf {
         // How to use it, in a band at the bottom
         val band = RectF(x + 8f, y + CARD_H - 30f, x + CARD_W - 8f, y + CARD_H - 8f)
         canvas.drawRoundRect(band, 6f, 6f, p.band)
-        centered(canvas, "Ouvrez DistriGo → « Activer avec un code »", center, band.centerY() + 2.7f, p.instruction)
+        centered(canvas, "Ouvrez DISTRONIQ → « Activer avec un code »", center, band.centerY() + 2.7f, p.instruction)
     }
 
     /**

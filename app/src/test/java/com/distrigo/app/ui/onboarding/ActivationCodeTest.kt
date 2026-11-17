@@ -52,15 +52,15 @@ class ActivationCodeTest {
         val first = "7KQ4M2XP9HT".let { it + codeCheckChar(it) }
         val second = "V8A2NG3ZPBE".let { it + codeCheckChar(it) }
         val whatsApp = """
-            *DistriGo — codes d'activation*
+            *DISTRONIQ — codes d'activation*
             Lot : Revendeur Sétif — oct. 2026
-            DistriGo Solo · 6 mois par code
+            DISTRONIQ Solo · 6 mois par code
             À activer avant le 14 octobre 2027
 
             1. ${formatCode(first)}
             2. ${formatCode(second)}
 
-            Pour activer : copiez ce message, ouvrez DistriGo, touchez « J'ai un code d'activation », puis « Coller ».
+            Pour activer : copiez ce message, ouvrez DISTRONIQ, touchez « J'ai un code d'activation », puis « Coller ».
         """.trimIndent()
         assertEquals("the first of the list, not a word of the title", first, extractCode(whatsApp))
         assertEquals(first, extractCode("Votre code : ```${formatCode(first)}```"))
@@ -68,7 +68,7 @@ class ActivationCodeTest {
         assertEquals("in fours with spaces", first, extractCode("Code: ${first.chunked(4).joinToString(" ")}."))
         assertEquals("O for 0, as typed", second, extractCode(formatCode(second).replace('0', 'O')))
         assertNull("a code with a typo is no code", extractCode("1. ${formatCode(first.dropLast(1) + if (first.last() == 'A') 'B' else 'A')}"))
-        assertNull(extractCode("*DistriGo — codes d'activation* Lot : Salon"))
+        assertNull(extractCode("*DISTRONIQ — codes d'activation* Lot : Salon"))
         assertNull("part of a longer string", extractCode("X${first}Y"))
     }
 

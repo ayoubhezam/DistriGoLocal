@@ -24,7 +24,7 @@ import com.distrigo.app.data.model.defaultTypeUuid
 data class BusinessSettingsEntity(
     @PrimaryKey
     val id: Int = ROW_ID,
-    /** Null or blank: never set; receipts print "DISTRIGO". */
+    /** Null or blank: never set; receipts print "DISTRONIQ". */
     val business_name: String?,
     val business_phone: String?,
     val logo_ref: String?,

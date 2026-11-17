@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="acc_sub_sub_valid">Votre abonnement DistriGo, et de l\'aide si besoin</string>
+    <string name="acc_sub_sub_valid">Votre abonnement DISTRONIQ</string>
     <string name="acc_sub_sub_invalid">Accédez à nouveau à toutes les fonctionnalités</string>
     <string name="acc_activation_code">Code d\'activation</string>
     <string name="acc_activate_sub">Activer mon abonnement</string>
@@ -11,15 +11,16 @@
     <string name="acc_grace_text">Vous pouvez encore enregistrer jusqu\'à la fin de la grâce. Saisissez un code pour prolonger votre abonnement.</string>
     <string name="acc_extend_now">Saisissez un code pour le prolonger sans interruption.</string>
     <string name="acc_suspended_title">L\'abonnement est suspendu</string>
-    <string name="acc_suspended_text">Contactez DistriGo pour le réactiver : vos données restent consultables en attendant.</string>
+    <string name="acc_suspended_text">Contactez DISTRONIQ pour le réactiver : vos données restent consultables en attendant.</string>
     <string name="acc_active_title">Votre abonnement est actif</string>
     <string name="acc_reading_state">L\'état de l\'abonnement est en cours de lecture.</string>
-    <string name="acc_need_help">Besoin d\'aide ?</string>
+    <string name="acc_help">Aide</string>
+    <string name="acc_whatsapp" translatable="false">WhatsApp</string>
     <string name="acc_support_hours">Horaires de support</string>
     <string name="acc_support_hours_value">Tous les jours, 8h - 22h</string>
     <string name="acc_email_short">E-mail</string>
     <string name="acc_phone">Téléphone</string>
-    <string name="acc_sub_ended_on">Votre abonnement DistriGo Solo a pris fin le %1$s. Saisissez un code pour le renouveler.</string>
+    <string name="acc_sub_ended_on">Votre abonnement DISTRONIQ Solo a pris fin le %1$s. Saisissez un code pour le renouveler.</string>
     <string name="acc_sub_grace_title">Expiré le %1$s — période de grâce jusqu\'au %2$s</string>
     <string name="acc_sub_expires_title">Votre abonnement expire le %1$s</string>
     <string name="acc_sub_valid_until">Valable jusqu\'au %1$s. Un code ajoute du temps à votre abonnement.</string>
@@ -51,10 +52,10 @@
     <string name="acc_transfer_here">Transférer ici</string>
     <string name="acc_transfer_limit">Limite de transferts atteinte</string>
     <string name="acc_understood">Compris</string>
-    <string name="acc_activated">DistriGo est activé</string>
+    <string name="acc_activated">DISTRONIQ est activé</string>
     <string name="acc_continue">Continuer</string>
     <string name="acc_enter_code">Saisir un code</string>
-    <string name="acc_enter_code_text">Le code reçu de DistriGo ou de votre revendeur prolonge votre abonnement.</string>
+    <string name="acc_enter_code_text">Saisissez votre code d\'activation.</string>
     <string name="acc_validate">Valider</string>
     <string name="acc_extended_title">Abonnement prolongé</string>
     <string name="acc_add_email">Ajouter une adresse e-mail</string>
@@ -66,7 +67,7 @@
     <string name="acc_sign_out_code">Ce compte n\'a pas d\'adresse e-mail : pour y revenir, il faudra ce code d\'activation. Notez-le avant de continuer.</string>
     <string name="acc_delete_q">Supprimer le compte ?</string>
     <string name="acc_delete">Supprimer</string>
-    <string name="acc_phone_text">Le numéro où l\'équipe DistriGo peut vous joindre. Laissez vide pour le retirer.</string>
+    <string name="acc_phone_text">Le numéro où l\'équipe DISTRONIQ peut vous joindre. Laissez vide pour le retirer.</string>
     <string name="acc_save">Enregistrer</string>
     <string name="acc_phone_example">Ex. : 0550 12 34 56</string>
     <string name="acc_how_many_reps">Combien de commerciaux vendent pour vous ?</string>
@@ -113,7 +114,7 @@
     <string name="acc_ended_on">Terminé le</string>
     <string name="acc_expiry_date">Date d\'expiration</string>
     <string name="acc_grace_end">Fin de la grâce</string>
-    <string name="acc_trial_used_text">L\'essai gratuit a déjà été utilisé sur ce téléphone : saisissez un code pour activer DistriGo.</string>
+    <string name="acc_trial_used_text">L\'essai gratuit a déjà été utilisé sur ce téléphone : saisissez un code pour activer DISTRONIQ.</string>
     <string name="acc_sub_and_help">Abonnement et assistance</string>
     <string name="acc_activate_device">Activer cet appareil</string>
     <string name="acc_business_info">Informations de l\'entreprise</string>
@@ -152,7 +153,7 @@
     <string name="acc_google_unexpected">Google a répondu de façon inattendue. Réessayez.</string>
     <string name="acc_google_none">Aucun compte Google n\'est disponible sur ce téléphone.</string>
     <string name="acc_google_failed">La connexion avec Google a échoué. Réessayez.</string>
-    <string name="acc_battery_blocked">La vérification automatique semble bloquée par l\'économie de batterie. Dans les paramètres de DistriGo, réglez la batterie sur « Non restreinte ».</string>
+    <string name="acc_battery_blocked">La vérification automatique semble bloquée par l\'économie de batterie. Dans les paramètres de DISTRONIQ, réglez la batterie sur « Non restreinte ».</string>
     <!-- The account's profile picture (Compte), kept on this phone only -->
     <string name="acc_photo_title">Photo de profil</string>
     <string name="acc_photo_add">Ajouter une photo de profil</string>

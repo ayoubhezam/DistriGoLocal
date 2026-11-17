@@ -249,7 +249,7 @@ private fun who(business: ClientBusiness): String? =
 private fun subscription(business: ClientBusiness): String = listOfNotNull(
     when (business.plan) {
         "trial" -> "Essai gratuit"
-        "solo" -> "DistriGo Solo"
+        "solo" -> "DISTRONIQ Solo"
         null -> "Sans abonnement"
         else -> business.plan
     },

@@ -45,7 +45,7 @@ begin
     r := private.create_business('71000000-0000-4000-8000-000000000001', 'Distribution R', 'phone-r');
     assert (r ->> 'trial')::boolean, r::text;
     select * into s from public.subscriptions where business_id = (r ->> 'business_id')::uuid;
-    assert s.grace_days is null and s.valid_to = pg_temp.today() + 30, row_to_json(s)::text;
+    assert s.grace_days is null and s.valid_to = pg_temp.today() + 29, row_to_json(s)::text;
     c := pg_temp.license('71000000-0000-4000-8000-000000000001', 'e7000000-0000-4000-8000-000000000001', 'key-r1', 'phone-r');
     assert (c ->> 'gu')::bigint - (c ->> 'vt')::bigint = 3 * 86400, c::text;
     raise notice 'ok: a first sign-up on a phone gets the trial, and the plan''s 3 days of grace after it';

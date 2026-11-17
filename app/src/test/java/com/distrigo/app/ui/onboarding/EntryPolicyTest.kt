@@ -57,12 +57,23 @@ class TimeLeftTest {
     @org.junit.After fun reset() { com.distrigo.app.testing.FrenchStrings.uninstall(); java.util.Locale.setDefault(previousLocale) }
     private val day = 24 * 60 * 60 * 1000L
 
+    private val utc = java.time.ZoneOffset.UTC
+    /** The end of the [n]th day after day 0, as issue_license writes a license's last day. */
+    private fun endOfDay(n: Long) = (n + 1) * day - 1000
+
     @Test
-    fun `the time left reads in days, then months or years, down to the last day`() {
-        assertEquals("Il reste 25 jours", timeLeft(validToMillis = 25 * day + day / 2, now = 0))
-        assertEquals("Il reste 1 jour", timeLeft(validToMillis = day + 1, now = 0))
-        assertEquals("Dernier jour", timeLeft(validToMillis = day / 3, now = 0))
-        assertEquals("Il reste 6 mois", timeLeft(validToMillis = 183 * day, now = 0))
-        assertEquals("Il reste 1 an", timeLeft(validToMillis = 365 * day, now = 0))
+    fun `the time left counts today, then reads in months or years, down to the last day`() {
+        // A 30-day trial on its first day: today through day 29
+        assertEquals("Il reste 30 jours", timeLeft(validToMillis = endOfDay(29), now = 10 * 60 * 60 * 1000L, zone = utc))
+        assertEquals("Il reste 2 jours", timeLeft(validToMillis = endOfDay(1), now = 0, zone = utc))
+        assertEquals("Dernier jour", timeLeft(validToMillis = endOfDay(0), now = day / 3, zone = utc))
+        assertEquals("Il reste 6 mois", timeLeft(validToMillis = endOfDay(182), now = 0, zone = utc))
+        assertEquals("Il reste 1 an", timeLeft(validToMillis = endOfDay(364), now = 0, zone = utc))
+    }
+
+    @Test
+    fun `a trial's length counts both its first and its last day`() {
+        assertEquals(30, calendarDays(fromMillis = 0, toMillis = endOfDay(29), zone = utc))
+        assertEquals(1, calendarDays(fromMillis = 0, toMillis = endOfDay(0), zone = utc))
     }
 }

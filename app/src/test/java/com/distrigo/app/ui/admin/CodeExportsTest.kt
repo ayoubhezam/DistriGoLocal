@@ -39,7 +39,7 @@ class CodeExportsTest {
     @Test
     fun `a custom batch's duration is shared as it was chosen`() {
         val batch = CreatedBatch(CodeOrder(count = 1, days = 730, batch = "Grossiste"), listOf(NewCode("7KQ4-M2XP-9HTD", null)))
-        assertEquals(true, whatsAppText(batch).contains("DistriGo Solo · 2 ans par code"))
+        assertEquals(true, whatsAppText(batch).contains("DISTRONIQ Solo · 2 ans par code"))
     }
 
     @Test
@@ -50,15 +50,15 @@ class CodeExportsTest {
         )
         assertEquals(
             """
-            *DistriGo — codes d'activation*
+            *DISTRONIQ — codes d'activation*
             Lot : Revendeur Sétif — oct. 2026
-            DistriGo Solo · 6 mois par code
+            DISTRONIQ Solo · 6 mois par code
             À activer avant le 14 octobre 2027
 
             1. 7KQ4-M2XP-9HTD
             2. V1A9-Y8XW-JFC3
 
-            Pour activer : copiez ce message, ouvrez DistriGo, touchez « J'ai un code d'activation », puis « Coller ».
+            Pour activer : copiez ce message, ouvrez DISTRONIQ, touchez « J'ai un code d'activation », puis « Coller ».
             """.trimIndent(),
             whatsAppText(batch),
         )

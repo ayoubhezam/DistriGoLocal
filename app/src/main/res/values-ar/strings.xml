@@ -12,6 +12,6 @@
     <string name="shell_other_business_body">سُجّلت بيانات هذا الهاتف لمؤسسة غير مؤسسة الحساب المتصل. من صفحة الحساب، احتفظ بها لمؤسستك أو سجّل الخروج.</string>
     <string name="shell_open_account">فتح الحساب</string>
     <string name="shell_later">لاحقًا</string>
-    <string name="shell_exit_question">هل تريد الخروج من تطبيق DistriGo؟</string>
+    <string name="shell_exit_question">هل تريد الخروج من تطبيق DISTRONIQ؟</string>
     <string name="shell_checking_subscription">جارٍ التحقق من الاشتراك…</string>
 </resources>

@@ -52,12 +52,12 @@ class ExportChoicesTest {
     fun `file names say what and when`() {
         val september = ExportPeriod(day(9, 1), day(9, 17))
         val csv = ExportFormat.CSV
-        assertEquals("DistriGo-ventes-2026-09-01-au-2026-09-17.csv", ExportChoices.fileName(setOf(ExportDataset.VENTES), september, today, csv))
-        assertEquals("DistriGo-charges-depuis-2026-09-01.csv", ExportChoices.fileName(setOf(ExportDataset.CHARGES), ExportPeriod(day(9, 1), null), today, csv))
-        assertEquals("DistriGo-pertes-2026-09-17.csv", ExportChoices.fileName(setOf(ExportDataset.PERTES), ExportPeriod(day(9, 17), day(9, 17)), today, csv))
+        assertEquals("DISTRONIQ-ventes-2026-09-01-au-2026-09-17.csv", ExportChoices.fileName(setOf(ExportDataset.VENTES), september, today, csv))
+        assertEquals("DISTRONIQ-charges-depuis-2026-09-01.csv", ExportChoices.fileName(setOf(ExportDataset.CHARGES), ExportPeriod(day(9, 1), null), today, csv))
+        assertEquals("DISTRONIQ-pertes-2026-09-17.csv", ExportChoices.fileName(setOf(ExportDataset.PERTES), ExportPeriod(day(9, 17), day(9, 17)), today, csv))
         assertEquals(
             "clients and products are as they are today, whatever period is chosen",
-            "DistriGo-export-2026-09-17.xlsx", ExportChoices.fileName(setOf(ExportDataset.CLIENTS, ExportDataset.PRODUITS), september, today, ExportFormat.XLSX)
+            "DISTRONIQ-export-2026-09-17.xlsx", ExportChoices.fileName(setOf(ExportDataset.CLIENTS, ExportDataset.PRODUITS), september, today, ExportFormat.XLSX)
         )
     }
 
@@ -67,10 +67,10 @@ class ExportChoicesTest {
         val period = ExportPeriod.ALL
         val all = ExportDataset.entries.toSet()
         val one = setOf(ExportDataset.VENTES)
-        assertEquals("DistriGo-export-tout.xlsx", ExportChoices.fileName(all, period, today, ExportFormat.XLSX))
-        assertEquals("DistriGo-export-tout.zip", ExportChoices.fileName(all, period, today, ExportFormat.CSV))
-        assertEquals("DistriGo-ventes-tout.xlsx", ExportChoices.fileName(one, period, today, ExportFormat.XLSX))
-        assertEquals("DistriGo-ventes-tout.csv", ExportChoices.fileName(one, period, today, ExportFormat.CSV))
+        assertEquals("DISTRONIQ-export-tout.xlsx", ExportChoices.fileName(all, period, today, ExportFormat.XLSX))
+        assertEquals("DISTRONIQ-export-tout.zip", ExportChoices.fileName(all, period, today, ExportFormat.CSV))
+        assertEquals("DISTRONIQ-ventes-tout.xlsx", ExportChoices.fileName(one, period, today, ExportFormat.XLSX))
+        assertEquals("DISTRONIQ-ventes-tout.csv", ExportChoices.fileName(one, period, today, ExportFormat.CSV))
         assertEquals(ExportFormat.XLSX.mimeType, ExportChoices.mimeType(all, ExportFormat.XLSX))
         assertEquals("text/csv", ExportChoices.mimeType(one, ExportFormat.CSV))
         assertEquals("application/zip", ExportChoices.mimeType(all, ExportFormat.CSV))

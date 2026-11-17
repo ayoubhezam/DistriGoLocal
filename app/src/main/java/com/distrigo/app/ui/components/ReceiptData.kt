@@ -47,7 +47,7 @@ data class ReceiptData(
     val total         : Double,
     val paid          : Double,
     val note          : String? = null,
-    val businessName     : String = "DISTRIGO",
+    val businessName     : String = com.distrigo.app.data.model.BusinessSettings.DEFAULT_NAME,
     val businessPhone    : String? = null,
     val businessLogoPath : String? = null,
     /** Already French ("Détail" / "Gros" / "Société"); null for a supplier document. */

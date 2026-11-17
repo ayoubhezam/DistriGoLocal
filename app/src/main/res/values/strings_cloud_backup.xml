@@ -101,7 +101,7 @@
     <string name="cloud_reason_network">pas de connexion, ou Google ne répond pas. Réessayez.</string>
     <string name="cloud_reason_drive">Google Drive a refusé la demande (%1$s).</string>
     <string name="cloud_reason_full">votre Google Drive est plein.</string>
-    <string name="cloud_error_newer">Cette sauvegarde a été faite par une version plus récente de DistriGo. Mettez l\'application à jour, puis réessayez.</string>
+    <string name="cloud_error_newer">Cette sauvegarde a été faite par une version plus récente de DISTRONIQ. Mettez l\'application à jour, puis réessayez.</string>
     <string name="cloud_error_damaged">Cette sauvegarde est endommagée. Réessayez, ou choisissez-en une autre.</string>
     <string name="cloud_error_other_key">Cette sauvegarde a été faite avec une ancienne clé et ne peut pas être ouverte.</string>
     <!-- No good backup for 48 hours (CloudBackupState.isOverdue); %1$s: « 3 jours » (common_duration_days) -->
@@ -109,7 +109,7 @@
     <string name="cloud_overdue_notice">Aucune sauvegarde en ligne depuis %1$s. Le téléphone a peut-être arrêté celle de la nuit : appuyez sur « Sauvegarder maintenant ».</string>
     <string name="cloud_alert">Sauvegarde en ligne</string>
     <string name="cloud_alert_sub">en retard</string>
-    <!-- Under the 48-hour notice, only while DistriGo isn't « Sans restriction » for the battery -->
+    <!-- Under the 48-hour notice, only while DISTRONIQ isn't « Sans restriction » for the battery -->
     <string name="cloud_battery_hint">Dans « Batterie », choisissez « Sans restriction » pour que le téléphone n\'arrête plus la sauvegarde de nuit.</string>
     <string name="cloud_battery_button">Paramètres de la batterie</string>
 </resources>

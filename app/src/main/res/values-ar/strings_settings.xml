@@ -53,7 +53,7 @@
     <string name="settings_add_logo">إضافة شعار</string>
     <string name="settings_logo_removed">حُذف الشعار</string>
     <string name="settings_shop_name">اسم المحل</string>
-    <string name="settings_shop_name_example">مثال: DISTRIGO</string>
+    <string name="settings_shop_name_example">مثال: DISTRONIQ</string>
     <string name="settings_phone">الهاتف</string>
     <string name="settings_phone_example">مثال: \u20660555 12 34 56\u2069</string>
     <string name="settings_printer">الطابعة</string>
@@ -170,7 +170,7 @@
     <string name="print_fail_no_bluetooth_title">Bluetooth غير متوفر</string>
     <string name="print_fail_no_bluetooth_detail">هذا الهاتف لا يحتوي على بلوتوث. استعمل المشاركة بصيغة PDF.</string>
     <string name="print_fail_permission_denied_title">الإذن مرفوض</string>
-    <string name="print_fail_permission_denied_detail">يحتاج DistriGo إلى الوصول إلى البلوتوث للتواصل مع الطابعة.</string>
+    <string name="print_fail_permission_denied_detail">يحتاج DISTRONIQ إلى الوصول إلى البلوتوث للتواصل مع الطابعة.</string>
     <string name="print_fail_permission_denied_action">السماح</string>
     <string name="print_fail_adapter_off_title">البلوتوث معطّل</string>
     <string name="print_fail_adapter_off_detail">فعّل البلوتوث لاستعمال الطابعة.</string>

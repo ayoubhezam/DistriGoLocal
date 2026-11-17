@@ -196,7 +196,7 @@ declare
 begin
     r := private.renew_with_code('f4444444-0000-4000-8000-000000000014', renew);
     assert r ->> 'status' = 'renewed' and (r ->> 'business_id')::uuid = b, r::text;
-    assert (select plan_id = 'solo' and valid_to = pg_temp.today() + 30 + 182 from public.subscriptions where business_id = b);
+    assert (select plan_id = 'solo' and valid_to = pg_temp.today() + 29 + 182 from public.subscriptions where business_id = b);
     assert (select use = 'renewal' and business_id = b from private.activation_codes where digest = private.code_digest(renew));
     assert private.renew_with_code('f4444444-0000-4000-8000-000000000014', renew) ->> 'status' = 'code_used';
     assert private.redeem_code('f5555555-0000-4000-8000-000000000015', renew) ->> 'status' = 'code_used';

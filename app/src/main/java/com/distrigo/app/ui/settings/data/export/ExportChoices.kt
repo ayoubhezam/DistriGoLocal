@@ -62,7 +62,7 @@ object ExportChoices {
             period.to != null -> "jusqu-au-${period.to}"
             else -> "tout"
         }
-        return "DistriGo-$what-$`when`.${format.extensionFor(datasets.size)}"
+        return "DISTRONIQ-$what-$`when`.${format.extensionFor(datasets.size)}"
     }
 
     fun mimeType(datasets: Set<ExportDataset>, format: ExportFormat): String = format.mimeTypeFor(datasets.size)

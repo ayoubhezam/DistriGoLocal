@@ -13,11 +13,13 @@ import java.time.format.DateTimeFormatter
  */
 object AutoBackupNames {
 
-    private const val PREFIX = "DistriGo-auto-"
+    private const val PREFIX = "DISTRONIQ-auto-"
     private val STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss")
-    private val PATTERN = Regex("DistriGo-auto-\\d{4}-\\d{2}-\\d{2}-\\d{6}\\.${BackupFormat.EXTENSION}")
 
-    /** `DistriGo-auto-2026-09-18-030015.distrigo`, in local time. */
+    /** The new name, and the one used before the app was renamed (2026-11): both are this app's own backups. */
+    private val PATTERN = Regex("(?:DISTRONIQ|DistriGo)-auto-(\\d{4}-\\d{2}-\\d{2}-\\d{6})\\.${BackupFormat.EXTENSION}")
+
+    /** `DISTRONIQ-auto-2026-09-18-030015.distrigo`, in local time. */
     fun forTime(at: Instant, zone: ZoneId = ZoneId.systemDefault()): String =
         PREFIX + STAMP.format(at.atZone(zone)) + ".${BackupFormat.EXTENSION}"
 
@@ -28,5 +30,7 @@ object AutoBackupNames {
      * automatic backup's name — a manual backup, a renamed copy, the user's own files — is never among them.
      */
     fun beyondNewest(names: List<String>, keep: Int): List<String> =
-        names.filter(::isAutomatic).sortedDescending().drop(keep)
+        // By the time in the name, not the whole name: an old `DistriGo-auto-` sorts after every `DISTRONIQ-auto-`
+        // By the time in the name, not the whole name: an old `DistriGo-auto-` sorts after every `DISTRONIQ-auto-`
+        names.filter(::isAutomatic).sortedByDescending { PATTERN.matchEntire(it)!!.groupValues[1] }.drop(keep)
 }

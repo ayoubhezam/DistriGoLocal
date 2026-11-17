@@ -65,7 +65,7 @@ internal val BRAND_TAGLINE: String get() = licText(R.string.onb_tagline)
 // The truck's middle in welcome_hero.webp, as a fraction of the photo's height
 private const val TRUCK_FOCUS_Y = 0.72f
 // brand_logo_on_dark.webp's height over its width
-private const val LOGO_ASPECT = 722f / 852f
+private const val LOGO_ASPECT = 697f / 800f
 
 private val LogoTopPadding    = DsSpacing.lg
 private val LogoWidth         = 150.dp
@@ -142,7 +142,7 @@ private fun HeroPhoto(modifier: Modifier) {
         ) {
             Image(
                 painter            = painterResource(R.drawable.brand_logo_on_dark),
-                contentDescription = "DistriGo",
+                contentDescription = "DISTRONIQ",
                 modifier           = Modifier.width(logoWidth)
             )
             if (showTagline) {

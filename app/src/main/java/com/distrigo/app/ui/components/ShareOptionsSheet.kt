@@ -144,7 +144,7 @@ private fun WhatsAppIcon(tint: Color) {
 private fun receiptAsPlainText(receipt: ReceiptData): String {
     val money = receipt.money
     val sb = StringBuilder()
-    sb.appendLine("*DISTRIGO*")
+    sb.appendLine("*${receipt.businessName}*")
     sb.appendLine(receipt.documentTitle)
     sb.appendLine("${receipt.partyLabel}: ${receipt.partyName}")
     sb.appendLine("Date: ${receipt.dateLabel}")

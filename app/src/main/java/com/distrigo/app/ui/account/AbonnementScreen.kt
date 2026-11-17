@@ -2,13 +2,9 @@ package com.distrigo.app.ui.account
 
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.distrigo.app.data.license.licText
-import com.distrigo.app.ui.common.layoutEnd
-import android.content.Intent
-import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,14 +16,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.HeadsetMic
 import androidx.compose.material.icons.outlined.Key
-import androidx.compose.material.icons.outlined.Phone
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Icon
@@ -59,7 +50,6 @@ import com.distrigo.app.ui.designsystem.BrandCard
 import com.distrigo.app.ui.designsystem.BrandCardBody
 import com.distrigo.app.ui.designsystem.BrandCardHeader
 import com.distrigo.app.ui.designsystem.BrandMessage
-import com.distrigo.app.ui.designsystem.BrandRowDivider
 import com.distrigo.app.ui.designsystem.BrandScreen
 import com.distrigo.app.ui.designsystem.BrandSize
 import com.distrigo.app.ui.designsystem.BrandWideButton
@@ -74,7 +64,6 @@ import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import androidx.compose.material.icons.automirrored.outlined.Chat
 
 /**
  * « Abonnement » (docs/license_l5_enforcement.md §8.2): what the subscription's state is, a code to renew it, and
@@ -147,8 +136,6 @@ fun AbonnementScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
                 }
             }
         }
-
-        SupportCard()
 
         Text(
             licText(R.string.acc_access_restored),
@@ -224,53 +211,6 @@ private enum class Tone(val icon: ImageVector, val color: Color, val background:
     ACTIVE(Icons.Outlined.CheckCircle, DsColors.Success, DsColors.SuccessLight),
 }
 
-/** « Besoin d'aide ? »: each contact opens its app (§8.2). */
-@Composable
-private fun SupportCard() {
-    val context = LocalContext.current
-    fun open(intent: Intent) {
-        runCatching { context.startActivity(intent) }
-    }
-    BrandCard {
-        BrandCardHeader(Icons.Outlined.HeadsetMic, licText(R.string.acc_need_help))
-        SupportRow(Icons.Outlined.Phone, licText(R.string.acc_phone), SUPPORT_PHONE) { open(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$SUPPORT_PHONE"))) }
-        BrandRowDivider()
-        SupportRow(Icons.AutoMirrored.Outlined.Chat, "WhatsApp", SUPPORT_PHONE) { open(Intent(Intent.ACTION_VIEW, Uri.parse(SUPPORT_WHATSAPP))) }
-        BrandRowDivider()
-        SupportRow(Icons.Outlined.Email, licText(R.string.acc_email_short), SUPPORT_EMAIL) { open(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$SUPPORT_EMAIL"))) }
-        BrandRowDivider()
-        SupportRow(Icons.Outlined.Schedule, licText(R.string.acc_support_hours), licText(R.string.acc_support_hours_value), onClick = null)
-    }
-}
-
-@Composable
-private fun SupportRow(icon: ImageVector, label: String, value: String, onClick: (() -> Unit)?) {
-    Row(
-        modifier          = Modifier
-            .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClickLabel = label, onClick = onClick) else Modifier)
-            .padding(start = DsSpacing.lg, end = if (onClick != null) DsSpacing.md else DsSpacing.lg, top = 14.dp, bottom = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(icon, contentDescription = null, tint = DsBrand.Ink, modifier = Modifier.size(BrandSize.RowIcon))
-        Spacer(Modifier.width(DsSpacing.md))
-        Text(label, fontFamily = DsBrand.Font, fontWeight = FontWeight.Medium, fontSize = BrandSize.Body, color = DsBrand.Slate)
-        Spacer(Modifier.width(DsSpacing.md))
-        Text(
-            value,
-            fontFamily = DsBrand.Font,
-            fontWeight = FontWeight.Bold,
-            fontSize   = BrandSize.Body,
-            color      = if (onClick != null) DsBrand.Blue else DsBrand.Ink,
-            textAlign  = layoutEnd(),
-            modifier   = Modifier.weight(1f)
-        )
-        if (onClick != null) {
-            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = DsBrand.Slate, modifier = Modifier.padding(start = DsSpacing.xs))
-        }
-    }
-}
-
 @Composable
 private fun Paragraph(text: String) {
     Text(text, fontFamily = DsBrand.Font, fontSize = BrandSize.Body, lineHeight = BrandSize.BodyLine, color = DsBrand.Slate)
@@ -282,6 +222,3 @@ private fun dayMonth(millis: Long): String = DAY_MONTH.format(Instant.ofEpochMil
 private val DAY_YEAR: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.numeric("dd/MM/yyyy")
 private val DAY_MONTH: DateTimeFormatter get() = com.distrigo.app.core.format.AppDates.numeric("dd/MM")
 
-private const val SUPPORT_PHONE = "0697875799"
-private const val SUPPORT_WHATSAPP = "https://wa.me/213697875799"
-private const val SUPPORT_EMAIL = "dzaitech.store@gmail.com"

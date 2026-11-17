@@ -172,19 +172,22 @@ fun CompteScreen(
             account == AccountState.Loading -> Box(Modifier.fillMaxWidth().padding(DsSpacing.xxxl), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = DsBrand.Blue)
             }
-            account == AccountState.SignedOut || fromForm -> SignInCard(
-                actions         = actions,
-                status          = signIn,
-                onSignIn        = { email, password ->
-                    fromForm = true
-                    actions.signIn(email, password)
-                },
-                // Not followed: a Google sheet closed unanswered would leave the mark set (and Google is off for now)
-                onGoogle        = actions.signInWithGoogle,
-                onCode          = { onOpenOnboarding(OnboardingStart.CODE) },
-                onCreateAccount = { onOpenOnboarding(OnboardingStart.SIGN_UP) },
-                onShown         = onboarding::reset,
-            )
+            account == AccountState.SignedOut || fromForm -> {
+                SignInCard(
+                    actions         = actions,
+                    status          = signIn,
+                    onSignIn        = { email, password ->
+                        fromForm = true
+                        actions.signIn(email, password)
+                    },
+                    // Not followed: a Google sheet closed unanswered would leave the mark set (and Google is off for now)
+                    onGoogle        = actions.signInWithGoogle,
+                    onCode          = { onOpenOnboarding(OnboardingStart.CODE) },
+                    onCreateAccount = { onOpenOnboarding(OnboardingStart.SIGN_UP) },
+                    onShown         = onboarding::reset,
+                )
+                HelpCard()
+            }
             account is AccountState.SignedIn -> SignedInCards(account.session, state, viewModel, onOpenAdmin, onOpenSubscription)
         }
     }
@@ -255,6 +258,7 @@ private fun ColumnScope.SignedInCards(
             viewModel.ask(AccountDialog.ConfirmSignOut)
         }
     }
+    HelpCard()
     TextButton(
         onClick  = { viewModel.ask(AccountDialog.ConfirmDelete) },
         enabled  = idle,
@@ -491,7 +495,7 @@ private fun SubscriptionCard(
                 when {
                     trialUsed -> licText(R.string.acc_trial_used)
                     held.plan == "trial" -> licText(R.string.acc_trial)
-                    else -> "DistriGo Solo"
+                    else -> "DISTRONIQ Solo"
                 }
             )
             if (!trialUsed) {

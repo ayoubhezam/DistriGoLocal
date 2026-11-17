@@ -54,9 +54,9 @@ begin
     assert (select name from public.businesses where id = (r ->> 'business_id')::uuid) = 'Distribution A';
     assert (select role from public.memberships where user_id = 'aaaaaaaa-0000-4000-8000-000000000001') = 'owner';
     assert (select plan_id = 'trial' and valid_from = private.local_today('Africa/Algiers')
-                   and valid_to = private.local_today('Africa/Algiers') + 30
+                   and valid_to = private.local_today('Africa/Algiers') + 29
             from public.subscriptions where business_id = (r ->> 'business_id')::uuid);
-    raise notice 'ok: a new business starts a 30-day trial, through the 30th day after today';
+    raise notice 'ok: a new business starts a 30-day trial, today included (through the 29th day after today)';
 
     r := private.create_business('aaaaaaaa-0000-4000-8000-000000000001', 'Encore', 'phone-a');
     assert r ->> 'status' = 'already_member', r::text;
@@ -102,11 +102,11 @@ begin
     -- Whole seconds, as the phone reads them.
     assert (select bool_and(jsonb_typeof(c -> k) = 'number' and (c -> k)::text ~ '^\d+$')
             from unnest(array['vf', 'vt', 'gu', 'iat', 'ou', 'mb', 'seq']) k), c::text;
-    -- vf at the start of today, vt at the end of the 30th day after it, in Algiers.
+    -- vf at the start of today, vt at the end of the trial's 30th day (today + 29), in Algiers.
     assert to_char(to_timestamp((c ->> 'vf')::bigint) at time zone 'Africa/Algiers', 'YYYY-MM-DD HH24:MI:SS')
            = to_char(today, 'YYYY-MM-DD') || ' 00:00:00', c::text;
     assert to_char(to_timestamp((c ->> 'vt')::bigint) at time zone 'Africa/Algiers', 'YYYY-MM-DD HH24:MI:SS')
-           = to_char(today + 30, 'YYYY-MM-DD') || ' 23:59:59', c::text;
+           = to_char(today + 29, 'YYYY-MM-DD') || ' 23:59:59', c::text;
     assert (c ->> 'gu')::bigint - (c ->> 'vt')::bigint = 3 * 86400, c::text;
     assert (c ->> 'ou')::bigint - (c ->> 'iat')::bigint = 14 * 86400, c::text;
     assert abs((c ->> 'iat')::bigint - extract(epoch from now())) < 2, c::text;
