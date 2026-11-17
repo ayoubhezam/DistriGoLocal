@@ -6,6 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.distrigo.app.data.auth.AuthRepository
 import dagger.assisted.Assisted
+import com.distrigo.app.data.backup.cloud.CloudBackupScheduler
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,9 +23,12 @@ class LicenseGraceWorker @AssistedInject constructor(
     private val auth: AuthRepository,
     private val license: LicenseManager,
     private val alerts: CheckInAlerts,
+    private val cloudBackup: CloudBackupScheduler,
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        // Android may have lost the cloud backup's job; this one ran, so look (CloudJobHealth).
+        cloudBackup.checkQuietly()
         auth.restore()
         val state = license.evaluate()
         if (state is LicenseState.Grace) alerts.showGrace(state.license.validTo, state.license.graceUntil)

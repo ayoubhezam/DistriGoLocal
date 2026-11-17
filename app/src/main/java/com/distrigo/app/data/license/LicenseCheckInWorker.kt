@@ -6,6 +6,9 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.distrigo.app.data.backup.cloud.CloudBackupScheduler
 import dagger.assisted.AssistedInject
 
 /**
@@ -20,9 +23,12 @@ class LicenseCheckInWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val checkIns: LicenseCheckIn,
     private val scheduler: LicenseCheckInScheduler,
+    private val cloudBackup: CloudBackupScheduler,
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
+        // Android may have lost the cloud backup's job; this one ran (every 12 hours), so look (CloudJobHealth).
+        withContext(Dispatchers.IO) { cloudBackup.checkQuietly() }
         val source = inputData.getString(SOURCE)?.let { name -> CheckInSource.entries.firstOrNull { it.name == name } }
             ?: CheckInSource.BACKGROUND
         val result = checkIns.run(source)
