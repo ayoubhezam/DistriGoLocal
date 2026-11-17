@@ -114,7 +114,7 @@
     <string name="acc_expiry_date">تاريخ الانتهاء</string>
     <string name="acc_grace_end">نهاية فترة السماح</string>
     <string name="acc_trial_used_text">استُعملت التجربة المجانية من قبل على هذا الهاتف: أدخل رمزًا لتفعيل DISTRONIQ.</string>
-    <string name="acc_sub_and_help">الاشتراك والمساعدة</string>
+    <string name="acc_sub_and_help">الاشتراك</string>
     <string name="acc_activate_device">تفعيل هذا الجهاز</string>
     <string name="acc_business_info">معلومات المؤسسة</string>
     <string name="acc_info_unreadable">تعذّرت قراءة هذه المعلومات.</string>

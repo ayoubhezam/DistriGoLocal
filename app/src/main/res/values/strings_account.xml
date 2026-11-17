@@ -115,7 +115,7 @@
     <string name="acc_expiry_date">Date d\'expiration</string>
     <string name="acc_grace_end">Fin de la grâce</string>
     <string name="acc_trial_used_text">L\'essai gratuit a déjà été utilisé sur ce téléphone : saisissez un code pour activer DISTRONIQ.</string>
-    <string name="acc_sub_and_help">Abonnement et assistance</string>
+    <string name="acc_sub_and_help">Abonnement</string>
     <string name="acc_activate_device">Activer cet appareil</string>
     <string name="acc_business_info">Informations de l\'entreprise</string>
     <string name="acc_info_unreadable">Ces informations n\'ont pas pu être lues.</string>
