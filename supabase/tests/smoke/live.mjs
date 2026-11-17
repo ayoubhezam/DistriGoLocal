@@ -2,7 +2,7 @@
 //
 //   npx supabase@2.120.0 projects api-keys --project-ref <ref> -o json | node supabase/tests/smoke/live.mjs <ref>
 //
-// It plays a phone that cannot attest (reduced tier): a throwaway account, a throwaway P-256 key in a self-signed
+// It plays a phone that cannot attest (reduced tier, so no trial): a throwaway account, a throwaway P-256 key in a self-signed
 // certificate. It activates, checks the license against the public key pinned in the app (LicenseKeys.kt), checks
 // in, and deletes the account, which takes its business and device with it. It leaves a trial claim for its own
 // made-up ANDROID_ID, by design. The project's keys arrive on stdin and are never printed.
@@ -107,15 +107,18 @@ try {
     const noBusiness = await fn("license-activate", token, activation);
     check("an account without a business is asked its name", noBusiness.json?.status === "no_business", noBusiness.text);
     const activated = await fn("license-activate", token, { ...activation, business_name: "Smoke test" });
-    check("with its name: activated, at the reduced tier of an unattested phone",
-        activated.json?.status === "activated" && activated.json?.tier === "reduced" && activated.json?.trial === true, activated.text);
+    // An unattested phone gets no trial (LIC-04): activated, but its subscription ends the day before it starts.
+    check("with its name: activated at the reduced tier, the trial refused by the device check",
+        activated.json?.status === "activated" && activated.json?.tier === "reduced" && activated.json?.trial === false
+            && activated.json?.trial_refused === "device_check", activated.text);
 
     const first = activated.json?.license ? verifiedClaims(activated.json.license) : null;
     check("the license verifies with lic-2026-a, the key pinned in the app", first !== null && first.header.kid === "lic-2026-a");
     if (first) {
         const c = first.claims;
-        check("its claims name this phone, the trial and a one-day window",
-            c.dev === keyHash && c.iid === installationId && c.sub === userId && c.plan === "trial" && c.seq === 1 && c.ou - c.iat === 86400,
+        check("its claims name this phone, the refused trial: it ends before it starts, with no grace and no offline time",
+            c.dev === keyHash && c.iid === installationId && c.sub === userId && c.plan === "trial" && c.seq === 1
+                && c.vt < c.vf && c.gu === c.vt && c.ou === c.gu,
             JSON.stringify(c));
     }
 
