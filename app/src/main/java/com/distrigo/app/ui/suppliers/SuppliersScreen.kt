@@ -49,6 +49,8 @@ import com.distrigo.app.data.model.Amount
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.ui.res.stringResource
 import com.distrigo.app.R
+import com.distrigo.app.ui.common.ScrollToTopBox
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.res.pluralStringResource
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -128,86 +130,90 @@ fun SuppliersScreen(
         }
 
         // Pinned bar, so the list below it carries only the list — see ClientsScreen.
-        LazyColumn(modifier = Modifier.weight(1f)) {
-            if (totalDebt > 0) {
-                item {
-                    Column {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = DsSpacing.lg)
-                                .clip(DsShapes.large)
-                                .background(DsColors.DangerLight)
-                                .padding(DsSpacing.lg)
-                        ) {
-                            Row(
-                                verticalAlignment     = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+        val suppliersListState = rememberLazyListState()
+        // A full screen without the bottom bar: the button sits just off the screen's edge.
+        ScrollToTopBox(state = suppliersListState, modifier = Modifier.weight(1f)) {
+            LazyColumn(state = suppliersListState, modifier = Modifier.fillMaxSize()) {
+                if (totalDebt > 0) {
+                    item {
+                        Column {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = DsSpacing.lg)
+                                    .clip(DsShapes.large)
+                                    .background(DsColors.DangerLight)
+                                    .padding(DsSpacing.lg)
                             ) {
-                                Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(16.dp))
-                                Text(stringResource(R.string.suppliers_total_debt), fontSize = DsTextSize.bodySmall, color = DsColors.Danger, fontWeight = FontWeight.Medium)
+                                Row(
+                                    verticalAlignment     = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger, modifier = Modifier.size(16.dp))
+                                    Text(stringResource(R.string.suppliers_total_debt), fontSize = DsTextSize.bodySmall, color = DsColors.Danger, fontWeight = FontWeight.Medium)
+                                }
+                                Text(
+                                    money.da(totalDebt),
+                                    fontSize   = DsTextSize.bodyLarge,
+                                    color      = DsColors.Danger,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
-                            Text(
-                                money.da(totalDebt),
-                                fontSize   = DsTextSize.bodyLarge,
-                                color      = DsColors.Danger,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Spacer(Modifier.height(DsSpacing.md))
                         }
-                        Spacer(Modifier.height(DsSpacing.md))
                     }
                 }
-            }
 
-            stickyHeader {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(DsColors.SurfaceMuted)
-                ) {
-                    // ── Search ──
-                    DsCompactSearchField(
-                        value         = viewModel.listSearch,
-                        onValueChange = { viewModel.listSearch = it },
-                        placeholder   = stringResource(R.string.purchases_search_supplier),
-                        modifier      = Modifier.padding(horizontal = DsSpacing.lg)
-                    )
-
-                    Spacer(Modifier.height(DsSpacing.sm))
-
-                    // ── Count · Filtres ── where the supplier is, and its solde.
-                    CountAndFiltersRow(
-                        label         = (shownCount ?: 0).let { pluralStringResource(R.plurals.suppliers_count, it, it) },
-                        filtersActive = filters.isActive,
-                        onOpenFilters = { showFilterSheet = true }
-                    )
-                    RemovableFilterChips(filterChips, onClearAll = { viewModel.listFilters = SupplierListFilters() })
-
-                    Spacer(Modifier.height(DsSpacing.xs))
-                }
-            }
-
-            items(count = shown.itemCount, key = shown.itemKey { it.id }, contentType = { "supplier" }) { index ->
-                val supplier = shown[index]
-                Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)) {
-                    if (supplier == null) com.distrigo.app.ui.common.PartyRowPlaceholder()
-                    else SupplierCard(
-                        supplier = supplier,
-                        onClick  = { onSupplierClick(supplier.id) }
-                    )
-                }
-            }
-            if (shownCount == 0) {
-                // Under the search and filters, so they stay at hand; the hint only when there are no suppliers at all.
-                // Not while counting: the list starts empty and would flash « Aucun fournisseur ».
-                item(key = "empty", contentType = "empty") {
-                    val noSuppliers = summary?.total == 0
-                    Box(Modifier.fillMaxWidth().fillParentMaxHeight(0.7f), contentAlignment = Alignment.Center) {
-                        com.distrigo.app.ui.common.EmptyState(
-                            illustration = R.drawable.empty_fournisseurs,
-                            title        = stringResource(if (noSuppliers) R.string.empty_suppliers_title else R.string.empty_suppliers_no_match),
-                            hint         = stringResource(R.string.empty_hint_suppliers).takeIf { noSuppliers },
+                stickyHeader {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(DsColors.SurfaceMuted)
+                    ) {
+                        // ── Search ──
+                        DsCompactSearchField(
+                            value         = viewModel.listSearch,
+                            onValueChange = { viewModel.listSearch = it },
+                            placeholder   = stringResource(R.string.purchases_search_supplier),
+                            modifier      = Modifier.padding(horizontal = DsSpacing.lg)
                         )
+
+                        Spacer(Modifier.height(DsSpacing.sm))
+
+                        // ── Count · Filtres ── where the supplier is, and its solde.
+                        CountAndFiltersRow(
+                            label         = (shownCount ?: 0).let { pluralStringResource(R.plurals.suppliers_count, it, it) },
+                            filtersActive = filters.isActive,
+                            onOpenFilters = { showFilterSheet = true }
+                        )
+                        RemovableFilterChips(filterChips, onClearAll = { viewModel.listFilters = SupplierListFilters() })
+
+                        Spacer(Modifier.height(DsSpacing.xs))
+                    }
+                }
+
+                items(count = shown.itemCount, key = shown.itemKey { it.id }, contentType = { "supplier" }) { index ->
+                    val supplier = shown[index]
+                    Box(modifier = Modifier.padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)) {
+                        if (supplier == null) com.distrigo.app.ui.common.PartyRowPlaceholder()
+                        else SupplierCard(
+                            supplier = supplier,
+                            onClick  = { onSupplierClick(supplier.id) }
+                        )
+                    }
+                }
+                if (shownCount == 0) {
+                    // Under the search and filters, so they stay at hand; the hint only when there are no suppliers at all.
+                    // Not while counting: the list starts empty and would flash « Aucun fournisseur ».
+                    item(key = "empty", contentType = "empty") {
+                        val noSuppliers = summary?.total == 0
+                        Box(Modifier.fillMaxWidth().fillParentMaxHeight(0.7f), contentAlignment = Alignment.Center) {
+                            com.distrigo.app.ui.common.EmptyState(
+                                illustration = R.drawable.empty_fournisseurs,
+                                title        = stringResource(if (noSuppliers) R.string.empty_suppliers_title else R.string.empty_suppliers_no_match),
+                                hint         = stringResource(R.string.empty_hint_suppliers).takeIf { noSuppliers },
+                            )
+                        }
                     }
                 }
             }
