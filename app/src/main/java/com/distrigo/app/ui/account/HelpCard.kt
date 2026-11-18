@@ -100,4 +100,4 @@ private fun SupportRow(icon: ImageVector, label: String, value: String, onClick:
 
 private const val SUPPORT_PHONE = "0697875799"
 private const val SUPPORT_WHATSAPP = "https://wa.me/213697875799"
-private const val SUPPORT_EMAIL = "dzaitech.store@gmail.com"
+private const val SUPPORT_EMAIL = "contact@distrigoo.com"
