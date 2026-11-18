@@ -16,6 +16,9 @@
     <string name="acc_reading_state">جارٍ قراءة حالة الاشتراك.</string>
     <string name="acc_help">المساعدة</string>
     <string name="acc_support_hours">أوقات الدعم</string>
+    <string name="acc_privacy_policy">سياسة الخصوصية</string>
+    <string name="acc_terms_of_use">شروط الاستخدام</string>
+    <string name="acc_delete_on_web">حذف حساب (الموقع)</string>
     <string name="acc_support_hours_value">كل يوم، 8 صباحًا - 10 مساءً</string>
     <string name="acc_email_short">البريد الإلكتروني</string>
     <string name="acc_phone">الهاتف</string>

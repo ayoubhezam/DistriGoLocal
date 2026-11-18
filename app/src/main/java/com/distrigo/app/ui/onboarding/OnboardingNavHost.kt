@@ -290,8 +290,9 @@ fun rememberOnboardingActions(viewModel: OnboardingViewModel): OnboardingActions
             completeBusiness     = viewModel::completeBusiness,
             resetCode            = viewModel::reset,
             confirmTransfer      = viewModel::confirmTransfer,
-            openTerms            = { say(licText(R.string.onb_terms_soon)) },
-            openPrivacy          = { say(licText(R.string.onb_privacy_soon)) },
+            // The pages on distrigoo.com, in the app's language; without a browser, their address to type
+            openTerms            = { openLegal(context, com.distrigo.app.core.web.LegalPage.TERMS, say) },
+            openPrivacy          = { openLegal(context, com.distrigo.app.core.web.LegalPage.PRIVACY, say) },
         )
     }
 }
@@ -320,4 +321,9 @@ private fun OnboardingSystemBars(lightIcons: Boolean) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.isNavigationBarContrastEnforced = contrastEnforced
         }
     }
+}
+
+private fun openLegal(context: android.content.Context, page: com.distrigo.app.core.web.LegalPage, say: (String) -> Unit) {
+    val pages = com.distrigo.app.core.web.LegalPages
+    if (!pages.open(context, page)) say(pages.url(page, com.distrigo.app.core.locale.AppLanguage.current(context)))
 }

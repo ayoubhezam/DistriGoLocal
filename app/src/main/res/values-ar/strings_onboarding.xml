@@ -71,8 +71,6 @@
     <string name="onb_reset_resend">إعادة إرسال الرمز</string>
     <string name="onb_reset_resend_in">إعادة إرسال الرمز (⁨%1$d⁩ ث)</string>
     <string name="onb_reset_other_email">تغيير البريد الإلكتروني</string>
-    <string name="onb_terms_soon">شروط الاستعمال قيد الصياغة.</string>
-    <string name="onb_privacy_soon">سياسة الخصوصية قيد الصياغة.</string>
     <string name="onb_seat_taken">هذا الحساب نشط على %1$s. بنقله إلى هنا، لن يتمكن الهاتف الآخر من استعماله. يمكنك تغيير الهاتف 3 مرات في الشهر.</string>
     <string name="onb_license_unreadable">تعذّرت قراءة الترخيص المستلم. أعد المحاولة.</string>
     <string name="onb_error">حدث خطأ. أعد المحاولة.</string>

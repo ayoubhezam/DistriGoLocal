@@ -12,9 +12,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.HeadsetMic
+import androidx.compose.material.icons.outlined.PersonRemove
 import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.Policy
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -26,6 +29,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.distrigo.app.R
+import com.distrigo.app.core.web.LegalPage
+import com.distrigo.app.core.web.LegalPages
 import com.distrigo.app.data.license.licText
 import com.distrigo.app.ui.common.layoutEnd
 import com.distrigo.app.ui.designsystem.BrandCard
@@ -36,7 +41,7 @@ import com.distrigo.app.ui.designsystem.DsBrand
 import com.distrigo.app.ui.designsystem.DsSpacing
 
 /**
- * « Aide »: how to reach us, each contact opening its app. In Compte, not on the subscription screen: it is about help
+ * « Aide »: how to reach us, each contact opening its app, then the legal pages on the website. In Compte, not on the subscription screen: it is about help
  * only, never about buying (owner, 2026-11-17).
  */
 @Composable
@@ -54,6 +59,14 @@ internal fun HelpCard() {
         SupportRow(Icons.Outlined.Email, licText(R.string.acc_email_short), SUPPORT_EMAIL) { open(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$SUPPORT_EMAIL"))) }
         BrandRowDivider()
         SupportRow(Icons.Outlined.Schedule, licText(R.string.acc_support_hours), licText(R.string.acc_support_hours_value), onClick = null)
+        // The pages on distrigoo.com, in the app's language: also reachable once the app is gone (Play requires the
+        // deletion page to be)
+        BrandRowDivider()
+        SupportRow(Icons.Outlined.Policy, licText(R.string.acc_privacy_policy), "", onClick = { LegalPages.open(context, LegalPage.PRIVACY) })
+        BrandRowDivider()
+        SupportRow(Icons.Outlined.Description, licText(R.string.acc_terms_of_use), "", onClick = { LegalPages.open(context, LegalPage.TERMS) })
+        BrandRowDivider()
+        SupportRow(Icons.Outlined.PersonRemove, licText(R.string.acc_delete_on_web), "", onClick = { LegalPages.open(context, LegalPage.ACCOUNT_DELETION) })
     }
 }
 

@@ -17,6 +17,9 @@
     <string name="acc_help">Aide</string>
     <string name="acc_whatsapp" translatable="false">WhatsApp</string>
     <string name="acc_support_hours">Horaires de support</string>
+    <string name="acc_privacy_policy">Politique de confidentialité</string>
+    <string name="acc_terms_of_use">Conditions d\'utilisation</string>
+    <string name="acc_delete_on_web">Supprimer un compte (site web)</string>
     <string name="acc_support_hours_value">Tous les jours, 8h - 22h</string>
     <string name="acc_email_short">E-mail</string>
     <string name="acc_phone">Téléphone</string>

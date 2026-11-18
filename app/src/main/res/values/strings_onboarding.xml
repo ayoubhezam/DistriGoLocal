@@ -71,8 +71,6 @@
     <string name="onb_reset_resend">Renvoyer le code</string>
     <string name="onb_reset_resend_in">Renvoyer le code (%1$d s)</string>
     <string name="onb_reset_other_email">Changer d\'adresse e-mail</string>
-    <string name="onb_terms_soon">Les conditions d\'utilisation sont en cours de rédaction.</string>
-    <string name="onb_privacy_soon">La politique de confidentialité est en cours de rédaction.</string>
     <string name="onb_seat_taken">Ce compte est actif sur %1$s. En le transférant ici, l\'autre téléphone ne pourra plus l\'utiliser. Vous pouvez changer de téléphone 3 fois par mois.</string>
     <string name="onb_license_unreadable">La licence reçue n\'a pas pu être lue. Réessayez.</string>
     <string name="onb_error">Une erreur est survenue. Réessayez.</string>
