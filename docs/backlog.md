@@ -22,3 +22,20 @@ Items noted for later, not being worked on. Each says where it was found and wha
   identifier is sent by the phone and not verified. The app always sends ANDROID_ID, so normal users are not
   affected. Found 2026-11-03 while fixing the refused-trial grace (85f8776). Related, also out of scope then: a
   factory reset gives the phone a new ANDROID_ID and so a new trial.
+
+## Pre-release: errors still dropped without a word
+
+Found 2026-11-18 while fixing the same thing in Tournée vente and Achats (Solo release point 3). Owner, 2026-11-18:
+not in point 3, fix before release as its own point. Each of these calls passes an `onError` that ignores the reason
+(`onError = {}` or only resets a flag), so a refused or failed write looks like a button that did nothing:
+
+- Client and supplier detail pages: `ui/clients/ClientDetailScreen.kt` (3 places), `ui/suppliers/SupplierDetailScreen.kt`
+  (3 places).
+- Client and supplier forms: `ui/clients/ClientFormScreen.kt:561`, `ui/suppliers/SupplierFormScreen.kt:152` and `:158`.
+- Tournée form: `ui/tournees/TourneeFormScreen.kt:317`.
+- « Visité, sans vente » on a tournée: `ui/tournees/TourneesScreen.kt:685`.
+- Product photo save: `ui/products/ProductFormScreen.kt:295–324` (the product is saved; only its photo is lost quietly).
+- « Livrer » in Ventes: `ui/ventes/VentesScreen.kt:1101`.
+
+The fix follows Ventes: the reason shown where the action was (a banner by the button, the dialog kept open, or a
+snackbar or toast once the screen is gone).

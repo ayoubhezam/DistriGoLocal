@@ -127,6 +127,7 @@
     <string name="tournees_cart_available">المتوفر: \u2068%1$s\u2069</string>
     <string name="tournees_sale_title">الجولة #\u2068%1$d\u2069</string>
     <string name="tournees_banner_missing_product">لم يعد أحد منتجات هذه العملية في الكتالوج. أزل سطره من الاختيار لتتمكن من الحفظ.</string>
+    <string name="tournees_visit_not_marked">تم حفظ البيع، لكن تعذّر تسجيل زيارة الزبون: %1$s</string>
     <string name="tournees_banner_truck_changed">تغيّر مخزون الشاحنة منذ هذه المسودة. قلّل الكميات المعنية لتتمكن من الحفظ.</string>
     <string name="tournees_form_commune_required">البلدية إلزامية.</string>
     <string name="tournees_form_edit_title">تعديل الجولة</string>

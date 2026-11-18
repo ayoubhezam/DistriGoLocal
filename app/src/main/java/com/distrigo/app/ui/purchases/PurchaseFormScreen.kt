@@ -203,6 +203,8 @@ internal fun Step3Validation(
     hasMissingProducts      : Boolean = false,
     /** The name of a pièce line whose colis make part of a piece: the bon waits until the cart fixes it. */
     fractionalPieces        : String? = null,
+    /** Why the last save failed (it rolled back, the draft is kept); empty when there is nothing to say. */
+    saveError               : String = "",
     onBack                  : () -> Unit,
     /**
      * Where "Corriger" on the blocking banner goes: the cart, the only place the offending
@@ -447,6 +449,8 @@ internal fun Step3Validation(
                 actionLabel = stringResource(R.string.common_action_fix),
                 onAction    = onFixMissing
             )
+        } else if (saveError.isNotEmpty()) {
+            CartBlockingBanner(text = saveError)
         }
 
         // ── Confirm button ──

@@ -298,10 +298,12 @@ fun NavGraphBuilder.purchaseFormGraph(
             var showAddSupplierDialog by remember { mutableStateOf(false) }
             var newSupplierName by remember { mutableStateOf("") }
             var newSupplierPhone by remember { mutableStateOf("") }
+            // Why the new supplier was not saved: the dialog stays open with what was typed
+            var newSupplierError by remember { mutableStateOf("") }
 
             if (showAddSupplierDialog) {
                 AlertDialog(
-                    onDismissRequest = { showAddSupplierDialog = false; newSupplierName = ""; newSupplierPhone = "" },
+                    onDismissRequest = { showAddSupplierDialog = false; newSupplierName = ""; newSupplierPhone = ""; newSupplierError = "" },
                     title = { Text(stringResource(R.string.products_form_new_supplier)) },
                     text  = {
                         Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
@@ -329,11 +331,15 @@ fun NavGraphBuilder.purchaseFormGraph(
                                     unfocusedBorderColor = DsColors.Border
                                 )
                             )
+                            if (newSupplierError.isNotEmpty()) {
+                                Text(newSupplierError, fontSize = DsTextSize.bodySmall, color = DsColors.Danger)
+                            }
                         }
                     },
                     confirmButton = {
                         TextButton(onClick = {
                             if (newSupplierName.isNotBlank()) {
+                                newSupplierError = ""
                                 supplierViewModel.addSupplier(
                                     supplier = mapOf(
                                         "name"            to newSupplierName.trim(),
@@ -346,7 +352,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                                         newSupplierName  = ""
                                         newSupplierPhone = ""
                                     },
-                                    onError = { showAddSupplierDialog = false },
+                                    onError = { error -> newSupplierError = error },
                                     // The new supplier, as saved, is the one chosen
                                     onAdded = { added ->
                                         session.setFormSupplier(added)
@@ -359,7 +365,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showAddSupplierDialog = false; newSupplierName = ""; newSupplierPhone = "" }) {
+                        TextButton(onClick = { showAddSupplierDialog = false; newSupplierName = ""; newSupplierPhone = ""; newSupplierError = "" }) {
                             Text(stringResource(R.string.common_action_cancel))
                         }
                     },
@@ -1080,6 +1086,8 @@ fun NavGraphBuilder.purchaseFormGraph(
             // A pièce line whose colis make part of a piece: marked in the cart, and the bon waits for it.
             val fractionalPieces = cartItems.firstOrNull { !Quantity.fitsUnit(it.quantity, it.product.unit_type) }?.product?.name
             var isSaving by remember { mutableStateOf(false) }
+            // Why the last save failed: it rolled back and the draft is kept, so the reason is said by the button
+            var saveError by remember { mutableStateOf("") }
             val total = com.distrigo.app.data.model.Amount.documentTotal(cartItems.map { com.distrigo.app.data.model.Amount.lineTotal(it.quantity, it.unitCost) })
 
             // What « Montant payé » holds, read as it is saved: null for text a draft kept from before the field cleaned
@@ -1099,7 +1107,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                 // it in the cart; this is the block behind that marker.
                 if (missingProductIds.isNotEmpty() || fractionalPieces != null) return
                 val paidAmount = paid ?: return
-                isSaving = true
+                isSaving = true; saveError = ""
                 val orderItems = cartItems.map { ci ->
                     mapOf(
                         "product_id" to ci.product.id,
@@ -1122,7 +1130,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                             montantPaye = paidAmount,
                             draftId     = session.draftId,
                             onSuccess   = { session.onCommitted(); onSaved() },
-                            onError     = { session.onCommitFailed(); isSaving = false }
+                            onError     = { error -> session.onCommitFailed(); isSaving = false; saveError = error }
                         )
                     } else {
                         viewModel.createOrder(
@@ -1133,7 +1141,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                             montantPaye = paidAmount,
                             draftId     = session.draftId,
                             onSuccess   = { session.onCommitted(); onSaved() },
-                            onError     = { session.onCommitFailed(); isSaving = false }
+                            onError     = { error -> session.onCommitFailed(); isSaving = false; saveError = error }
                         )
                     }
                 }
@@ -1182,6 +1190,7 @@ fun NavGraphBuilder.purchaseFormGraph(
                     isSaving            = isSaving,
                     hasMissingProducts  = missingProductIds.isNotEmpty(),
                     fractionalPieces    = fractionalPieces,
+                    saveError           = saveError,
                     onBack              = { navController.popBackStack() },
                     // The cart, not popBackStack: reaching this step pops the cart off
                     // (see the cart's own "Suivant", which popUpTo's the product list), so

@@ -210,6 +210,8 @@ internal fun Step3Validation(
      * step marks the offending line; this is the block behind that marker.
      */
     blockedReason       : String? = null,
+    /** Why the last save failed (it rolled back, the draft is kept); empty when there is nothing to say. */
+    saveError           : String = "",
     onBack              : () -> Unit,
     /** Where "Corriger" goes. Defaults to [onBack], which on this graph is the cart. */
     onFixBlocked        : () -> Unit = onBack,
@@ -441,7 +443,7 @@ internal fun Step3Validation(
                 actionLabel = stringResource(R.string.common_action_fix),
                 onAction    = onFixBlocked
             )
-        }
+        } ?: saveError.takeIf { it.isNotEmpty() }?.let { CartBlockingBanner(text = it) }
 
         Button(
             onClick  = onConfirm,

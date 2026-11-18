@@ -1,5 +1,6 @@
 package com.distrigo.app.ui.navigation
 
+import com.distrigo.app.core.text.appText
 import com.distrigo.app.ui.common.ScrollToTopBox
 import com.distrigo.app.ui.common.ScrollTopClearance
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -600,6 +601,8 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
             val missingProductIds by session.missingProductIds.collectAsStateWithLifecycle()
             val overStockProductIds by session.overStockProductIds.collectAsStateWithLifecycle()
             var isSaving by remember { mutableStateOf(false) }
+            // Why the last save failed: it rolled back and the draft is kept, so the reason is said by the button
+            var saveError by remember { mutableStateOf("") }
             val total = com.distrigo.app.data.model.Amount.documentTotal(cartItems.map { com.distrigo.app.data.model.Amount.lineTotal(it.quantity, it.unitPrice) })
 
             // One reason at a time, deleted first: a product that no longer exists cannot also be
@@ -621,6 +624,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
 
             // A form open when the license stops recording: « Confirmer » explains instead (docs/license_l5_enforcement.md §2)
             val license = LocalLicense.current
+            val appContext = LocalContext.current.applicationContext
             fun doSave() {
                 if (formClient == null) return
                 if (license.refuses()) return
@@ -629,7 +633,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                 // button would appear to do nothing at all.
                 if (blockedReason != null) return
                 val paidAmount = paid ?: return
-                isSaving = true
+                isSaving = true; saveError = ""
                 val items = cartItems.map { ci ->
                     mapOf(
                         "product_id" to ci.product.id,
@@ -658,7 +662,12 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                                 viewModel.markTourneeClientVisited(
                                     tourneeId, clientIdArg,
                                     onSuccess = { viewModel.refreshAfterVenteChange(tourneeId) },
-                                    onError   = {}
+                                    // The sale is saved and this form is gone by now: the tournée it returns to says so
+                                    onError   = { error ->
+                                        android.widget.Toast.makeText(
+                                            appContext, appText(R.string.tournees_visit_not_marked, error), android.widget.Toast.LENGTH_LONG
+                                        ).show()
+                                    }
                                 )
                             } else {
                                 viewModel.loadTourneeClients(tourneeId)
@@ -666,7 +675,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                             viewModel.camionProducts.reset()
                             onSaved()
                         },
-                        onError = { session.onCommitFailed(); isSaving = false }
+                        onError = { error -> session.onCommitFailed(); isSaving = false; saveError = error }
                     )
                 }
             }
@@ -703,6 +712,7 @@ fun NavGraphBuilder.tourneeVenteFormGraph(
                 onNoteChange        = { session.setFormNote(it) },
                 isSaving            = isSaving,
                 blockedReason       = blockedReason,
+                saveError           = saveError,
                 onBack              = { navController.popBackStack() },
                 onFixBlocked        = { navController.navigate(cartRoute) },
                 onConfirm           = { requestSave() }
