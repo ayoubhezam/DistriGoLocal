@@ -56,6 +56,7 @@
     <string name="purchases_reopen">Rouvrir</string>
     <string name="purchases_delete_body_short">Voulez-vous supprimer %1$s ?</string>
     <string name="purchases_reopen_order">Rouvrir le bon</string>
+    <string name="purchases_edit_pending_hint">Ce bon est en attente : après l\'enregistrement, utilisez « Marquer comme reçu » pour mettre à jour le stock.</string>
     <string name="purchases_mark_received">Marquer comme reçu</string>
     <string name="purchases_finalized">Achat finalisé et enregistré</string>
     <string name="purchases_confirm_receive_title">Confirmer la réception</string>

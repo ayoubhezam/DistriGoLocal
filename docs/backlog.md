@@ -39,3 +39,10 @@ not in point 3, fix before release as its own point. Each of these calls passes 
 
 The fix follows Ventes: the reason shown where the action was (a banner by the button, the dialog kept open, or a
 snackbar or toast once the screen is gone).
+
+## After the release
+
+- **Edit a received bon in one step (owner, 2026-11-18: after the release).** Today a received bon is reopened first
+  (« Rouvrir le bon » undoes the reception: stock and purchase price), edited, then marked received again. One save
+  could do all three in one transaction with the stock check: undo the old reception, write the new lines, receive
+  again. Held back because it rewrites the purchase-price history (CMUP, last price) in one go and needs its own tests.

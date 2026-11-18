@@ -63,7 +63,10 @@ fun PurchaseOrderDetailScreen(
     // wrong bon, and the overflow menu offered "Rouvrir le bon" on a pending one (and vice versa).
     // `order` is the correct bon from the list, so the fallback is always right.
     val displayOrder  = selectedOrder?.takeIf { it.id == order.id } ?: order
-    val isReceived    = displayOrder.status == "received"
+    val isReceived    = bonChange(displayOrder.status) == BonChange.REOPEN
+    // The status read from the database, not the list's copy: right after a reception the list can still say
+    // « En attente », and « Modifier » offered then could not be saved. Until it is read, neither is offered.
+    val statusLoaded  = selectedOrder?.id == order.id
     val reopenFailed  = stringResource(R.string.purchases_reopen_failed)
     val receiveFailed = stringResource(R.string.purchases_receive_failed)
     var isLoading     by remember { mutableStateOf(false) }
@@ -96,42 +99,23 @@ fun PurchaseOrderDetailScreen(
     }
 
     if (showReopenDialog) {
-        AlertDialog(
-            onDismissRequest = { showReopenDialog = false },
-            title = { Text(stringResource(R.string.purchases_reopen_title)) },
-            text  = {
-                Text(
-                    stringResource(R.string.purchases_reopen_body),
-                    fontSize = DsTextSize.bodySmall
+        ReopenOrderDialog(
+            onConfirm = {
+                showReopenDialog = false
+                isLoading = true
+                viewModel.reopenOrder(
+                    id        = displayOrder.id,
+                    onSuccess = {
+                        isLoading = false
+                        onEdit()
+                    },
+                    onError   = { error ->
+                        isLoading = false
+                        actionError = reopenFailed to error
+                    }
                 )
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    showReopenDialog = false
-                    isLoading = true
-                    viewModel.reopenOrder(
-                        id        = displayOrder.id,
-                        onSuccess = {
-                            isLoading = false
-                            onEdit()
-                        },
-                        onError   = { error ->
-                            isLoading = false
-                            actionError = reopenFailed to error
-                        }
-                    )
-                }) {
-                    Text(stringResource(R.string.purchases_reopen), color = DsColors.Warning, fontWeight = FontWeight.SemiBold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showReopenDialog = false }) {
-                    Text(stringResource(R.string.common_action_cancel))
-                }
-            },
-            containerColor    = DsColors.Surface,
-            titleContentColor = DsColors.TextPrimary,
-            textContentColor  = DsColors.TextSecondary
+            onDismiss = { showReopenDialog = false }
         )
     }
 
@@ -232,7 +216,9 @@ fun PurchaseOrderDetailScreen(
                     expanded = overflowMenuExpanded,
                     onDismissRequest = { overflowMenuExpanded = false }
                 ) {
-                    if (isReceived) {
+                    if (!statusLoaded) {
+                        // Neither « Rouvrir » nor « Modifier » until the bon's own status is known
+                    } else if (isReceived) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.purchases_reopen_order), color = DsColors.Warning) },
                             leadingIcon = { Icon(Icons.Default.LockOpen, contentDescription = null, tint = DsColors.Warning) },

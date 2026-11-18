@@ -120,6 +120,31 @@ class PurchaseFormSessionViewModel @Inject constructor(
 
     // ── Session state ────────────────────────────────────────────────────────
 
+    /**
+     * The bon this form edits, when it turned out to be received: it cannot be saved as an edit (FIN-06), so the
+     * form asks to reopen it first. A way in that should have offered « Rouvrir » (a status read before a reception
+     * landed, a Brouillon from before it) still ends here rather than at a save that is refused.
+     */
+    private val _receivedSource = MutableStateFlow<Int?>(null)
+    val receivedSource: StateFlow<Int?> = _receivedSource
+    private var sourceChecked = false
+
+    /** Reads the edited bon's status once per session, from [orderId] or the Brouillon [draftId] edits. */
+    fun checkSourceStatus(orderId: Int?, draftId: Int?) {
+        if (sourceChecked) return
+        sourceChecked = true
+        viewModelScope.launch {
+            val id = orderId ?: draftId?.let { draftRepository.getDraft(it)?.sourceOrderId } ?: return@launch
+            val order = runCatching { productRepository.getPurchaseOrder(id) }.getOrNull() ?: return@launch
+            if (bonChange(order.status) == BonChange.REOPEN) _receivedSource.value = id
+        }
+    }
+
+    /** The bon was reopened from the form: its lines are unchanged, so the form carries on as loaded. */
+    fun sourceReopened() {
+        _receivedSource.value = null
+    }
+
     private val _phase = MutableStateFlow(SessionPhase.UNDECIDED)
     val phase: StateFlow<SessionPhase> = _phase
 

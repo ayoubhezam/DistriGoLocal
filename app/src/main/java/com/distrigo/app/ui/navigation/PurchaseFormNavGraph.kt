@@ -139,7 +139,9 @@ private fun PurchaseFormHeader(
 private fun purchaseFormSession(
     navController: NavHostController,
     graphRoute   : String,
-    route        : String?
+    route        : String?,
+    orders       : PurchaseViewModel,
+    onBack       : () -> Unit
 ): PurchaseFormSessionViewModel {
     val graphEntry = remember(navController, graphRoute) { navController.getBackStackEntry(graphRoute) }
     val session: PurchaseFormSessionViewModel = hiltViewModel(graphEntry)
@@ -152,6 +154,8 @@ private fun purchaseFormSession(
     val supplierId = graphEntry.arguments?.getInt("supplierId")?.takeIf { it != -1 }
     val draftId    = graphEntry.arguments?.getInt("draftId")?.takeIf { it != -1 }
     LaunchedEffect(session) { session.beginOrResumeSession(orderId, supplierId, draftId) }
+    LaunchedEffect(session) { session.checkSourceStatus(orderId, draftId) }
+    ReceivedBonGuard(session, orders, onBack)
 
     // Record where the user is — for a future resume that lands on the step they left; nothing
     // reads it yet — and keep the ON_STOP flush attached to whichever step is actually on screen.
@@ -159,6 +163,40 @@ private fun purchaseFormSession(
     FlushDraftOnStop(session)
 
     return session
+}
+
+/**
+ * An edit opened on a received bon (bonChange): « Rouvrir le bon ? » before anything is typed, since its save
+ * would be refused. « Rouvrir » undoes the reception and the form carries on; « Retour » leaves the form.
+ */
+@Composable
+private fun ReceivedBonGuard(session: PurchaseFormSessionViewModel, orders: PurchaseViewModel, onBack: () -> Unit) {
+    val received by session.receivedSource.collectAsStateWithLifecycle()
+    var reopenError by remember { mutableStateOf<String?>(null) }
+    val id = received ?: return
+    reopenError?.let { error ->
+        AlertDialog(
+            onDismissRequest = { reopenError = null; onBack() },
+            title            = { Text(stringResource(R.string.purchases_reopen_failed)) },
+            text             = { Text(error, fontSize = DsTextSize.bodySmall) },
+            confirmButton    = { TextButton(onClick = { reopenError = null; onBack() }) { Text(stringResource(R.string.common_action_ok)) } },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
+        )
+        return
+    }
+    com.distrigo.app.ui.purchases.ReopenOrderDialog(
+        onConfirm    = {
+            orders.reopenOrder(
+                id        = id,
+                onSuccess = { session.sourceReopened() },
+                onError   = { error -> reopenError = error }
+            )
+        },
+        onDismiss    = onBack,
+        dismissLabel = stringResource(R.string.common_action_back)
+    )
 }
 
 /**
@@ -206,7 +244,7 @@ fun NavGraphBuilder.purchaseFormGraph(
         composable(Screen.PurchaseFormSupplier.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
-            val session = purchaseFormSession(navController, graphRoute, entry.destination.route)
+            val session = purchaseFormSession(navController, graphRoute, entry.destination.route, viewModel, onBack)
             val supplierViewModel = supplierViewModel()
             val orderIdArg = parentEntry.arguments?.getInt("orderId")?.takeIf { it != -1 }
             val isEdit = orderIdArg != null
@@ -287,7 +325,7 @@ fun NavGraphBuilder.purchaseFormGraph(
         composable(Screen.PurchaseFormSupplierPicker.route) { entry ->
             remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
-            val session = purchaseFormSession(navController, graphRoute, entry.destination.route)
+            val session = purchaseFormSession(navController, graphRoute, entry.destination.route, viewModel, onBack)
             val supplierViewModel = supplierViewModel()
             // Searched and paged in SQL (PERF-01): the picker no longer holds every supplier
             val picker = supplierViewModel.picker
@@ -462,7 +500,7 @@ fun NavGraphBuilder.purchaseFormGraph(
             val money = LocalMoneyFormatter.current
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
-            val session = purchaseFormSession(navController, graphRoute, entry.destination.route)
+            val session = purchaseFormSession(navController, graphRoute, entry.destination.route, viewModel, onBack)
             val productViewModel = productViewModel()
             val orderIdArg = parentEntry.arguments?.getInt("orderId")?.takeIf { it != -1 }
             val supplierIdArg = parentEntry.arguments?.getInt("supplierId")?.takeIf { it != -1 }
@@ -776,7 +814,7 @@ fun NavGraphBuilder.purchaseFormGraph(
             val money = LocalMoneyFormatter.current
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
-            val session = purchaseFormSession(navController, graphRoute, entry.destination.route)
+            val session = purchaseFormSession(navController, graphRoute, entry.destination.route, viewModel, onBack)
             val productViewModel = productViewModel()
             val orderIdArg = parentEntry.arguments?.getInt("orderId")?.takeIf { it != -1 }
             val isEdit = orderIdArg != null
@@ -1075,7 +1113,7 @@ fun NavGraphBuilder.purchaseFormGraph(
         composable(Screen.PurchaseFormValidation.route) { entry ->
             val parentEntry = remember(entry) { navController.getBackStackEntry(graphRoute) }
             val viewModel = viewModel()
-            val session = purchaseFormSession(navController, graphRoute, entry.destination.route)
+            val session = purchaseFormSession(navController, graphRoute, entry.destination.route, viewModel, onBack)
             val orderIdArg = parentEntry.arguments?.getInt("orderId")?.takeIf { it != -1 }
             val isEdit = orderIdArg != null
             val formSupplier by session.formSupplier.collectAsStateWithLifecycle()

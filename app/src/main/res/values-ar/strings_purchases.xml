@@ -56,6 +56,7 @@
     <string name="purchases_reopen">إعادة الفتح</string>
     <string name="purchases_delete_body_short">هل تريد حذف \u2068%1$s\u2069؟</string>
     <string name="purchases_reopen_order">إعادة فتح الوصل</string>
+    <string name="purchases_edit_pending_hint">هذا الوصل قيد الانتظار: بعد الحفظ، استعمل «تعليم كمُستلَم» لتحديث المخزون.</string>
     <string name="purchases_mark_received">تعليم كمُستلَم</string>
     <string name="purchases_finalized">تم إنهاء الشراء وتسجيله</string>
     <string name="purchases_confirm_receive_title">تأكيد الاستلام</string>

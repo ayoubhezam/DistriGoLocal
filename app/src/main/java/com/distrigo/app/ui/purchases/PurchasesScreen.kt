@@ -93,6 +93,9 @@ fun PurchasesScreen(
     var showDraftsSheet by remember { mutableStateOf(false) }
 
     var longPressOrder   by remember { mutableStateOf<PurchaseOrder?>(null) }
+    // « Rouvrir le bon » from the long-press: confirmed, then the edit form opens on the reopened bon
+    var reopenOrder      by remember { mutableStateOf<PurchaseOrder?>(null) }
+    var reopenError      by remember { mutableStateOf<String?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     // A blocked write explains itself instead (docs/license_l5_enforcement.md §2)
     val license = LocalLicense.current
@@ -115,6 +118,32 @@ fun PurchasesScreen(
             viewModel.filterSupplierId != null ||
             viewModel.filterDateFrom != null ||
             viewModel.filterDateTo != null
+
+    reopenOrder?.let { order ->
+        ReopenOrderDialog(
+            onConfirm = {
+                reopenOrder = null
+                viewModel.reopenOrder(
+                    id        = order.id,
+                    onSuccess = { onEditOrder(order.id) },
+                    onError   = { error -> reopenError = error }
+                )
+            },
+            onDismiss = { reopenOrder = null }
+        )
+    }
+    reopenError?.let { error ->
+        AlertDialog(
+            onDismissRequest = { reopenError = null },
+            icon             = { Icon(Icons.Default.Warning, contentDescription = null, tint = DsColors.Danger) },
+            title            = { Text(stringResource(R.string.purchases_reopen_failed)) },
+            text             = { Text(error, fontSize = DsTextSize.bodySmall) },
+            confirmButton    = { TextButton(onClick = { reopenError = null }) { Text(stringResource(R.string.common_action_ok)) } },
+            containerColor    = DsColors.Surface,
+            titleContentColor = DsColors.TextPrimary,
+            textContentColor  = DsColors.TextSecondary
+        )
+    }
 
     // ── Long Press Dialog ──
     longPressOrder?.let { order ->
@@ -171,30 +200,35 @@ fun PurchasesScreen(
                 containerColor   = DsColors.Surface,
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.sm)) {
-                        // زر التعديل
+                        // « Modifier », or « Rouvrir le bon » on a received one: it cannot be edited in place (bonChange)
+                        val reopen = bonChange(order.status) == BonChange.REOPEN
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(DsShapes.medium)
-                                .background(DsColors.PrimaryLight)
+                                .background(if (reopen) DsColors.WarningLight else DsColors.PrimaryLight)
                                 .clickable {
-                                    longPressOrder = null
-                                    license.runOrExplain { onEditOrder(order.id) }
+                                    if (reopen) {
+                                        license.runOrExplain { reopenOrder = order; longPressOrder = null }
+                                    } else {
+                                        longPressOrder = null
+                                        license.runOrExplain { onEditOrder(order.id) }
+                                    }
                                 }
                                 .padding(14.dp),
                             verticalAlignment     = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(DsSpacing.md)
                         ) {
                             Icon(
-                                Icons.Default.Edit,
+                                if (reopen) Icons.Default.LockOpen else Icons.Default.Edit,
                                 contentDescription = null,
-                                tint     = DsColors.Primary,
+                                tint     = if (reopen) DsColors.Warning else DsColors.Primary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
-                                stringResource(R.string.purchases_edit_title),
+                                stringResource(if (reopen) R.string.purchases_reopen_order else R.string.purchases_edit_title),
                                 fontSize   = DsTextSize.body,
-                                color      = DsColors.Primary,
+                                color      = if (reopen) DsColors.Warning else DsColors.Primary,
                                 fontWeight = FontWeight.Medium
                             )
                         }

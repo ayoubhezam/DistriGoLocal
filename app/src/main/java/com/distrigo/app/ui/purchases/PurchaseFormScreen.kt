@@ -434,6 +434,16 @@ internal fun Step3Validation(
             }
         }
 
+        // An edited bon is pending (a received one is reopened first): its stock waits for « Marquer reçu »
+        if (isEdit) {
+            Text(
+                stringResource(R.string.purchases_edit_pending_hint),
+                fontSize = DsTextSize.bodySmall,
+                color    = DsColors.TextSecondary,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = DsSpacing.lg, vertical = DsSpacing.xs)
+            )
+        }
+
         // The reason for a dead button, docked against the button itself. Before this the
         // only marker was back on the cart step, so this screen offered a greyed-out control
         // and no account of why — the one thing the user needed in order to act.
