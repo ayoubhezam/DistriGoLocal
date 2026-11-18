@@ -46,3 +46,20 @@ snackbar or toast once the screen is gone).
   (« Rouvrir le bon » undoes the reception: stock and purchase price), edited, then marked received again. One save
   could do all three in one transaction with the stock check: undo the old reception, write the new lines, receive
   again. Held back because it rewrites the purchase-price history (CMUP, last price) in one go and needs its own tests.
+
+## Accounts and e-mail: what remains of Solo release point 3
+
+Point 3 shipped 2026-11-18 (d051de9 save errors, 4172424 « Mot de passe oublié », f0d2df1 the code step kept on an
+error) and was tested end to end on the owner's phone with a real Resend e-mail. Left for later:
+
+- **E-mail confirmation at sign-up is off** (owner, 2026-11-18: leave it off for now). Anyone can sign up with an
+  address that is not theirs; its owner can still take it back with « Mot de passe oublié ». Now that Resend sends
+  mail, turning it on is a Supabase switch; the app already shows « Ouvrez le lien envoyé à … ».
+- **The Auth e-mail settings live only in the Supabase dashboard:** custom SMTP (Resend, `no-reply@distrigoo.com`),
+  the « Reset password » template (source: `supabase/templates/recovery.html`, pasted by hand), OTP length 6, expiry
+  3600 s, 30 e-mails an hour. A change to the template file must be pasted again; `supabase/config.toml` could carry
+  them later (`config push` sends the whole auth section, so check it first).
+- **Resend free plan:** 100 e-mails a day, 3,000 a month, one domain. Plenty for resets; watch it if confirmation
+  e-mails are turned on.
+- **No « Changer le mot de passe » in Compte** for someone signed in: only through « Mot de passe oublié ».
+- **Owner's review of the Arabic** of the reset page, its messages and the e-mail.
