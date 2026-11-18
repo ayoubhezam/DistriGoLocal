@@ -1,0 +1,33 @@
+<!-- Supabase Auth › Email Templates › Reset password. {{ .Token }} is the 6-digit code the app asks for. -->
+<!-- Subject: DISTRONIQ : votre code / رمزك -->
+<div style="margin:0;padding:24px 16px;background:#F3F6FB;font-family:Arial,Helvetica,sans-serif;color:#0F2A5A">
+  <div style="max-width:480px;margin:0 auto;background:#FFFFFF;border-radius:12px;padding:28px 24px">
+    <p style="margin:0 0 20px;font-size:20px;font-weight:bold;letter-spacing:1px">DISTRONIQ</p>
+
+    <div dir="ltr" lang="fr" style="text-align:left">
+      <p style="margin:0 0 12px;font-size:16px;font-weight:bold">Réinitialiser votre mot de passe</p>
+      <p style="margin:0 0 16px;font-size:14px;line-height:20px">
+        Saisissez ce code dans l'application DISTRONIQ pour choisir un nouveau mot de passe.
+        Il est valable 1 heure.
+      </p>
+    </div>
+
+    <p dir="ltr" style="margin:0 0 20px;text-align:center;font-size:32px;font-weight:bold;letter-spacing:8px;font-family:'Courier New',monospace;background:#F3F6FB;border-radius:8px;padding:14px 0">{{ .Token }}</p>
+
+    <div dir="rtl" lang="ar" style="text-align:right">
+      <p style="margin:0 0 12px;font-size:16px;font-weight:bold">إعادة تعيين كلمة المرور</p>
+      <p style="margin:0 0 16px;font-size:14px;line-height:22px">
+        أدخل هذا الرمز في تطبيق DISTRONIQ لاختيار كلمة مرور جديدة.
+        الرمز صالح لمدة ساعة واحدة.
+      </p>
+    </div>
+
+    <hr style="border:none;border-top:1px solid #E2E8F0;margin:20px 0">
+    <p dir="ltr" style="margin:0 0 6px;font-size:12px;line-height:18px;color:#64748B;text-align:left">
+      Vous n'avez rien demandé ? Ignorez cet e-mail : votre mot de passe ne change pas.
+    </p>
+    <p dir="rtl" style="margin:0;font-size:12px;line-height:20px;color:#64748B;text-align:right">
+      لم تطلب ذلك؟ تجاهل هذه الرسالة، فكلمة مرورك لن تتغير.
+    </p>
+  </div>
+</div>

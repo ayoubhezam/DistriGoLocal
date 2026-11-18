@@ -183,6 +183,7 @@ fun CompteScreen(
                     // Not followed: a Google sheet closed unanswered would leave the mark set (and Google is off for now)
                     onGoogle        = actions.signInWithGoogle,
                     onCode          = { onOpenOnboarding(OnboardingStart.CODE) },
+                    onForgot        = { email -> actions.forgotPassword(email); onOpenOnboarding(OnboardingStart.RESET) },
                     onCreateAccount = { onOpenOnboarding(OnboardingStart.SIGN_UP) },
                     onShown         = onboarding::reset,
                 )
@@ -287,6 +288,7 @@ private fun SignInCard(
     onSignIn: (email: String, password: String) -> Unit,
     onGoogle: (() -> Unit)?,
     onCode: () -> Unit,
+    onForgot: (email: String) -> Unit,
     onCreateAccount: () -> Unit,
     onShown: () -> Unit,
 ) {
@@ -303,7 +305,7 @@ private fun SignInCard(
                 color      = DsBrand.Slate
             )
             Column {
-                SignInFields(actions, status, onCode, signIn = onSignIn, google = onGoogle)
+                SignInFields(actions, status, onCode, onForgot, signIn = onSignIn, google = onGoogle)
             }
             CreateAccountLine(onCreateAccount, Modifier.align(Alignment.CenterHorizontally))
         }

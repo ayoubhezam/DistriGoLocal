@@ -53,6 +53,7 @@ internal fun SignInPage(
     onBack: () -> Unit,
     onCreateAccount: () -> Unit,
     onCode: () -> Unit,
+    onForgot: (email: String) -> Unit,
     onDiscover: (() -> Unit)? = null,
 ) {
     Box(Modifier.fillMaxSize().background(DsBrand.Mist)) {
@@ -82,7 +83,7 @@ internal fun SignInPage(
                     Spacer(Modifier.height(DsSpacing.lg))
                     FormTitle(licText(R.string.acc_sign_in_title), licText(R.string.onb_sign_in_sub))
                     Spacer(Modifier.height(DsSpacing.lg))
-                    SignInFields(actions, status, onCode)
+                    SignInFields(actions, status, onCode, onForgot)
                 }
                 Spacer(Modifier.weight(1f).heightIn(min = DsSpacing.lg))
                 CreateAccountLine(onCreateAccount, Modifier.align(Alignment.CenterHorizontally))
@@ -110,6 +111,8 @@ internal fun ColumnScope.SignInFields(
     actions: OnboardingActions,
     status: OnboardingStatus,
     onCode: () -> Unit,
+    /** « Mot de passe oublié ? », with the address typed so far. */
+    onForgot: (email: String) -> Unit,
     signIn: (email: String, password: String) -> Unit = actions.signIn,
     google: (() -> Unit)? = actions.signInWithGoogle,
 ) {
@@ -141,7 +144,7 @@ internal fun ColumnScope.SignInFields(
         error         = passwordError,
         onDone        = submit
     )
-    TextButton(onClick = actions.forgotPassword, modifier = Modifier.align(Alignment.End)) {
+    TextButton(onClick = { onForgot(email) }, modifier = Modifier.align(Alignment.End)) {
         Text(
             licText(R.string.onb_forgot),
             fontFamily     = DsBrand.Font,

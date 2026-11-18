@@ -73,6 +73,35 @@ class AuthRepository(
         return update
     }
 
+    /** « Mot de passe oublié »: asks Supabase to e-mail a code. Null when the request went through. */
+    suspend fun requestPasswordReset(email: String): AuthError? = api.requestPasswordReset(email.trim())
+
+    /** The session the reset code opened, kept in memory only until its new password holds. */
+    private var resetSession: Pair<String, AuthSession>? = null
+
+    /**
+     * The code from the reset e-mail and the new password. The code opens a session; the password is changed under
+     * it; only then is the session kept, so the account is signed in. A refused password (too weak, the same as
+     * before) can be tried again without a new code: the code serves only once.
+     */
+    suspend fun resetPassword(email: String, code: String, newPassword: String): AuthOutcome {
+        val address = email.trim().lowercase()
+        val session = resetSession?.takeIf { it.first == address }?.second
+            ?: when (val verified = api.verifyPasswordReset(address, code.trim())) {
+                is AuthOutcome.SignedIn -> verified.session.also { resetSession = address to it }
+                is AuthOutcome.Failed -> return verified
+                is AuthOutcome.ConfirmEmail -> return AuthOutcome.Failed(AuthError.SERVER)
+            }
+        api.updatePassword(session.accessToken, newPassword)?.let { error ->
+            // A session the server no longer accepts needs a new code
+            if (error == AuthError.SESSION_EXPIRED) resetSession = null
+            return AuthOutcome.Failed(error)
+        }
+        resetSession = null
+        save(session)
+        return AuthOutcome.SignedIn(session)
+    }
+
     /**
      * An access token good for at least a minute: the stored one, or a fresh one. [forceRefresh] when the server
      * has just refused the stored one. A session the server no longer knows signs the phone out.

@@ -65,6 +65,38 @@ class OnboardingViewModel @Inject constructor(
         whenSignedIn(auth.signIn(email, password)) { activate(ActivationOrigin.SIGN_IN) }
     }
 
+    /**
+     * The address typed in Connexion when « Mot de passe oublié ? » was tapped, for the reset page to start with.
+     * Outside [status]: opening the onboarding resets that, and this must reach the page it opens.
+     */
+    var resetEmail: String = ""
+        private set
+
+    fun prefillReset(email: String) {
+        resetEmail = email.trim()
+        // Connexion's last error is not the reset's
+        _status.value = _status.value.copy(error = null, resetSentTo = null)
+    }
+
+    /** « Envoyer le code »: the same answer whether or not the address has an account. */
+    fun requestPasswordReset(email: String) = work {
+        resetEmail = email.trim()
+        when (val error = auth.requestPasswordReset(email)) {
+            null -> _status.value = _status.value.copy(resetSentTo = email.trim())
+            else -> fail(error.message)
+        }
+    }
+
+    /** « Changer le mot de passe »: then the account is signed in, and the phone activated as after Connexion. */
+    fun resetPassword(email: String, code: String, newPassword: String) = work {
+        whenSignedIn(auth.resetPassword(email, code, newPassword)) { activate(ActivationOrigin.SIGN_IN) }
+    }
+
+    /** « Changer d'adresse e-mail »: back to the first step of the reset. */
+    fun changeResetEmail() {
+        _status.value = _status.value.copy(resetSentTo = null, error = null)
+    }
+
     fun signInWithGoogle(idToken: String, rawNonce: String) = work {
         whenSignedIn(auth.signInWithGoogle(idToken, rawNonce)) { activate(ActivationOrigin.SIGN_IN) }
     }

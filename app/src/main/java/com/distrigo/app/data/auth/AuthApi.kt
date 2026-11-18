@@ -24,6 +24,10 @@ enum class AuthError(@androidx.annotation.StringRes private val messageId: Int) 
     RATE_LIMITED(R.string.auth_rate_limited),
     SESSION_EXPIRED(R.string.auth_session_expired),
     ANONYMOUS_DISABLED(R.string.auth_anonymous_disabled),
+    /** The code from a reset e-mail is wrong, or older than its hour. */
+    RESET_CODE_INVALID(R.string.auth_reset_code_invalid),
+    /** A new password the same as the old one. */
+    SAME_PASSWORD(R.string.auth_same_password),
     NETWORK(R.string.auth_network),
     SERVER(R.string.auth_server),
     ;
@@ -46,6 +50,8 @@ enum class AuthError(@androidx.annotation.StringRes private val messageId: Int) 
                 "provider_disabled", "email_provider_disabled" -> PROVIDER_DISABLED
                 "anonymous_provider_disabled" -> ANONYMOUS_DISABLED
                 "over_request_rate_limit", "over_email_send_rate_limit" -> RATE_LIMITED
+                "otp_expired", "otp_disabled" -> RESET_CODE_INVALID
+                "same_password" -> SAME_PASSWORD
                 "refresh_token_not_found", "refresh_token_already_used", "session_not_found", "session_expired",
                 "user_not_found", "user_banned", "bad_jwt" -> SESSION_EXPIRED
                 "validation_failed" -> if ("email" in message) INVALID_EMAIL else WEAK_PASSWORD
@@ -151,6 +157,31 @@ class AuthApi(
                 else -> EmailUpdate.Failed(AuthError.SERVER)
             }
         }
+    }
+
+    /**
+     * « Mot de passe oublié » (POST /auth/v1/recover): Supabase e-mails a code if the address has an account, and
+     * answers the same when it has none, so nobody can learn which addresses do. Null when the request went through.
+     */
+    suspend fun requestPasswordReset(email: String): AuthError? {
+        val body = JsonObject().apply { addProperty("email", email) }
+        return send("recover", body, bearer = null, method = "POST", failed = { it }) { null }
+    }
+
+    /** The code from the reset e-mail (POST /auth/v1/verify, type recovery): a session in which to set a new password. */
+    suspend fun verifyPasswordReset(email: String, code: String): AuthOutcome {
+        val body = JsonObject().apply {
+            addProperty("type", "recovery")
+            addProperty("email", email)
+            addProperty("token", code)
+        }
+        return post("verify", body, onSuccess = ::session)
+    }
+
+    /** A new password for the signed-in account (PUT /auth/v1/user). Null when it holds. */
+    suspend fun updatePassword(accessToken: String, password: String): AuthError? {
+        val body = JsonObject().apply { addProperty("password", password) }
+        return send("user", body, bearer = accessToken, method = "PUT", failed = { it }) { null }
     }
 
     /** Ends the session on the server too. Its failure changes nothing: the phone forgets the session anyway. */

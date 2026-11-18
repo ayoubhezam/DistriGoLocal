@@ -314,4 +314,76 @@ class AuthTest {
         assertEquals("/auth/v1/token?grant_type=refresh_token", server.takeRequest().path)
         assertTrue((repository.state.value as AccountState.SignedIn).session.isAdmin)
     }
+
+    // ── Mot de passe oublié ──
+
+    @Test
+    fun `a reset code is asked for by e-mail alone, and a refusal says why`() = runBlocking {
+        server.enqueue(jsonResponse(200, "{}"))
+        assertNull(api.requestPasswordReset("a@example.com"))
+        val request = server.takeRequest()
+        assertEquals("/auth/v1/recover", request.path)
+        assertEquals("POST", request.method)
+        assertNull("no session is needed", request.getHeader("Authorization"))
+        assertEquals("a@example.com", request.json.get("email").asString)
+
+        server.enqueue(jsonResponse(429, """{"code":429,"error_code":"over_email_send_rate_limit"}"""))
+        assertEquals(AuthError.RATE_LIMITED, api.requestPasswordReset("a@example.com"))
+    }
+
+    @Test
+    fun `the code is checked as a recovery, and a wrong or old one has its own message`() = runBlocking {
+        server.enqueue(jsonResponse(200, sessionJson(access = "access-reset")))
+        val outcome = api.verifyPasswordReset("a@example.com", "123456") as AuthOutcome.SignedIn
+        val body = server.takeRequest().also { assertEquals("/auth/v1/verify", it.path) }.json
+        assertEquals("recovery", body.get("type").asString)
+        assertEquals("a@example.com", body.get("email").asString)
+        assertEquals("123456", body.get("token").asString)
+        assertEquals("access-reset", outcome.session.accessToken)
+
+        server.enqueue(jsonResponse(403, """{"code":403,"error_code":"otp_expired","msg":"Token has expired or is invalid"}"""))
+        assertEquals(AuthOutcome.Failed(AuthError.RESET_CODE_INVALID), api.verifyPasswordReset("a@example.com", "000000"))
+    }
+
+    @Test
+    fun `a reset changes the password under the code's session, then keeps that session`() = runBlocking {
+        val repository = repository(stored = null)
+        server.enqueue(jsonResponse(200, sessionJson(access = "access-reset")))
+        server.enqueue(jsonResponse(200, """{"id":"u","email":"a@example.com"}"""))
+        val outcome = repository.resetPassword(" A@example.com ", "123456", "new-pass-9")
+        assertTrue(outcome is AuthOutcome.SignedIn)
+        assertEquals("a@example.com", server.takeRequest().json.get("email").asString)
+        val update = server.takeRequest()
+        assertEquals("/auth/v1/user", update.path)
+        assertEquals("PUT", update.method)
+        assertEquals("Bearer access-reset", update.getHeader("Authorization"))
+        assertEquals("new-pass-9", update.json.get("password").asString)
+        assertEquals("access-reset", (repository.state.value as AccountState.SignedIn).session.accessToken)
+    }
+
+    @Test
+    fun `a refused new password signs no one in, and the next try needs no new code`() = runBlocking {
+        val repository = repository(stored = null)
+        server.enqueue(jsonResponse(200, sessionJson(access = "access-reset")))
+        server.enqueue(jsonResponse(422, """{"code":422,"error_code":"same_password","msg":"New password should be different"}"""))
+        assertEquals(AuthOutcome.Failed(AuthError.SAME_PASSWORD), repository.resetPassword("a@example.com", "123456", "old-pass-1"))
+        assertEquals(AccountState.SignedOut, repository.state.value)
+        assertEquals(2, server.requestCount)
+
+        // The code serves once: the second try only sets the password
+        server.enqueue(jsonResponse(200, """{"id":"u","email":"a@example.com"}"""))
+        assertTrue(repository.resetPassword("a@example.com", "123456", "new-pass-9") is AuthOutcome.SignedIn)
+        server.takeRequest(); server.takeRequest()
+        assertEquals("/auth/v1/user", server.takeRequest().path)
+        assertEquals(3, server.requestCount)
+    }
+
+    @Test
+    fun `a wrong code changes nothing`() = runBlocking {
+        val repository = repository(stored = null)
+        server.enqueue(jsonResponse(403, """{"code":403,"error_code":"otp_expired"}"""))
+        assertEquals(AuthOutcome.Failed(AuthError.RESET_CODE_INVALID), repository.resetPassword("a@example.com", "999999", "new-pass-9"))
+        assertEquals(AccountState.SignedOut, repository.state.value)
+        assertEquals(1, server.requestCount)
+    }
 }

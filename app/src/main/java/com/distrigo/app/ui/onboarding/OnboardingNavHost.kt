@@ -47,7 +47,13 @@ class OnboardingActions(
     val signIn: (email: String, password: String) -> Unit,
     /** Null hides the Google button: no Google Cloud Web client is configured yet. */
     val signInWithGoogle: (() -> Unit)?,
-    val forgotPassword: () -> Unit,
+    /** « Mot de passe oublié ? », with the address typed so far: the reset page starts with it. */
+    val forgotPassword: (email: String) -> Unit,
+    /** The address the reset page starts with. */
+    val resetEmail: () -> String,
+    val requestPasswordReset: (email: String) -> Unit,
+    val resetPassword: (email: String, code: String, newPassword: String) -> Unit,
+    val changeResetEmail: () -> Unit,
     val createAccount: (SignUpForm) -> Unit,
     /** A complete code (no dashes): the answer arrives in [OnboardingStatus]. */
     val redeemCode: (code: String) -> Unit,
@@ -73,6 +79,8 @@ data class OnboardingStatus(
     val codeRequired: Boolean = false,
     /** With [codeRequired]: no trial because the phone failed the device check (LIC-04), not because it had one. */
     val trialNotChecked: Boolean = false,
+    /** « Mot de passe oublié »: the address a code was asked for; the page then asks for the code. */
+    val resetSentTo: String? = null,
     /** The phone is activated: the success screen. */
     val activation: ActivationSummary? = null,
 ) {
@@ -81,7 +89,7 @@ data class OnboardingStatus(
 }
 
 /** Where the onboarding opens: the welcome screen on a fresh install, a form when Compte asks for one. */
-enum class OnboardingStart { WELCOME, SIGN_IN, SIGN_UP, CODE }
+enum class OnboardingStart { WELCOME, SIGN_IN, SIGN_UP, CODE, RESET }
 
 private const val CAROUSEL = "onboarding_carousel"
 private const val SIGN_IN  = "onboarding_sign_in"
@@ -89,6 +97,7 @@ private const val SIGN_UP  = "onboarding_sign_up"
 private const val CODE     = "onboarding_code"
 private const val BUSINESS = "onboarding_business"
 private const val SUCCESS  = "onboarding_success"
+private const val RESET    = "onboarding_reset"
 
 /**
  * The onboarding (docs/design/onboarding_ui_review.md, docs/activation_codes.md): the carousel, then Connexion,
@@ -143,6 +152,7 @@ fun OnboardingNavHost(
             OnboardingStart.SIGN_IN -> SIGN_IN
             OnboardingStart.SIGN_UP -> SIGN_UP
             OnboardingStart.CODE -> CODE
+            OnboardingStart.RESET -> RESET
         },
         enterTransition    = navEnterTransition,
         exitTransition     = navExitTransition,
@@ -164,6 +174,7 @@ fun OnboardingNavHost(
                 onBack          = leave,
                 onCreateAccount = { navController.navigate(SIGN_UP) { popUpTo(SIGN_IN) { inclusive = true } } },
                 onCode          = openCode,
+                onForgot        = { email -> actions.forgotPassword(email); navController.navigate(RESET) { launchSingleTop = true } },
                 // Opened at Connexion (a sign-out, Compte), the tour is one tap away; from the tour, Back is
                 onDiscover      = if (start == OnboardingStart.WELCOME) null else ({ navController.navigate(CAROUSEL) { launchSingleTop = true } }),
             )
@@ -178,6 +189,9 @@ fun OnboardingNavHost(
                 onBack          = leave,
                 onCreateAccount = { navController.navigate(SIGN_UP) { popUpTo(CODE) { inclusive = true } } },
             )
+        }
+        composable(RESET) {
+            ResetPasswordPage(actions = actions, status = status, onBack = leave)
         }
         composable(BUSINESS) {
             BusinessPage(actions = actions, status = status, onBack = leave)
@@ -266,7 +280,11 @@ fun rememberOnboardingActions(viewModel: OnboardingViewModel): OnboardingActions
             } else {
                 null
             },
-            forgotPassword       = { say(licText(R.string.onb_reset_soon)) },
+            forgotPassword       = viewModel::prefillReset,
+            resetEmail           = { viewModel.resetEmail },
+            requestPasswordReset = viewModel::requestPasswordReset,
+            resetPassword        = viewModel::resetPassword,
+            changeResetEmail     = viewModel::changeResetEmail,
             createAccount        = viewModel::createAccount,
             redeemCode           = viewModel::redeemCode,
             completeBusiness     = viewModel::completeBusiness,
