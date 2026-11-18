@@ -89,18 +89,21 @@ class AuthRepository(
         val session = resetSession?.takeIf { it.first == address }?.second
             ?: when (val verified = api.verifyPasswordReset(address, code.trim())) {
                 is AuthOutcome.SignedIn -> verified.session.also { resetSession = address to it }
-                is AuthOutcome.Failed -> return verified
+                is AuthOutcome.Failed -> return AuthOutcome.Failed(duringReset(verified.error))
                 is AuthOutcome.ConfirmEmail -> return AuthOutcome.Failed(AuthError.SERVER)
             }
         api.updatePassword(session.accessToken, newPassword)?.let { error ->
             // A session the server no longer accepts needs a new code
             if (error == AuthError.SESSION_EXPIRED) resetSession = null
-            return AuthOutcome.Failed(error)
+            return AuthOutcome.Failed(duringReset(error))
         }
         resetSession = null
         save(session)
         return AuthOutcome.SignedIn(session)
     }
+
+    /** A rate limit in the middle of a reset: the code (or its session) is still good, so the user waits, no new code. */
+    private fun duringReset(error: AuthError) = if (error == AuthError.RATE_LIMITED) AuthError.RESET_WAIT else error
 
     /**
      * An access token good for at least a minute: the stored one, or a fresh one. [forceRefresh] when the server

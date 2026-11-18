@@ -58,6 +58,7 @@ class OnboardingViewModel @Inject constructor(
     fun reset() {
         pending = null
         activationCode = null
+        passwordResetFor = null
         _status.value = OnboardingStatus()
     }
 
@@ -78,23 +79,33 @@ class OnboardingViewModel @Inject constructor(
         _status.value = _status.value.copy(error = null, resetSentTo = null)
     }
 
+    /** The address whose password the reset has changed: a retry after a failed activation only activates. */
+    private var passwordResetFor: String? = null
+
     /** « Envoyer le code »: the same answer whether or not the address has an account. */
     fun requestPasswordReset(email: String) = work {
         resetEmail = email.trim()
-        when (val error = auth.requestPasswordReset(email)) {
-            null -> _status.value = _status.value.copy(resetSentTo = email.trim())
-            else -> fail(error.message)
-        }
+        val error = auth.requestPasswordReset(email)
+        _status.value = resetRequested(_status.value, email.trim(), error) ?: return@work fail(error!!.message)
     }
 
     /** « Changer le mot de passe »: then the account is signed in, and the phone activated as after Connexion. */
     fun resetPassword(email: String, code: String, newPassword: String) = work {
-        whenSignedIn(auth.resetPassword(email, code, newPassword)) { activate(ActivationOrigin.SIGN_IN) }
+        val address = email.trim().lowercase()
+        // The password already changed and the code is spent: only the activation is left to try again
+        if (passwordResetFor == address && auth.state.value is AccountState.SignedIn) {
+            return@work activate(ActivationOrigin.SIGN_IN)
+        }
+        whenSignedIn(auth.resetPassword(email, code, newPassword)) {
+            passwordResetFor = address
+            activate(ActivationOrigin.SIGN_IN)
+        }
     }
 
     /** « Changer d'adresse e-mail »: back to the first step of the reset. */
     fun changeResetEmail() {
-        _status.value = _status.value.copy(resetSentTo = null, error = null)
+        passwordResetFor = null
+        _status.value = resetEmailChanged(_status.value)
     }
 
     fun signInWithGoogle(idToken: String, rawNonce: String) = work {
@@ -223,9 +234,8 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    /** Leaves the needs-business step in place: the company form stays up with its error. */
     private fun fail(message: String) {
-        _status.value = OnboardingStatus(error = message, needsBusiness = _status.value.needsBusiness)
+        _status.value = failedStatus(_status.value, message)
     }
 
     /** One request at a time; whatever ends it says so in [status]. */
@@ -253,3 +263,24 @@ class OnboardingViewModel @Inject constructor(
                 ?: licText(R.string.onb_transfer_limit)
     }
 }
+
+/**
+ * What an error leaves on screen: its message, and the step the user is on. The company form stays up, and so does
+ * the reset's code step, with the code and the new password still typed (it went back to the e-mail step until
+ * 2026-11-18, so a refused password cost a new code). Everything else an attempt had set is dropped.
+ */
+internal fun failedStatus(current: OnboardingStatus, message: String) =
+    OnboardingStatus(error = message, needsBusiness = current.needsBusiness, resetSentTo = current.resetSentTo)
+
+/**
+ * After « Envoyer le code » for [email]: the code step, when the code went out or Supabase says one went out less
+ * than a minute ago (it then asks to type that one); null for any other refusal, which [failedStatus] says.
+ */
+internal fun resetRequested(current: OnboardingStatus, email: String, error: AuthError?): OnboardingStatus? = when (error) {
+    null -> current.copy(resetSentTo = email, error = null)
+    AuthError.RESET_SENT_RECENTLY -> current.copy(resetSentTo = email, error = error.message)
+    else -> null
+}
+
+/** « Changer d'adresse e-mail »: the e-mail step again, without the last error. */
+internal fun resetEmailChanged(current: OnboardingStatus) = current.copy(resetSentTo = null, error = null)

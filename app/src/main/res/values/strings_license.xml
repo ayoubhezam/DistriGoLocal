@@ -57,6 +57,8 @@
     <string name="auth_provider_disabled">Cette méthode de connexion n\'est pas encore disponible.</string>
     <string name="auth_reset_code_invalid">Code incorrect ou expiré. Vérifiez-le, ou demandez-en un nouveau.</string>
     <string name="auth_same_password">Choisissez un mot de passe différent de l\'ancien.</string>
+    <string name="auth_reset_sent_recently">Un code vient déjà d\'être envoyé à cette adresse : saisissez-le, ou attendez une minute pour en demander un autre.</string>
+    <string name="auth_reset_wait">Patientez une minute, puis réessayez : le code reste valable, inutile d\'en demander un nouveau.</string>
     <string name="auth_rate_limited">Trop de tentatives. Réessayez dans quelques minutes.</string>
     <string name="auth_session_expired">Votre session a expiré. Reconnectez-vous.</string>
     <string name="auth_anonymous_disabled">L\'activation par code n\'est pas encore ouverte. Réessayez plus tard.</string>

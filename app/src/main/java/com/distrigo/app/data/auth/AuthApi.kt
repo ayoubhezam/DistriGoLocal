@@ -28,6 +28,10 @@ enum class AuthError(@androidx.annotation.StringRes private val messageId: Int) 
     RESET_CODE_INVALID(R.string.auth_reset_code_invalid),
     /** A new password the same as the old one. */
     SAME_PASSWORD(R.string.auth_same_password),
+    /** « Envoyer le code » again within the minute Supabase leaves between two reset e-mails. */
+    RESET_SENT_RECENTLY(R.string.auth_reset_sent_recently),
+    /** A rate limit while the code is checked or the password set: the code is still good, wait and retry. */
+    RESET_WAIT(R.string.auth_reset_wait),
     NETWORK(R.string.auth_network),
     SERVER(R.string.auth_server),
     ;
@@ -165,7 +169,8 @@ class AuthApi(
      */
     suspend fun requestPasswordReset(email: String): AuthError? {
         val body = JsonObject().apply { addProperty("email", email) }
-        return send("recover", body, bearer = null, method = "POST", failed = { it }) { null }
+        // Its rate limit is one e-mail a minute per address: a code is on its way, not a refusal
+        return send("recover", body, bearer = null, method = "POST", failed = { if (it == AuthError.RATE_LIMITED) AuthError.RESET_SENT_RECENTLY else it }) { null }
     }
 
     /** The code from the reset e-mail (POST /auth/v1/verify, type recovery): a session in which to set a new password. */

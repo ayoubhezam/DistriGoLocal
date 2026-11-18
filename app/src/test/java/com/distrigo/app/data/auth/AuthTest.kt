@@ -318,7 +318,7 @@ class AuthTest {
     // ── Mot de passe oublié ──
 
     @Test
-    fun `a reset code is asked for by e-mail alone, and a refusal says why`() = runBlocking {
+    fun `a reset code is asked for by e-mail alone, and a second one within the minute says one is on its way`() = runBlocking {
         server.enqueue(jsonResponse(200, "{}"))
         assertNull(api.requestPasswordReset("a@example.com"))
         val request = server.takeRequest()
@@ -328,7 +328,9 @@ class AuthTest {
         assertEquals("a@example.com", request.json.get("email").asString)
 
         server.enqueue(jsonResponse(429, """{"code":429,"error_code":"over_email_send_rate_limit"}"""))
-        assertEquals(AuthError.RATE_LIMITED, api.requestPasswordReset("a@example.com"))
+        assertEquals(AuthError.RESET_SENT_RECENTLY, api.requestPasswordReset("a@example.com"))
+        server.enqueue(jsonResponse(400, """{"code":400,"error_code":"email_address_invalid"}"""))
+        assertEquals(AuthError.INVALID_EMAIL, api.requestPasswordReset("a@example"))
     }
 
     @Test
@@ -385,5 +387,25 @@ class AuthTest {
         assertEquals(AuthOutcome.Failed(AuthError.RESET_CODE_INVALID), repository.resetPassword("a@example.com", "999999", "new-pass-9"))
         assertEquals(AccountState.SignedOut, repository.state.value)
         assertEquals(1, server.requestCount)
+    }
+
+    @Test
+    fun `a rate limit while the password is set says to wait, and the code still serves after it`() = runBlocking {
+        val repository = repository(stored = null)
+        server.enqueue(jsonResponse(200, sessionJson(access = "access-reset")))
+        server.enqueue(jsonResponse(429, """{"code":429,"error_code":"over_request_rate_limit"}"""))
+        assertEquals(AuthOutcome.Failed(AuthError.RESET_WAIT), repository.resetPassword("a@example.com", "123456", "new-pass-9"))
+        assertEquals(AccountState.SignedOut, repository.state.value)
+
+        server.enqueue(jsonResponse(200, """{"id":"u","email":"a@example.com"}"""))
+        assertTrue(repository.resetPassword("a@example.com", "123456", "new-pass-9") is AuthOutcome.SignedIn)
+        assertEquals(3, server.requestCount)
+    }
+
+    @Test
+    fun `a rate limit while the code is checked says to wait too`() = runBlocking {
+        val repository = repository(stored = null)
+        server.enqueue(jsonResponse(429, """{"code":429,"error_code":"over_request_rate_limit"}"""))
+        assertEquals(AuthOutcome.Failed(AuthError.RESET_WAIT), repository.resetPassword("a@example.com", "123456", "new-pass-9"))
     }
 }
