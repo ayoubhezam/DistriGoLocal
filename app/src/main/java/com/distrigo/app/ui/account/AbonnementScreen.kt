@@ -117,7 +117,7 @@ fun AbonnementScreen(
             modifier           = Modifier.fillMaxWidth().aspectRatio(689f / 279f)
         )
         state.message?.let { BrandMessage(it.text, it.isError) }
-        StateCard(license)
+        StateCard(license, billing = paywall.enabled)
 
         // Only DistriGo lifts a suspension (§8.2): no plan to buy then, nor a code
         val canPay = license !is LicenseState.Suspended && license !is LicenseState.OtherBusiness
@@ -173,7 +173,8 @@ fun AbonnementScreen(
             }
         }
 
-        Text(
+        // About the code: only where the code can be typed
+        if (!paywall.enabled || codeOpen) Text(
             licText(R.string.acc_access_restored),
             fontFamily = DsBrand.Font,
             fontSize   = BrandSize.Small,
@@ -188,26 +189,32 @@ fun AbonnementScreen(
     state.dialog?.takeIf { it !is AccountDialog.EnterCode }?.let { AccountDialogs(it, state, viewModel) }
 }
 
-/** The state, in words true to the case (§8.2). */
+/**
+ * The state, in words true to the case (§8.2). While Google Play sells ([billing]), the words say « abonnez-vous »
+ * rather than « saisissez un code »: codes stay possible, folded below, but are not promoted.
+ */
 @Composable
-private fun StateCard(license: LicenseState) {
+private fun StateCard(license: LicenseState, billing: Boolean) {
     val held = license.heldLicense
     val trial = held?.plan == "trial"
     val (title, text, tone) = when (license) {
         is LicenseState.Expired -> Triple(
             licText(R.string.acc_sub_expired_title),
-            if (trial) licText(R.string.acc_trial_ended)
-            else licText(R.string.acc_sub_ended_on, date(license.license.validTo)),
+            when {
+                trial -> licText(if (billing) R.string.bill_state_trial_ended else R.string.acc_trial_ended)
+                billing -> licText(R.string.bill_state_ended_on, date(license.license.validTo))
+                else -> licText(R.string.acc_sub_ended_on, date(license.license.validTo))
+            },
             Tone.ENDED,
         )
         is LicenseState.Grace -> Triple(
             licText(R.string.acc_sub_grace_title, dayMonth(license.license.validTo), dayMonth(license.license.graceUntil)),
-            licText(R.string.acc_grace_text),
+            licText(if (billing) R.string.bill_state_grace else R.string.acc_grace_text),
             Tone.ENDED,
         )
         is LicenseState.RenewSoon -> Triple(
             licText(R.string.acc_sub_expires_title, dayMonth(license.license.validTo)),
-            licText(R.string.acc_extend_now),
+            licText(if (billing) R.string.bill_state_extend_now else R.string.acc_extend_now),
             Tone.SOON,
         )
         is LicenseState.Suspended -> Triple(
@@ -217,7 +224,7 @@ private fun StateCard(license: LicenseState) {
         )
         is LicenseState.Active, is LicenseState.CheckInSoon -> Triple(
             licText(R.string.acc_active_title),
-            licText(R.string.acc_sub_valid_until, date((license as LicenseState.Judged).license.validTo)),
+            licText(if (billing) R.string.bill_state_valid_until else R.string.acc_sub_valid_until, date((license as LicenseState.Judged).license.validTo)),
             Tone.ACTIVE,
         )
         else -> Triple(

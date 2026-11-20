@@ -20,4 +20,10 @@
     <string name="bill_unavailable_network">Google Play لا يستجيب. تحقّق من الاتصال ثم أعد المحاولة.</string>
     <string name="bill_unavailable_not_on_sale">لا يوجد أي اشتراك معروض حاليًا.</string>
     <string name="bill_unavailable_error">تعذّر على Google Play معالجة عملية الشراء. أعد المحاولة.</string>
+    <!-- The state card while the paywall shows: « abonnez-vous » instead of « saisissez un code » -->
+    <string name="bill_state_valid_until">صالح حتى %1$s.</string>
+    <string name="bill_state_ended_on">انتهى اشتراكك في DISTRONIQ Solo في %1$s. اشترك لتجديده.</string>
+    <string name="bill_state_trial_ended">انتهت الفترة التجريبية. اشترك لمواصلة تسجيل مبيعاتك ومشترياتك ومخزونك.</string>
+    <string name="bill_state_grace">يمكنك مواصلة التسجيل حتى نهاية فترة السماح. اشترك للمواصلة دون انقطاع.</string>
+    <string name="bill_state_extend_now">اشترك للمواصلة دون انقطاع.</string>
 </resources>
