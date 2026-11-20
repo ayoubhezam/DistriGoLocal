@@ -30,6 +30,11 @@ android {
         // "Continuer avec Google": the Web client id of the Google Cloud project (not a secret). Empty hides the
         // button. docs/license_architecture.md §6.6.
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"" + localProperties.getProperty("GOOGLE_WEB_CLIENT_ID", "") + "\"")
+        // Google Play Billing (docs/play_billing.md): off until the Play Console exists. Off, the Subscription
+        // screen is as before and the billing library is never started. BILLING_FAKE (debug builds only, below)
+        // shows the paywall with made-up prices, to look at it without a Console.
+        buildConfigField("boolean", "BILLING_ENABLED", localProperties.getProperty("BILLING_ENABLED", "false").toBoolean().toString())
+        buildConfigField("boolean", "BILLING_FAKE", "false")
     }
 
     // The release key, from local.properties (not in git): RELEASE_STORE_FILE (forward slashes),
@@ -52,6 +57,7 @@ android {
         // resource strings, so a string still written in the code stands out unmirrored.
         getByName("debug") {
             isPseudoLocalesEnabled = true
+            buildConfigField("boolean", "BILLING_FAKE", localProperties.getProperty("BILLING_FAKE", "false").toBoolean().toString())
         }
         release {
             signingConfigs.findByName("release")?.let { signingConfig = it }
@@ -188,6 +194,8 @@ dependencies {
     // Google Drive backup (docs/cloud_backup_drive_plan.md §4): the Authorization API for the drive.appdata scope.
     // Named at the version credentials-play-services-auth already resolves, so the build does not change.
     implementation("com.google.android.gms:play-services-auth:21.1.1")
+    // Google Play Billing (docs/play_billing.md): subscriptions, behind BILLING_ENABLED
+    implementation("com.android.billingclient:billing:8.0.0")
 
     implementation("org.osmdroid:osmdroid-android:6.1.18")
     implementation("com.google.maps.android:maps-compose:6.5.3")

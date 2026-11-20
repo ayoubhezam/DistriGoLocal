@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Google Play Billing: the paywall in « Abonnement » (docs/play_billing.md). Shown only while BILLING_ENABLED is on. -->
+<resources>
+    <string name="bill_title">اختر اشتراكًا</string>
+    <string name="bill_monthly">شهري</string>
+    <string name="bill_yearly">سنوي</string>
+    <string name="bill_price_per_month">%1$s / شهر</string>
+    <string name="bill_price_per_year">%1$s / سنة</string>
+    <string name="bill_subscribe">اشترك</string>
+    <string name="bill_renewal_note">يتجدّد تلقائيًا. يمكنك إلغاؤه في أي وقت من Google Play.</string>
+    <string name="bill_owned">اشتراكك في Google Play نشط على حساب Google هذا.</string>
+    <string name="bill_manage">إدارة اشتراكي</string>
+    <string name="bill_needs_email">للاشتراك، أضف أولًا بريدًا إلكترونيًا إلى حسابك: بدونه، سيضيع الاشتراك إذا حُذف التطبيق.</string>
+    <string name="bill_have_code">لديّ رمز تفعيل</string>
+    <string name="bill_pending">الدفع قيد الانتظار: سيُفعَّل الاشتراك بمجرد أن يستلمه Google Play.</string>
+    <string name="bill_active">تم تفعيل الاشتراك. شكرًا!</string>
+    <string name="bill_paid_not_yet">تم استلام الدفع، لكنه لم يُسجَّل بعد: %1$s سيُسجَّل عند التحقق القادم.</string>
+    <string name="bill_purchase_not_ours">تعذّر ربط عملية الشراء هذه بمؤسستك. تواصل معنا.</string>
+    <string name="bill_unavailable_store">عمليات الشراء عبر Google Play غير متاحة على هذا الهاتف.</string>
+    <string name="bill_unavailable_network">Google Play لا يستجيب. تحقّق من الاتصال ثم أعد المحاولة.</string>
+    <string name="bill_unavailable_not_on_sale">لا يوجد أي اشتراك معروض حاليًا.</string>
+    <string name="bill_unavailable_error">تعذّر على Google Play معالجة عملية الشراء. أعد المحاولة.</string>
+</resources>

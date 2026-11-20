@@ -49,6 +49,16 @@ object AccountModule {
     fun provideAuthRepository(@ApplicationContext context: Context, http: OkHttpClient): AuthRepository =
         AuthRepository(AuthApi(http, Backend.DISTRIGO), SessionStore.forApp(context))
 
+    /**
+     * Google Play Billing (docs/play_billing.md): made-up offers in BILLING_FAKE debug builds; otherwise Google Play's
+     * library, which starts only when the paywall first asks (never while BillingSwitch is off).
+     */
+    @Provides
+    @Singleton
+    fun provideBillingGateway(@ApplicationContext context: Context): com.distrigo.app.data.billing.BillingGateway =
+        if (com.distrigo.app.data.billing.BillingSwitch.fake) com.distrigo.app.data.billing.FakeBillingGateway()
+        else com.distrigo.app.data.billing.PlayBillingGateway(context)
+
     /** The business key an activation code gave this phone (docs/activation_codes.md): one copy for the app. */
     @Provides
     @Singleton

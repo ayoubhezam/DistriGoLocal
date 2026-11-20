@@ -71,9 +71,22 @@ import java.time.format.DateTimeFormatter
  * goes through Compte's own « Saisir un code » (AccountViewModel.renewWithCode), not a new path.
  */
 @Composable
-fun AbonnementScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
+fun AbonnementScreen(
+    viewModel: AccountViewModel,
+    onBack: () -> Unit,
+    paywall: PaywallViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
+) {
     BackHandler { onBack() }
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Google Play's plans (docs/play_billing.md), only while BillingSwitch is on: off, this screen is as it was
+    val sale by paywall.state.collectAsStateWithLifecycle()
+    val signedIn = state.account as? com.distrigo.app.data.auth.AccountState.SignedIn
+    // Read again when the account changes (an e-mail added to a code account) or the phone gets its license
+    androidx.compose.runtime.LaunchedEffect(signedIn?.session?.isAnonymous, signedIn?.session?.userId, state.license.heldLicense?.businessId) {
+        paywall.open()
+    }
+    // While Google Play sells, the code is the other way, folded under the plans
+    var codeOpen by rememberSaveable { mutableStateOf(false) }
     // Debug builds can draw another state's screen (LicensePreview); a release build always shows the real one
     val context = LocalContext.current
     val preview by produceState<LicenseState?>(null, state.license) {
@@ -106,8 +119,31 @@ fun AbonnementScreen(viewModel: AccountViewModel, onBack: () -> Unit) {
         state.message?.let { BrandMessage(it.text, it.isError) }
         StateCard(license)
 
-        // Only DistriGo lifts a suspension (§8.2), and a code renews a license this phone holds
-        if (license !is LicenseState.Suspended && license !is LicenseState.OtherBusiness) {
+        // Only DistriGo lifts a suspension (§8.2): no plan to buy then, nor a code
+        val canPay = license !is LicenseState.Suspended && license !is LicenseState.OtherBusiness
+        if (paywall.enabled && canPay) {
+            sale.message?.let { BrandMessage(it.text, it.isError) }
+            PaywallCard(
+                step       = sale.step,
+                onSelect   = paywall::select,
+                onBuy      = { paywall.buy(context.findActivity()) },
+                onAddEmail = { viewModel.ask(AccountDialog.AddEmail()) },
+                onManage   = { productId ->
+                    runCatching {
+                        context.startActivity(
+                            android.content.Intent(
+                                android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.parse(com.distrigo.app.data.billing.manageSubscriptionUrl(productId, context.packageName)),
+                            ),
+                        )
+                    }
+                },
+            )
+            if (!codeOpen) CodeFoldLink { codeOpen = true }
+        }
+
+        // A code renews a license this phone holds
+        if (canPay && (!paywall.enabled || codeOpen)) {
             BrandCard {
                 BrandCardHeader(Icons.Outlined.Key, licText(R.string.acc_activation_code))
                 BrandCardBody {

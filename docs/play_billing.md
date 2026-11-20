@@ -1,7 +1,7 @@
 # Google Play Billing (Solo release point 5)
 
-Status, 2026-11-20: **server prepared, app not started, nothing live.** The billing switch stays off until the Play
-Console exists. Owner's decisions (2026-11-18/20):
+Status, 2026-11-20: **server and app prepared, nothing live.** The migration and the two Edge Functions are not
+deployed, and the app's billing switch is off: both wait for the Play Console (§4). Owner's decisions (2026-11-18/20):
 
 - Play Billing is mainly for users **outside Algeria** (Gulf, France, other Arab countries). In Algeria, activation
   codes stay the local way to pay. Algeria supports developer and merchant registration (default currency USD).
@@ -50,7 +50,7 @@ Code: migration `20261118140000_play_billing.sql`, `supabase/functions/_shared/g
 check), `supabase/functions/_shared/play.ts` (the two operations), `play-verify/`, `play-rtdn/`. Tests:
 `supabase/tests/local/play_billing_test.sql` (13 checks) and `supabase/functions/tests/play.test.ts` (a fake Google).
 
-## 3. The app (step 4, after the owner's review)
+## 3. The app
 
 - A billing layer over the Play Billing Library, behind an interface, with a fake for the tests. It handles pending
   purchases and restores existing purchases at start-up and after sign-in.
@@ -60,6 +60,16 @@ check), `supabase/functions/_shared/play.ts` (the two operations), `play-verify/
 - An account made with a code is asked to add an e-mail first (Compte already has « Ajouter une adresse e-mail »);
   only then do the purchase buttons show. The server refuses it too (`email_required`).
 - **A switch, off until the Console exists:** until then the app looks as it does today, with no purchase button.
+  - `BILLING_ENABLED=true` in `local.properties` turns the paywall on (all build types). Off, the Subscription screen
+    is exactly as before, and Google Play's billing library is never started (its client is made on first use).
+  - `BILLING_FAKE=true` (debug builds only) shows the paywall with made-up offers at the placeholder prices, to look
+    at it without a Console. A « purchase » there gets a token Google never made, which the server refuses.
+- Code: `data/billing/` (`Billing.kt`: the switch, the catalogue, `accountIdFor`; `PlayBillingGateway.kt`: Billing
+  Library 8; `FakeBillingGateway.kt`), `LicenseClient.verifyPlayPurchase`, `ui/account/Paywall.kt` (the rules, testable
+  without Android, and `PaywallViewModel`), `ui/account/PaywallCard.kt`, `AbonnementScreen.kt`. Strings:
+  `strings_billing.xml`. Tests: `PaywallTest`, `LicenseClientTest` (play-verify's answers).
+- While the paywall shows, the code card is folded under « J'ai un code d'activation »: codes stay possible, never
+  promoted inside the app.
 
 ## 4. Once the Play Console exists: the checklist
 
@@ -87,7 +97,7 @@ In order. Each step says who does it.
 7. **Owner — Play Console › Monetization setup:** set the RTDN topic `projects/<project>/topics/play-rtdn`, then
    « Send test notification ». play-rtdn answers `test`, visible in the function's logs.
 8. **Owner — License testing:** add the testers' Google accounts. Their purchases are free and renew quickly.
-9. **Claude — the app's switch on, in a test build.** Then, on a phone with a tester account:
+9. **Claude — the app's switch on (`BILLING_ENABLED=true`), in a test build.** Then, on a phone with a tester account:
    - buy monthly;
    - check that the license runs to Play's date;
    - cancel, then check that the paid time still runs;

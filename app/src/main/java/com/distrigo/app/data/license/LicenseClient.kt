@@ -82,6 +82,18 @@ sealed interface Renewal {
     data class Failed(val message: String) : Renewal
 }
 
+/** How a Google Play purchase checked with the server (play-verify) ended. */
+sealed interface PlayVerification {
+    /** Recorded: the phone holds the license it pays for. */
+    data object Active : PlayVerification
+
+    /** An account made by a code: it adds an e-mail first, or the purchase dies with it on an uninstall. */
+    data object EmailRequired : PlayVerification
+
+    /** [retry]: the network, the server, or billing not set up there yet: the same purchase may well pass later. */
+    data class Failed(val message: String, val retry: Boolean = false) : PlayVerification
+}
+
 /** « Informations de l'entreprise » (business-profile): what the server keeps about the account's business. */
 data class BusinessProfile(
     val businessId: String,
@@ -218,6 +230,36 @@ class LicenseClient(
             "no_business" -> Renewal.Failed(licText(R.string.lic_no_business_renew))
             "choose_business" -> Renewal.Failed(licText(R.string.lic_choose_business))
             else -> Renewal.Failed(SERVER_MESSAGE)
+        }
+    }
+
+    /**
+     * A Google Play purchase (docs/play_billing.md): the server asks Google itself, checks it was made for this
+     * business, records it and acknowledges it; then a check-in brings the license it pays for. Safe to repeat: a
+     * restore sends the same purchase again.
+     */
+    suspend fun verifyPlayPurchase(purchaseToken: String, productId: String): PlayVerification {
+        val body = JsonObject().apply {
+            addProperty("purchase_token", purchaseToken)
+            addProperty("product_id", productId)
+        }
+        val reply = when (val answer = call("play-verify", body)) {
+            is Reply.Answer -> answer.body
+            is Reply.Refused -> return PlayVerification.Failed(answer.message, answer.retry)
+        }
+        return when (reply.text("status")) {
+            "ok" -> when (val check = checkIn()) {
+                CheckIn.Done -> PlayVerification.Active
+                // Paid and recorded all the same: the next check-in brings it
+                is CheckIn.Failed -> PlayVerification.Failed(licText(R.string.lic_renewed_not_updated, check.message), retry = true)
+                CheckIn.Suspended -> PlayVerification.Failed(licText(R.string.lic_renewed_suspended))
+                CheckIn.Revoked, CheckIn.NotActivated -> PlayVerification.Failed(licText(R.string.lic_renewed_activate))
+            }
+            "email_required" -> PlayVerification.EmailRequired
+            "no_business" -> PlayVerification.Failed(licText(R.string.lic_no_business_renew))
+            "unknown_purchase", "unknown_product", "other_account", "other_business" ->
+                PlayVerification.Failed(licText(R.string.bill_purchase_not_ours))
+            else -> PlayVerification.Failed(SERVER_MESSAGE, retry = true)
         }
     }
 

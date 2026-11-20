@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Google Play Billing: the paywall in « Abonnement » (docs/play_billing.md). Shown only while BILLING_ENABLED is on. -->
+<resources>
+    <string name="bill_title">Choisir un abonnement</string>
+    <string name="bill_monthly">Mensuel</string>
+    <string name="bill_yearly">Annuel</string>
+    <string name="bill_price_per_month">%1$s / mois</string>
+    <string name="bill_price_per_year">%1$s / an</string>
+    <string name="bill_subscribe">S\'abonner</string>
+    <string name="bill_renewal_note">Renouvellement automatique. Résiliable à tout moment dans Google Play.</string>
+    <string name="bill_owned">Votre abonnement Google Play est actif sur ce compte Google.</string>
+    <string name="bill_manage">Gérer mon abonnement</string>
+    <string name="bill_needs_email">Pour vous abonner, ajoutez d\'abord une adresse e-mail à votre compte : sans elle, l\'abonnement serait perdu si l\'application était désinstallée.</string>
+    <string name="bill_have_code">J\'ai un code d\'activation</string>
+    <string name="bill_pending">Paiement en attente : l\'abonnement s\'activera dès que Google Play l\'aura reçu.</string>
+    <string name="bill_active">Abonnement activé. Merci !</string>
+    <string name="bill_paid_not_yet">Paiement reçu, mais pas encore enregistré : %1$s Il le sera à la prochaine vérification.</string>
+    <string name="bill_purchase_not_ours">Cet achat n\'a pas pu être rattaché à votre entreprise. Contactez-nous.</string>
+    <string name="bill_unavailable_store">Les achats Google Play ne sont pas disponibles sur ce téléphone.</string>
+    <string name="bill_unavailable_network">Google Play ne répond pas. Vérifiez la connexion, puis réessayez.</string>
+    <string name="bill_unavailable_not_on_sale">Aucun abonnement n\'est proposé pour le moment.</string>
+    <string name="bill_unavailable_error">Google Play n\'a pas pu traiter l\'achat. Réessayez.</string>
+</resources>

@@ -135,6 +135,26 @@ class LicenseClientTest {
     }
 
     @Test
+    fun `a Google Play purchase goes to play-verify, and each refusal says what to do`() = runBlocking {
+        server.enqueue(jsonResponse(200, """{"status":"email_required"}"""))
+        assertEquals(PlayVerification.EmailRequired, client.verifyPlayPurchase("tok-1", "distroniq_solo"))
+        val request = server.takeRequest()
+        assertTrue(request.path!!.endsWith("/functions/v1/play-verify"))
+        val sent = request.json
+        assertEquals("tok-1", sent.get("purchase_token").asString)
+        assertEquals("distroniq_solo", sent.get("product_id").asString)
+
+        val notOurs = PlayVerification.Failed("Cet achat n'a pas pu être rattaché à votre entreprise. Contactez-nous.")
+        for (status in listOf("unknown_purchase", "unknown_product", "other_account", "other_business")) {
+            server.enqueue(jsonResponse(200, """{"status":"$status"}"""))
+            assertEquals(status, notOurs, client.verifyPlayPurchase("tok", "distroniq_solo"))
+        }
+        // Billing not set up on the server yet (no Play Console): the same purchase may pass later
+        server.enqueue(jsonResponse(503, """{"status":"billing_unavailable"}"""))
+        assertTrue((client.verifyPlayPurchase("tok", "distroniq_solo") as PlayVerification.Failed).retry)
+    }
+
+    @Test
     fun `a phone holding a license is never activated again, a new key would break it`() = runBlocking {
         keys.hash = Golden.deviceHash
         assertTrue(license.install(Golden.token("valid")) is LicenseCheck.Valid)
