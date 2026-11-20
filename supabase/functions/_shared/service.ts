@@ -12,6 +12,7 @@ import {
     optionalUuid, reply, type Reply, signedMessage, uuid,
 } from "./protocol.ts";
 import type { RevocationList } from "./revocation.ts";
+import type { PlayApi } from "./google.ts";
 
 export interface Config {
     sql: Sql;
@@ -27,6 +28,8 @@ export interface Config {
     roots?: Uint8Array[];
     revocation: () => Promise<RevocationList>;
     now?: () => Date;
+    /** Google Play's API (play-verify, play-rtdn); null until PLAY_SERVICE_ACCOUNT_JSON is set. */
+    play?: PlayApi | null;
 }
 
 /** Who asks, beyond the account: the connection's address, which failed codes are also counted against. */

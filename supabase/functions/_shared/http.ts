@@ -6,10 +6,14 @@
 //   LICENSE_SIGNING_KID          the id the app pins its public half under: lic-2026-a
 //   LICENSE_APP_SIGNING_DIGESTS  SHA-256 of the app's release signing certificates, hex, comma-separated
 //   LICENSE_TEST_SIGNING_DIGESTS optional: the debug certificates, trusted only for private.test_accounts (LIC-03)
+//   PLAY_SERVICE_ACCOUNT_JSON    optional until the Play Console exists: the service account's key file (play-verify, play-rtdn)
+//   PLAY_RTDN_AUDIENCE           the audience Pub/Sub's push subscription signs its tokens for (play-rtdn's URL)
+//   PLAY_RTDN_SERVICE_ACCOUNT    the service account Pub/Sub pushes as
 // Provided by Supabase: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_DB_URL.
 
 import postgres from "npm:postgres@3.4.5";
-import { importSigningKey } from "./jws.ts";
+import { googleCerts, googlePlayApi, verifyPushToken } from "./google.ts";
+import { base64Decode, importSigningKey } from "./jws.ts";
 import { BadRequest, type Reply } from "./protocol.ts";
 import { revocationList } from "./revocation.ts";
 import type { Client, Config } from "./service.ts";
@@ -34,6 +38,9 @@ function loadConfig(): Promise<Config> {
         signingDigests: digests(env("LICENSE_APP_SIGNING_DIGESTS")),
         testSigningDigests: digests(Deno.env.get("LICENSE_TEST_SIGNING_DIGESTS") ?? ""),
         revocation: revocationList(),
+        play: Deno.env.get("PLAY_SERVICE_ACCOUNT_JSON")
+            ? googlePlayApi(env("PLAY_SERVICE_ACCOUNT_JSON"), Deno.env.get("LICENSE_PACKAGE_NAME") ?? "com.distrigo.app")
+            : null,
     }))();
     return config;
 }
@@ -90,6 +97,42 @@ export function serve(
             return json(answer.body, answer.status);
         } catch (error) {
             if (error instanceof BadRequest) return json({ status: "bad_request", field: error.message }, 400);
+            console.error(error);
+            return json({ status: "error" }, 500);
+        }
+    });
+}
+
+// Google's signing keys for Pub/Sub's tokens, kept an hour
+let certs: { keys: Awaited<ReturnType<typeof googleCerts>>; until: number } | null = null;
+
+/**
+ * A Pub/Sub push endpoint (play-rtdn): no Supabase account here, but a token Google signs for the push subscription's
+ * service account and audience. The message's data is the notification, base64 JSON. A malformed message is
+ * answered 200 (or Pub/Sub would send it forever); a failure 500 (Pub/Sub sends it again later).
+ */
+export function servePubSub(operation: (config: Config, notification: Record<string, unknown>) => Promise<Reply>) {
+    Deno.serve(async (request) => {
+        if (request.method !== "POST") return json({ status: "method_not_allowed" }, 405);
+        try {
+            const audience = Deno.env.get("PLAY_RTDN_AUDIENCE");
+            const email = Deno.env.get("PLAY_RTDN_SERVICE_ACCOUNT");
+            if (!audience || !email) return json({ status: "billing_unavailable" }, 503);
+            if (!certs || certs.until < Date.now()) certs = { keys: await googleCerts(), until: Date.now() + 3_600_000 };
+            if (!(await verifyPushToken(request.headers.get("authorization"), { audience, email }, certs.keys))) {
+                return json({ status: "unauthenticated" }, 401);
+            }
+            let notification: Record<string, unknown>;
+            try {
+                const body = await request.json();
+                notification = JSON.parse(new TextDecoder().decode(base64Decode(body.message.data)));
+                if (typeof notification !== "object" || notification === null) throw new Error("not an object");
+            } catch (_) {
+                return json({ status: "ignored" });
+            }
+            const answer = await operation(await loadConfig(), notification);
+            return json(answer.body, answer.status);
+        } catch (error) {
             console.error(error);
             return json({ status: "error" }, 500);
         }

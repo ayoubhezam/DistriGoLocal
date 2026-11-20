@@ -443,3 +443,11 @@ verify_jwt = false
 # The owner's « Administration » screen: codes without Studio (docs/activation_codes.md, step C4).
 [functions.codes-admin]
 verify_jwt = false
+
+# Google Play Billing (docs/play_billing.md). play-verify authenticates its caller like the others; play-rtdn is called
+# by Google's Pub/Sub, whose own signed token it checks.
+[functions.play-verify]
+verify_jwt = false
+
+[functions.play-rtdn]
+verify_jwt = false
