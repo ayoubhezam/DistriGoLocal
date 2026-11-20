@@ -72,7 +72,7 @@ class CheckInNotifications(private val context: Context) : CheckInAlerts {
         val open = context.packageManager.getLaunchIntentForPackage(context.packageName)?.let {
             PendingIntent.getActivity(context, 0, it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE)
         }
-        val text = licText(R.string.lic_alert_grace, day(validTo), day(graceUntil))
+        val text = licText(if (com.distrigo.app.data.billing.BillingSwitch.enabled) R.string.bill_alert_grace else R.string.lic_alert_grace, day(validTo), day(graceUntil))
         val notification = NotificationCompat.Builder(context, AutoBackupNotifications.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_license)
             .setContentTitle(licText(R.string.lic_alert_grace_title))

@@ -26,4 +26,15 @@
     <string name="bill_state_trial_ended">انتهت الفترة التجريبية. اشترك لمواصلة تسجيل مبيعاتك ومشترياتك ومخزونك.</string>
     <string name="bill_state_grace">يمكنك مواصلة التسجيل حتى نهاية فترة السماح. اشترك للمواصلة دون انقطاع.</string>
     <string name="bill_state_extend_now">اشترك للمواصلة دون انقطاع.</string>
+    <!-- Outside « Abonnement », while the paywall shows: Compte, the grace notification, the onboarding -->
+    <string name="bill_trial_used_text">التجربة المجانية غير متاحة على هذا الهاتف: اشترك من الحساب › الاشتراك لتفعيل DISTRONIQ.</string>
+    <string name="bill_look_grace_text">انتهى الاشتراك: جدّده لمواصلة التسجيل.</string>
+    <string name="bill_look_expired_text">للعرض فقط: جدّد اشتراكك للاستئناف. يبقى النسخ الاحتياطي والتصدير متاحين.</string>
+    <string name="bill_notice_renew">ينتهي اشتراكك في %1$s: جدّده للمواصلة دون انقطاع.</string>
+    <string name="bill_alert_grace">انتهى اشتراكك في %1$s. يمكنك مواصلة التسجيل حتى %2$s: جدّده من الحساب ← الاشتراك للمتابعة.</string>
+    <string name="bill_onb_title">فعّل DISTRONIQ</string>
+    <string name="bill_onb_sub">اختر اشتراكًا للبدء.</string>
+    <string name="bill_onb_trial_device">التجربة المجانية متاحة فقط على الهواتف التي يؤكّد Google أصالتها. هذا الهاتف لا يسمح بذلك (بدون خدمات Google، أو معدَّل، أو مُروَّت): اشترك لتفعيل DISTRONIQ.</string>
+    <string name="bill_onb_trial_used">استُعملت التجربة المجانية من قبل على هذا الهاتف: اشترك لتفعيل DISTRONIQ.</string>
+    <string name="bill_see_plans">عرض الاشتراكات</string>
 </resources>

@@ -26,4 +26,15 @@
     <string name="bill_state_trial_ended">La période d\'essai est terminée. Abonnez-vous pour continuer à enregistrer vos ventes, achats et stocks.</string>
     <string name="bill_state_grace">Vous pouvez encore enregistrer jusqu\'à la fin de la grâce. Abonnez-vous pour continuer sans interruption.</string>
     <string name="bill_state_extend_now">Abonnez-vous pour continuer sans interruption.</string>
+    <!-- Outside « Abonnement », while the paywall shows: Compte, the grace notification, the onboarding -->
+    <string name="bill_trial_used_text">L\'essai gratuit n\'est pas disponible sur ce téléphone : abonnez-vous dans Compte › Abonnement pour activer DISTRONIQ.</string>
+    <string name="bill_look_grace_text">L\'abonnement est terminé : renouvelez-le pour continuer à enregistrer.</string>
+    <string name="bill_look_expired_text">Consultation seule : renouvelez votre abonnement pour reprendre. Sauvegarde et export restent disponibles.</string>
+    <string name="bill_notice_renew">Votre abonnement se termine le %1$s : renouvelez-le pour continuer sans interruption.</string>
+    <string name="bill_alert_grace">Votre abonnement a expiré le %1$s. Vous pouvez encore enregistrer jusqu\'au %2$s : renouvelez-le dans Compte → Abonnement pour continuer.</string>
+    <string name="bill_onb_title">Activez DISTRONIQ</string>
+    <string name="bill_onb_sub">Choisissez un abonnement pour commencer.</string>
+    <string name="bill_onb_trial_device">L\'essai gratuit est réservé aux téléphones dont Google confirme l\'authenticité. Ce téléphone ne le permet pas (sans services Google, modifié ou rooté) : abonnez-vous pour activer DISTRONIQ.</string>
+    <string name="bill_onb_trial_used">L\'essai gratuit a déjà été utilisé sur ce téléphone : abonnez-vous pour activer DISTRONIQ.</string>
+    <string name="bill_see_plans">Voir les abonnements</string>
 </resources>

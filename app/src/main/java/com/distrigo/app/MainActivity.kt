@@ -261,6 +261,8 @@ class MainActivity : ComponentActivity() {
             val onboardingViewModel: com.distrigo.app.ui.onboarding.OnboardingViewModel = hiltViewModel()
             var onboarding by rememberSaveable { mutableStateOf<com.distrigo.app.ui.onboarding.OnboardingStart?>(null) }
             var onboardingRequired by rememberSaveable { mutableStateOf(false) }
+            // « Voir les abonnements » in the onboarding: once it has closed, « Abonnement » opens
+            var subscriptionAsked by rememberSaveable { mutableStateOf(false) }
             val openOnboarding: (com.distrigo.app.ui.onboarding.OnboardingStart) -> Unit = { start ->
                 onboardingViewModel.reset()
                 onboarding = start
@@ -305,6 +307,12 @@ class MainActivity : ComponentActivity() {
                 BoxWithConstraints(modifier = Modifier.fillMaxSize().statusBarsPadding().imePadding()) {
                     var hideBottomBar by remember { mutableStateOf(false) }
                     val navController = rememberTrackedNavController()
+                    LaunchedEffect(subscriptionAsked) {
+                        if (subscriptionAsked) {
+                            subscriptionAsked = false
+                            navController.navigate(Screen.Abonnement.route) { launchSingleTop = true }
+                        }
+                    }
                     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
                     val isTabRoute = currentRoute in com.distrigo.app.ui.navigation.TAB_ROUTES
 
@@ -788,7 +796,13 @@ class MainActivity : ComponentActivity() {
                             onboardingViewModel.reset()
                         }
                     },
-                    onIntroSeen = { lifecycleScope.launch(Dispatchers.IO) { com.distrigo.app.ui.onboarding.OnboardingIntro.markSeen(this@MainActivity) } }
+                    onIntroSeen = { lifecycleScope.launch(Dispatchers.IO) { com.distrigo.app.ui.onboarding.OnboardingIntro.markSeen(this@MainActivity) } },
+                    onSubscribe = {
+                        onboarding = null
+                        onboardingRequired = false
+                        onboardingViewModel.reset()
+                        subscriptionAsked = true
+                    }
                 )
             }
         } } }

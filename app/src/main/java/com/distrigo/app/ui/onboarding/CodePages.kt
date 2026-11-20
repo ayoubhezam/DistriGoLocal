@@ -152,6 +152,8 @@ internal fun CodePages(
     status: OnboardingStatus,
     onBack: () -> Unit,
     onCreateAccount: () -> Unit,
+    /** While Google Play sells: leave the onboarding for « Abonnement » (a trial refused, so a paid plan is next). */
+    onSubscribe: () -> Unit = {},
 ) {
     var code by rememberSaveable { mutableStateOf("") }
     var step by rememberSaveable { mutableIntStateOf(1) }
@@ -186,7 +188,8 @@ internal fun CodePages(
                                     if (status.error != null) actions.resetCode()
                                 },
                                 status       = status,
-                                onActivate   = { actions.redeemCode(code) }
+                                onActivate   = { actions.redeemCode(code) },
+                                onSubscribe  = onSubscribe,
                             )
                         } else {
                             CodeBusinessStep(code = code, status = status, actions = actions)
@@ -208,7 +211,13 @@ internal fun CodePages(
 }
 
 @Composable
-private fun CodeStep(code: String, onCodeChange: (String) -> Unit, status: OnboardingStatus, onActivate: () -> Unit) {
+private fun CodeStep(
+    code: String,
+    onCodeChange: (String) -> Unit,
+    status: OnboardingStatus,
+    onActivate: () -> Unit,
+    onSubscribe: () -> Unit,
+) {
     // A short or mistyped code is caught here; whether it exists is the server's to say
     var tried by rememberSaveable { mutableStateOf(false) }
     val tooShort = tried && code.length < CODE_LENGTH
@@ -227,10 +236,28 @@ private fun CodeStep(code: String, onCodeChange: (String) -> Unit, status: Onboa
         }
         Spacer(Modifier.height(DsSpacing.lg))
     }
-    FormTitle(licText(R.string.onb_activate_with_code), licText(R.string.onb_enter_code_text))
-    if (status.codeRequired) {
+    // No trial for this phone while Google Play sells: the plans first; a code stays one tap away, not promoted
+    val plansFirst = status.codeRequired && com.distrigo.app.data.billing.BillingSwitch.enabled
+    var codeShown by rememberSaveable { mutableStateOf(false) }
+    if (plansFirst) {
+        FormTitle(licText(R.string.bill_onb_title), licText(R.string.bill_onb_sub))
         Spacer(Modifier.height(DsSpacing.md))
-        Notice(licText(if (status.trialNotChecked) R.string.onb_trial_device else R.string.onb_trial_used))
+        Notice(licText(if (status.trialNotChecked) R.string.bill_onb_trial_device else R.string.bill_onb_trial_used))
+        Spacer(Modifier.height(DsSpacing.xl))
+        BrandButton(licText(R.string.bill_see_plans), onClick = onSubscribe)
+        if (!codeShown) {
+            Spacer(Modifier.height(DsSpacing.md))
+            TextButton(onClick = { codeShown = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(licText(R.string.bill_have_code), fontFamily = DsBrand.Font, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = DsBrand.Slate)
+            }
+            return
+        }
+    } else {
+        FormTitle(licText(R.string.onb_activate_with_code), licText(R.string.onb_enter_code_text))
+        if (status.codeRequired) {
+            Spacer(Modifier.height(DsSpacing.md))
+            Notice(licText(if (status.trialNotChecked) R.string.onb_trial_device else R.string.onb_trial_used))
+        }
     }
     Spacer(Modifier.height(DsSpacing.xl))
     CodeField(

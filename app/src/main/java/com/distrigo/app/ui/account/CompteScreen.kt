@@ -513,7 +513,7 @@ private fun SubscriptionCard(
         }
         BrandCardBody {
             val notice = when {
-                trialUsed -> licText(R.string.acc_trial_used_text)
+                trialUsed -> licText(if (com.distrigo.app.data.billing.BillingSwitch.enabled) R.string.bill_trial_used_text else R.string.acc_trial_used_text)
                 license is LicenseState.OtherBusiness -> otherBusinessNotice(dataName, accountName)
                 else -> license.notice(held)
             }
@@ -622,8 +622,9 @@ private fun LicenseState.look(): Look = when (this) {
     is LicenseState.Active -> Look(licText(R.string.acc_look_active), "", DsColors.Success, DsColors.SuccessLight)
     is LicenseState.RenewSoon -> Look(licText(R.string.acc_look_renew), licText(R.string.acc_look_renew_text), DsColors.Warning, DsColors.WarningLight)
     is LicenseState.CheckInSoon -> Look(licText(R.string.acc_look_check), licText(R.string.acc_look_check_text), DsColors.Warning, DsColors.WarningLight)
-    is LicenseState.Grace -> Look(licText(R.string.acc_look_grace), licText(R.string.acc_look_grace_text), DsColors.Danger, DsColors.DangerLight)
-    is LicenseState.Expired -> Look(licText(R.string.acc_look_expired), licText(R.string.acc_look_expired_text), DsColors.Danger, DsColors.DangerLight)
+    // While Google Play sells (BillingSwitch), « renouvelez votre abonnement » rather than « saisissez un code »
+    is LicenseState.Grace -> Look(licText(R.string.acc_look_grace), licText(if (com.distrigo.app.data.billing.BillingSwitch.enabled) R.string.bill_look_grace_text else R.string.acc_look_grace_text), DsColors.Danger, DsColors.DangerLight)
+    is LicenseState.Expired -> Look(licText(R.string.acc_look_expired), licText(if (com.distrigo.app.data.billing.BillingSwitch.enabled) R.string.bill_look_expired_text else R.string.acc_look_expired_text), DsColors.Danger, DsColors.DangerLight)
     is LicenseState.ClockBehind -> Look(licText(R.string.acc_look_clock), licText(R.string.acc_look_clock_text), DsColors.Danger, DsColors.DangerLight)
     is LicenseState.NotYetValid -> Look(licText(R.string.acc_look_not_yet), licText(R.string.acc_look_not_yet_text), DsColors.Warning, DsColors.WarningLight)
     is LicenseState.CheckInRequired -> Look(licText(R.string.acc_look_check_needed), licText(R.string.acc_look_check_needed_text), DsColors.Warning, DsColors.WarningLight)
@@ -644,7 +645,7 @@ private fun otherBusinessNotice(dataName: String?, accountName: String?): String
 /** The note under the dates: nothing while all is well, otherwise what the state asks for, with its date. */
 private fun LicenseState.notice(held: License?): String? = when (this) {
     is LicenseState.Active -> null
-    is LicenseState.RenewSoon -> held?.let { licText(R.string.acc_notice_renew, day(it.validTo)) } ?: look().explanation
+    is LicenseState.RenewSoon -> held?.let { licText(if (com.distrigo.app.data.billing.BillingSwitch.enabled) R.string.bill_notice_renew else R.string.acc_notice_renew, day(it.validTo)) } ?: look().explanation
     is LicenseState.CheckInSoon -> held?.let { licText(R.string.acc_notice_check, day(it.offlineUntil)) } ?: look().explanation
     else -> look().explanation.ifEmpty { null }
 }

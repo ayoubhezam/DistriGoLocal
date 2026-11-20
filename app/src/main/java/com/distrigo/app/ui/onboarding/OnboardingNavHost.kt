@@ -112,6 +112,8 @@ fun OnboardingNavHost(
     onClose: () -> Unit,
     start: OnboardingStart = OnboardingStart.WELCOME,
     onIntroSeen: () -> Unit = {},
+    /** « Voir les abonnements » (BillingSwitch on, no trial): the onboarding closes on « Abonnement ». */
+    onSubscribe: () -> Unit = {},
 ) {
     val navController = rememberTrackedNavController()
     val pager = rememberPagerState { ONBOARDING_PAGE_COUNT }
@@ -188,6 +190,7 @@ fun OnboardingNavHost(
                 status          = status,
                 onBack          = leave,
                 onCreateAccount = { navController.navigate(SIGN_UP) { popUpTo(CODE) { inclusive = true } } },
+                onSubscribe     = onSubscribe,
             )
         }
         composable(RESET) {
@@ -247,13 +250,14 @@ fun Onboarding(
     onFinished: () -> Unit,
     onClose: () -> Unit,
     onIntroSeen: () -> Unit = {},
+    onSubscribe: () -> Unit = {},
 ) {
     BackHandler(onBack = onClose)
     val status by viewModel.status.collectAsStateWithLifecycle()
     val actions = rememberOnboardingActions(viewModel)
     // Drawn over the app, so nothing beneath it may be touched through it
     Box(Modifier.fillMaxSize().background(DsBrand.Mist).pointerInput(Unit) {}) {
-        OnboardingNavHost(actions, status = status, onFinished = onFinished, onClose = onClose, start = start, onIntroSeen = onIntroSeen)
+        OnboardingNavHost(actions, status = status, onFinished = onFinished, onClose = onClose, start = start, onIntroSeen = onIntroSeen, onSubscribe = onSubscribe)
     }
 }
 
